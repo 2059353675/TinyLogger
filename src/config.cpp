@@ -132,6 +132,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
             config.printers.push_back(std::move(pc));
         }
 
+        error = ConfigError::None;
         return config;
 
     } catch (const json::parse_error&) {

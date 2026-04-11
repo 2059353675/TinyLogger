@@ -13,7 +13,8 @@ enum class ConfigError {
     InvalidOverflowPolicy,
     InvalidPrinterType,
     InvalidLevel,
-    UnknownError
+    UnknownError,
+    None
 };
 
 struct PrinterConfig {

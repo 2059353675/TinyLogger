@@ -6,6 +6,8 @@
 #include "TinyLogger/printer_file.h"
 #include "TinyLogger/ring_buffer.h"
 #include <atomic>
+#include <fmt/chrono.h>
+#include <fmt/format.h>
 #include <memory>
 
 namespace TinyLogger {

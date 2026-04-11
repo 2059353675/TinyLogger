@@ -1,0 +1,10 @@
+{
+    "buffer_size": 256,
+    "overflow_policy": "discard",
+    "printers": [
+        {
+            "type": "console",
+            "level": "debug"
+        }
+    ]
+}

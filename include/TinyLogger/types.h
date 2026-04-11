@@ -3,8 +3,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <fmt/chrono.h>
-#include <fmt/format.h>
+#include <cstring>
 #include <nlohmann/json.hpp>
 #include <string>
 
@@ -53,7 +52,7 @@ struct LogEvent {
 };
 
 /* 缓冲区的基本单位 */
-alignas(64) struct Slot {
+struct alignas(64) Slot {
     std::atomic<size_t> sequence{0};
     LogEvent event;
 };
