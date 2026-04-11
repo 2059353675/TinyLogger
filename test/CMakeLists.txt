@@ -4,26 +4,38 @@ project(TinyLoggerTests LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 使用系统 nlohmann/json 库（位于 /usr/include/nlohmann/json.hpp）
-find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp PATHS /usr/include)
-if(NOT NLOHMANN_JSON_INCLUDE_DIR)
-    message(FATAL_ERROR "nlohmann/json.hpp not found in /usr/include")
+# ==================== 查找依赖 ====================
+
+# nlohmann/json
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+    find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp PATHS /usr/include /usr/local/include)
+    if(NOT NLOHMANN_JSON_INCLUDE_DIR)
+        message(FATAL_ERROR "nlohmann/json.hpp not found. Please install nlohmann-json package.")
+    endif()
+    add_library(nlohmann_json INTERFACE IMPORTED)
+    target_include_directories(nlohmann_json INTERFACE ${NLOHMANN_JSON_INCLUDE_DIR})
 endif()
 
-# 使用系统 fmt 库（位于 /usr/include/fmt/）
-find_path(FMT_INCLUDE_DIR NAMES fmt/format.h PATHS /usr/include)
-if(NOT FMT_INCLUDE_DIR)
-    message(FATAL_ERROR "fmt/format.h not found in /usr/include")
-endif()
-find_library(FMT_LIBRARY NAMES fmt)
-if(NOT FMT_LIBRARY)
-    message(FATAL_ERROR "libfmt not found")
+# fmt
+find_package(fmt QUIET)
+if(NOT fmt_FOUND)
+    find_path(FMT_INCLUDE_DIR NAMES fmt/format.h PATHS /usr/include /usr/local/include)
+    find_library(FMT_LIBRARY NAMES fmt PATHS /usr/lib /usr/local/lib)
+    if(NOT FMT_INCLUDE_DIR OR NOT FMT_LIBRARY)
+        message(FATAL_ERROR "fmt library not found. Please install libfmt-dev package.")
+    endif()
+    add_library(fmt UNKNOWN IMPORTED)
+    set_target_properties(fmt PROPERTIES
+        IMPORTED_LOCATION ${FMT_LIBRARY}
+        INTERFACE_INCLUDE_DIRECTORIES ${FMT_INCLUDE_DIR}
+    )
 endif()
 
-# 包含头文件（项目根目录的 include + nlohmann/json + fmt）
-include_directories(${CMAKE_SOURCE_DIR}/../include ${NLOHMANN_JSON_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
+# ==================== 包含头文件 ====================
+include_directories(${CMAKE_SOURCE_DIR}/../include)
 
-# 源文件（相对于项目根目录）
+# 源文件
 set(TINYLOGGER_SOURCES
     ${CMAKE_SOURCE_DIR}/../src/ring_buffer.cpp
     ${CMAKE_SOURCE_DIR}/../src/config.cpp
@@ -34,23 +46,23 @@ set(TINYLOGGER_SOURCES
 
 # RingBuffer 测试
 add_executable(test_ring_buffer test_ring_buffer.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_ring_buffer ${FMT_LIBRARY})
+target_link_libraries(test_ring_buffer fmt nlohmann_json::nlohmann_json)
 
 # Config 测试
 add_executable(test_config test_config.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_config ${FMT_LIBRARY})
+target_link_libraries(test_config fmt nlohmann_json::nlohmann_json)
 
 # Printer 测试
 add_executable(test_printer test_printer.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_printer ${FMT_LIBRARY})
+target_link_libraries(test_printer fmt nlohmann_json::nlohmann_json)
 
 # Distributor 测试
 add_executable(test_distributor test_distributor.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_distributor ${FMT_LIBRARY})
+target_link_libraries(test_distributor fmt nlohmann_json::nlohmann_json)
 
 # Logger 集成测试
 add_executable(test_logger test_logger.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_logger ${FMT_LIBRARY})
+target_link_libraries(test_logger fmt nlohmann_json::nlohmann_json)
 
 # ==================== 测试配置 ====================
 
