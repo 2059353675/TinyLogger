@@ -3,17 +3,11 @@
 #include <cctype>
 #include <fstream>
 
-#define TO_LOWER_CASE(str)                                                                                                       \
-    std::transform((str).begin(), (str).end(), (str).begin(), [](unsigned char c) { return std::tolower(c); })
-
 namespace TinyLogger {
 
 using json = nlohmann::json;
 
-// ---------- 工具函数 ----------
-
 static std::optional<LogLevel> parse_level(std::string s) {
-    TO_LOWER_CASE(s);
     if (s == "debug")
         return LogLevel::Debug;
     if (s == "info")
@@ -26,7 +20,6 @@ static std::optional<LogLevel> parse_level(std::string s) {
 }
 
 static std::optional<PrinterType> parse_printer_type(std::string s) {
-    TO_LOWER_CASE(s);
     if (s == "console")
         return PrinterType::Console;
     if (s == "file")
@@ -35,7 +28,6 @@ static std::optional<PrinterType> parse_printer_type(std::string s) {
 }
 
 static std::optional<OverflowPolicy> parse_overflow(std::string s) {
-    TO_LOWER_CASE(s);
     if (s == "discard")
         return OverflowPolicy::Discard;
     if (s == "block")
@@ -45,10 +37,9 @@ static std::optional<OverflowPolicy> parse_overflow(std::string s) {
     return std::nullopt;
 }
 
-// ---------- 主函数 ----------
-
 std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& error) {
     try {
+        /* 加载配置文件 */
         std::ifstream f(path);
         if (!f.is_open()) {
             error = ConfigError::FileNotFound;
@@ -60,17 +51,18 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
 
         LoggerConfig config;
 
-        // ---------- 全局配置 ----------
+        /* 配置缓冲区大小 */
         if (j.contains("buffer_size")) {
             config.buffer_size = j["buffer_size"].get<size_t>();
 
-            // 强约束：必须是 2 的幂（你的 ringbuffer 依赖 mask）
+            // 检查是否为 2 的幂
             if ((config.buffer_size & (config.buffer_size - 1)) != 0) {
-                error = ConfigError::UnknownError;
+                error = ConfigError::InvalidBufferSize;
                 return std::nullopt;
             }
         }
 
+        /* 配置缓冲区溢出策略 */
         if (j.contains("overflow_policy")) {
             auto policy = parse_overflow(j["overflow_policy"].get<std::string>());
             if (!policy) {
@@ -80,12 +72,11 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
             config.overflow_policy = *policy;
         }
 
-        // ---------- printers ----------
+        /* 加载打印器 */
         if (!j.contains("printers") || !j["printers"].is_array()) {
             error = ConfigError::InvalidPrinterType;
             return std::nullopt;
         }
-
         for (const auto& pj : j["printers"]) {
             PrinterConfig pc;
 
@@ -94,7 +85,6 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
                 error = ConfigError::InvalidPrinterType;
                 return std::nullopt;
             }
-
             auto type = parse_printer_type(pj["type"].get<std::string>());
             if (!type) {
                 error = ConfigError::InvalidPrinterType;
@@ -134,7 +124,6 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
 
         error = ConfigError::None;
         return config;
-
     } catch (const json::parse_error&) {
         error = ConfigError::ParseError;
         return std::nullopt;

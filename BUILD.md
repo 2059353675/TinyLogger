@@ -52,15 +52,6 @@ make
 ctest --output-on-failure
 ```
 
-### 仅构建测试（不构建库）
-
-```bash
-cd test
-mkdir build_test && cd build_test
-cmake ..
-make
-```
-
 ## CMake 选项
 
 可以通过 `-D` 选项控制构建行为：
@@ -99,9 +90,13 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 
 ## 构建产物
 
+构建完成后，在 `build/` 目录中可以找到以下产物：
+
 - `libTinyLogger.a` - 静态库文件
 - `test/test_ring_buffer` - RingBuffer 单元测试
 - `test/test_config` - Config 单元测试
 - `test/test_printer` - Printer 单元测试
 - `test/test_distributor` - Distributor 单元测试
 - `test/test_logger` - 集成测试
+
+注意：所有构建产物都位于主构建目录（默认为 `build/`）中，不会在源码目录中生成构建文件。

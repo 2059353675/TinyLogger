@@ -1,72 +1,58 @@
+# TinyLogger Tests CMakeLists.txt
+# 
+# 注意：此文件仅作为主 CMakeLists.txt 的子目录使用
+# 不应单独构建此目录
+#
+# 构建测试请使用主构建系统：
+#   mkdir build && cd build
+#   cmake ..
+#   make run_tests
+
 cmake_minimum_required(VERSION 3.14)
-project(TinyLoggerTests LANGUAGES CXX)
+
+# 检查是否作为子目录构建
+if(NOT DEFINED PROJECT_NAME)
+    message(FATAL_ERROR "This CMakeLists.txt should only be used as a subdirectory of the main project. Please build from the root directory.")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ==================== 查找依赖 ====================
-
-# nlohmann/json
-find_package(nlohmann_json QUIET)
-if(NOT nlohmann_json_FOUND)
-    find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp PATHS /usr/include /usr/local/include)
-    if(NOT NLOHMANN_JSON_INCLUDE_DIR)
-        message(FATAL_ERROR "nlohmann/json.hpp not found. Please install nlohmann-json package.")
-    endif()
-    add_library(nlohmann_json INTERFACE IMPORTED)
-    target_include_directories(nlohmann_json INTERFACE ${NLOHMANN_JSON_INCLUDE_DIR})
-endif()
-
-# fmt
-find_package(fmt QUIET)
-if(NOT fmt_FOUND)
-    find_path(FMT_INCLUDE_DIR NAMES fmt/format.h PATHS /usr/include /usr/local/include)
-    find_library(FMT_LIBRARY NAMES fmt PATHS /usr/lib /usr/local/lib)
-    if(NOT FMT_INCLUDE_DIR OR NOT FMT_LIBRARY)
-        message(FATAL_ERROR "fmt library not found. Please install libfmt-dev package.")
-    endif()
-    add_library(fmt UNKNOWN IMPORTED)
-    set_target_properties(fmt PROPERTIES
-        IMPORTED_LOCATION ${FMT_LIBRARY}
-        INTERFACE_INCLUDE_DIRECTORIES ${FMT_INCLUDE_DIR}
-    )
-endif()
-
 # ==================== 包含头文件 ====================
-include_directories(${CMAKE_SOURCE_DIR}/../include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
 # 源文件
 set(TINYLOGGER_SOURCES
-    ${CMAKE_SOURCE_DIR}/../src/ring_buffer.cpp
-    ${CMAKE_SOURCE_DIR}/../src/config.cpp
-    ${CMAKE_SOURCE_DIR}/../src/distributor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/ring_buffer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/distributor.cpp
 )
 
 # ==================== 测试可执行文件 ====================
 
 # RingBuffer 测试
 add_executable(test_ring_buffer test_ring_buffer.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_ring_buffer fmt nlohmann_json::nlohmann_json)
+target_link_libraries(test_ring_buffer fmt nlohmann_json)
 
 # Config 测试
 add_executable(test_config test_config.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_config fmt nlohmann_json::nlohmann_json)
+target_link_libraries(test_config fmt nlohmann_json)
 
 # Printer 测试
 add_executable(test_printer test_printer.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_printer fmt nlohmann_json::nlohmann_json)
+target_link_libraries(test_printer fmt nlohmann_json)
 
 # Distributor 测试
 add_executable(test_distributor test_distributor.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_distributor fmt nlohmann_json::nlohmann_json)
+target_link_libraries(test_distributor fmt nlohmann_json)
 
 # Logger 集成测试
 add_executable(test_logger test_logger.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_logger fmt nlohmann_json::nlohmann_json)
+target_link_libraries(test_logger fmt nlohmann_json)
 
 # ==================== 测试配置 ====================
 
-enable_testing()
+# 注意：enable_testing() 已在根 CMakeLists.txt 中调用
 
 add_test(NAME RingBufferTest COMMAND test_ring_buffer)
 add_test(NAME ConfigTest COMMAND test_config)

@@ -10,6 +10,7 @@ namespace TinyLogger {
 enum class ConfigError {
     FileNotFound,
     ParseError,
+    InvalidBufferSize,
     InvalidOverflowPolicy,
     InvalidPrinterType,
     InvalidLevel,

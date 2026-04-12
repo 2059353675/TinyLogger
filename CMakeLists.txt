@@ -10,33 +10,25 @@ option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
 
 # ==================== 查找依赖 ====================
 
-# nlohmann/json
-find_package(nlohmann_json QUIET)
-if(NOT nlohmann_json_FOUND)
-    # 尝试从系统路径查找
-    find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp PATHS /usr/include /usr/local/include)
-    if(NOT NLOHMANN_JSON_INCLUDE_DIR)
-        message(FATAL_ERROR "nlohmann/json.hpp not found. Please install nlohmann-json package.")
-    endif()
-    add_library(nlohmann_json INTERFACE IMPORTED)
-    target_include_directories(nlohmann_json INTERFACE ${NLOHMANN_JSON_INCLUDE_DIR})
+# nlohmann/json - 使用系统路径
+find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp PATHS /usr/include /usr/local/include)
+if(NOT NLOHMANN_JSON_INCLUDE_DIR)
+    message(FATAL_ERROR "nlohmann/json.hpp not found. Please install nlohmann-json package.")
 endif()
+add_library(nlohmann_json INTERFACE IMPORTED)
+target_include_directories(nlohmann_json INTERFACE ${NLOHMANN_JSON_INCLUDE_DIR})
 
-# fmt
-find_package(fmt QUIET)
-if(NOT fmt_FOUND)
-    # 尝试从系统路径查找
-    find_path(FMT_INCLUDE_DIR NAMES fmt/format.h PATHS /usr/include /usr/local/include)
-    find_library(FMT_LIBRARY NAMES fmt PATHS /usr/lib /usr/local/lib)
-    if(NOT FMT_INCLUDE_DIR OR NOT FMT_LIBRARY)
-        message(FATAL_ERROR "fmt library not found. Please install libfmt-dev package.")
-    endif()
-    add_library(fmt UNKNOWN IMPORTED)
-    set_target_properties(fmt PROPERTIES
-        IMPORTED_LOCATION ${FMT_LIBRARY}
-        INTERFACE_INCLUDE_DIRECTORIES ${FMT_INCLUDE_DIR}
-    )
+# fmt - 使用系统路径
+find_path(FMT_INCLUDE_DIR NAMES fmt/format.h PATHS /usr/include /usr/local/include)
+find_library(FMT_LIBRARY NAMES fmt PATHS /usr/lib /usr/local/lib)
+if(NOT FMT_INCLUDE_DIR OR NOT FMT_LIBRARY)
+    message(FATAL_ERROR "fmt library not found. Please install libfmt-dev package.")
 endif()
+add_library(fmt UNKNOWN IMPORTED)
+set_target_properties(fmt PROPERTIES
+    IMPORTED_LOCATION ${FMT_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${FMT_INCLUDE_DIR}
+)
 
 # ==================== 库定义 ====================
 
@@ -61,7 +53,7 @@ target_link_libraries(tinylogger
     PUBLIC
         fmt
     PRIVATE
-        nlohmann_json::nlohmann_json
+        nlohmann_json
 )
 
 # 设置库属性
