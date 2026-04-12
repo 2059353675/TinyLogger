@@ -1,6 +1,7 @@
 # TinyLogger 开发者文档
 
 > 面向开发者：构建系统、测试规范、架构设计与贡献指南
+> 项目开源地址：[Github: TinyLogger](https://github.com/2059353675/TinyLogger)
 
 ## 目录
 
@@ -26,8 +27,7 @@
 ```
 TinyLogger/
 ├── CMakeLists.txt              # 主 CMake 构建文件
-├── BUILD.md                    # 旧版构建说明（已合并到本文档）
-├── include/TinyLogger/         # 公共头文件
+├── include/TinyLogger/         # 头文件
 │   ├── logger.h
 │   ├── ring_buffer.h
 │   ├── config.h
@@ -43,7 +43,7 @@ TinyLogger/
 │   └── ...
 ├── test/                       # 测试套件
 │   ├── CMakeLists.txt          # 测试 CMake 配置
-│   ├── test_common.h           # 公共测试工具（重点）
+│   ├── test_common.h           # 测试框架、公共测试工具等
 │   ├── test_ring_buffer.cpp    # RingBuffer 单元测试
 │   ├── test_config.cpp         # Config 单元测试
 │   ├── test_printer.cpp        # Printer 单元测试
@@ -54,7 +54,6 @@ TinyLogger/
 ├── examples/                   # 示例程序
 │   ├── example.cpp
 │   ├── logger_config.json
-│   └── Makefile
 ├── cmake/                      # CMake 模块
 │   └── TinyLoggerConfig.cmake.in
 └── docs/                       # 文档
@@ -340,11 +339,9 @@ print_test_summary("Suite Name", result);
 
 ### 代码风格
 
-- **缩进：** 4 空格
-- **大括号：** K&R 风格（左大括号不换行）
-- **行宽：** 120 字符
-- **头文件保护：** `#pragma once` 或 `#ifndef` 风格
-- **注释：** 中文或英文均可，关键逻辑必须注释
+- **换行、空格等：** 由 `.clang-format` 自动配置
+- **头文件保护：** `#pragma once` 风格
+- **注释：** 中文，Doxygen 风格；关键逻辑必须注释
 
 ### 提交规范
 
@@ -372,7 +369,12 @@ print_test_summary("Suite Name", result);
 
 ```
 ┌─────────────┐
-│   Logger    │  ← 用户接口
+│   Logger    │  ← 应用进程调用接口
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ RingBuffer  │  ← 无锁环形缓冲区，原理参考 Disruptor 消息队列
 └──────┬──────┘
        │
        ▼
@@ -382,70 +384,113 @@ print_test_summary("Suite Name", result);
        │
        ▼
 ┌─────────────┐
-│ RingBuffer  │  ← 无锁环形缓冲区
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Printers   │  ← 输出（Console/File）
+│  Printers   │  ← 输出（Console/File等）
 └─────────────┘
 ```
 
 ### 数据流
 
-1. 用户调用 `logger.info(...)` 
-2. Logger 格式化消息，写入 `RingBuffer`
+1. 用户调用 `logger.info("a+b={}", a+b);` 
+2. Logger 封装信息，写入缓存
+    - 初步格式化消息，如 `"a+b=2"`
+    - 将时间戳、线程ID、格式化消息等封装成 `LogEvent`
+    - 接着无锁且原子性地写入 `RingBuffer`
 3. `Distributor` 线程从 `RingBuffer` 读取事件
 4. `Distributor` 根据级别过滤，分发给匹配的 `Printer`
-5. `Printer` 写入目标（控制台/文件）
+5. `Printer` 再次格式化，并写入目标（控制台/文件），如
+    - `[2026-03-21 07:19:25.339158][8343213073192788484][Fatal] 严重错误：系统崩溃，错误码：57005`
 
 ### 关键设计决策
 
-- **异步日志：** 用户线程不阻塞，由 Distributor 线程处理
+- **异步日志：** 应用线程不阻塞，日志输出由 Distributor 线程处理
 - **无锁缓冲区：** RingBuffer 使用原子操作，支持多生产者单消费者
 - **RAII 资源管理：** 所有资源（文件、线程）在析构时自动清理
 
 ---
 
-## 贡献指南
+## 未来计划
 
-### 开发流程
+字母越前，重要性越高，即 A 最优先，以此类推。
 
-1. Fork 项目并创建功能分支
-2. 编写代码和测试
-3. 确保所有测试通过
-4. 提交 Pull Request
+### 延迟格式化（B）
 
-### 添加新测试
+将格式化工作由 Logger + Printer，完全交付给 Printer，进一步减轻应用进程负担。但这个改动动作较大且实现较困难，要谨慎设计。
 
-1. 在相应的测试文件中添加测试函数
-2. 遵循 `test_` 前缀命名
-3. 返回 `bool` 值
-4. 在 `main()` 中注册测试
-5. 使用 `test_common.h` 工具
+### 组件初始化解耦（B）
 
-### 添加新功能
+目前，如果想新增一个 printer，需要修改 `logger.h`：
 
-1. 在 `include/TinyLogger/` 中添加头文件
-2. 在 `src/` 中添加实现
-3. 在 `test/` 中添加测试
-4. 更新 CMakeLists.txt（如需要）
-5. 更新文档
+```cpp
+bool init(const std::string& path) {
+    // 读取配置...
 
----
+    // 初始化缓冲区和分发器...
 
-## 依赖管理
+    // 创建 printers
+    for (const auto& pc : config_.printers) {
+        std::unique_ptr<Printer> p;
 
-### 当前方式
+        // [!] 修改处
+        if (pc.type == PrinterType::Console) {
+            // ...
+        } else if (pc.type == PrinterType::File) {
+            // ...
+        } // 新 printer ...
 
-手动查找系统路径：
+        // ...
+    }
 
-```cmake
-find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp 
-          PATHS /usr/include /usr/local/include)
+    // ...
+}
 ```
 
-### 未来改进
+还要修改 `config.cpp`：
+
+```cpp
+std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& error) {
+    // 加载配置文件等
+
+    /* 加载打印器 */
+    // ...
+    for (const auto& pj : j["printers"]) {
+        PrinterConfig pc;
+
+        // type...
+
+        // level...
+
+        // [!] 修改处
+        // file 特有字段...
+        // 其它 printer 特有字段
+
+        config.printers.push_back(std::move(pc));
+    }
+
+    // ...
+}
+```
+
+### 更好的异常处理（B）
+
+目前，在初始化阶段没有为应用提供详细的错误信息，错误类型仅在 `load_config()` 内部描述：
+
+```cpp
+// 读取配置
+ConfigError err;
+auto cfg = load_config(path, err);
+if (!cfg) {
+    return false;
+}
+config_ = *cfg;
+```
+
+而且目前异常处理还不够标准，例如可以直接抛出异常类型+详细信息，而不是自定义的枚举异常类型。（？不知道是否合理）
+
+### 自定义日志输出格式化（C）
+
+目前，每个 printer 的格式化方法都被硬编码进 `printer_xxx.h`，未来可以支持在配置文件中增加可选的自定义 pattern（类似 spdlog %Y-%m-%d [%l] %v）
+
+### 依赖管理（D）
 
 计划支持以下包管理器：
 

@@ -87,7 +87,7 @@ int main() {
     
     // 记录日志
     logger.info("应用程序启动");
-    logger.debug("调试信息：{}", 42);
+    logger.debug("调试信息：{}", 42); // 支持 fmt 风格格式化
     logger.error("错误：{}", "详细信息");
     
     // 程序结束时自动清理
@@ -108,7 +108,7 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ### JSON 配置文件
 
-TinyLogger 使用 JSON 文件配置日志行为：
+TinyLogger 使用 JSON 文件配置日志行为，注意大小写敏感：
 
 ```json
 {
