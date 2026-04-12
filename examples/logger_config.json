@@ -3,11 +3,11 @@
     "overflow_policy": "Discard",
     "printers": [
         {
-            "type": "console",
+            "type": "Console",
             "level": "Debug"
         },
         {
-            "type": "file",
+            "type": "File",
             "level": "Info",
             "path": "example.log",
             "max_size": 1048576,

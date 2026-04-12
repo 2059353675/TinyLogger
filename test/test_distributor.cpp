@@ -1,8 +1,9 @@
+#include "test_common.h"
 #include <TinyLogger/distributor.h>
 #include <TinyLogger/printer.h>
 #include <TinyLogger/ring_buffer.h>
 #include <TinyLogger/types.h>
-#include "test_common.h"
+#include <mutex>
 
 using namespace TinyLogger;
 using namespace TinyLogger::test;
@@ -67,9 +68,7 @@ bool test_distributor_creation() {
         RingBuffer rb(256);
         Distributor distributor(rb);
         return true;
-    } catch (...) {
-        return false;
-    }
+    } catch (...) { return false; }
 }
 
 bool test_distributor_start_stop() {
