@@ -35,6 +35,19 @@ cmake ..
 make
 ```
 
+### 构建并运行示例程序
+
+```bash
+mkdir build && cd build
+cmake ..
+make
+./example
+```
+
+示例程序会从以下路径加载配置文件：
+- 当前目录：`logger_config.json`
+- examples 子目录：`examples/logger_config.json`
+
 ### 构建并运行测试
 
 ```bash
@@ -93,6 +106,8 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 构建完成后，在 `build/` 目录中可以找到以下产物：
 
 - `libTinyLogger.a` - 静态库文件
+- `example` - 示例程序（当 `TINYLOGGER_BUILD_EXAMPLES=ON` 时）
+- `logger_config.json` - 示例配置文件副本
 - `test/test_ring_buffer` - RingBuffer 单元测试
 - `test/test_config` - Config 单元测试
 - `test/test_printer` - Printer 单元测试

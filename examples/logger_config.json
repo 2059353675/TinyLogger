@@ -1,0 +1,17 @@
+{
+    "buffer_size": 512,
+    "overflow_policy": "Discard",
+    "printers": [
+        {
+            "type": "Console",
+            "level": "Debug"
+        },
+        {
+            "type": "File",
+            "level": "Info",
+            "path": "example.log",
+            "max_size": 1048576,
+            "flush_every": 64
+        }
+    ]
+}

@@ -5,38 +5,6 @@
 
 namespace TinyLogger {
 
-using json = nlohmann::json;
-
-static std::optional<LogLevel> parse_level(std::string s) {
-    if (s == "debug")
-        return LogLevel::Debug;
-    if (s == "info")
-        return LogLevel::Info;
-    if (s == "error")
-        return LogLevel::Error;
-    if (s == "fatal")
-        return LogLevel::Fatal;
-    return std::nullopt;
-}
-
-static std::optional<PrinterType> parse_printer_type(std::string s) {
-    if (s == "console")
-        return PrinterType::Console;
-    if (s == "file")
-        return PrinterType::File;
-    return std::nullopt;
-}
-
-static std::optional<OverflowPolicy> parse_overflow(std::string s) {
-    if (s == "discard")
-        return OverflowPolicy::Discard;
-    if (s == "block")
-        return OverflowPolicy::Block;
-    if (s == "dropoldest")
-        return OverflowPolicy::DropOldest;
-    return std::nullopt;
-}
-
 std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& error) {
     try {
         /* 加载配置文件 */
@@ -64,7 +32,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
 
         /* 配置缓冲区溢出策略 */
         if (j.contains("overflow_policy")) {
-            auto policy = parse_overflow(j["overflow_policy"].get<std::string>());
+            auto policy = string_to_overflow(j["overflow_policy"].get<std::string>());
             if (!policy) {
                 error = ConfigError::InvalidOverflowPolicy;
                 return std::nullopt;
@@ -85,7 +53,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
                 error = ConfigError::InvalidPrinterType;
                 return std::nullopt;
             }
-            auto type = parse_printer_type(pj["type"].get<std::string>());
+            auto type = string_to_printer_type(pj["type"].get<std::string>());
             if (!type) {
                 error = ConfigError::InvalidPrinterType;
                 return std::nullopt;
@@ -94,7 +62,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
 
             // level
             if (pj.contains("level")) {
-                auto lvl = parse_level(pj["level"].get<std::string>());
+                auto lvl = string_to_level(pj["level"].get<std::string>());
                 if (!lvl) {
                     error = ConfigError::InvalidLevel;
                     return std::nullopt;

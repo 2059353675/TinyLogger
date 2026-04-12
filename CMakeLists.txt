@@ -67,9 +67,14 @@ set_target_properties(tinylogger PROPERTIES
 # ==================== 示例程序 ====================
 
 if(TINYLOGGER_BUILD_EXAMPLES)
-    # 可以在这里添加示例程序
-    # add_executable(example examples/basic.cpp)
-    # target_link_libraries(example tinylogger)
+    add_executable(example examples/example.cpp)
+    target_link_libraries(example PRIVATE tinylogger)
+    
+    # 复制配置文件到构建目录
+    file(COPY examples/logger_config.json
+         DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    file(COPY examples/logger_config.json
+         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/examples)
 endif()
 
 # ==================== 测试 ====================

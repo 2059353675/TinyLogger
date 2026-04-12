@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types.h"
-#include <optional>
 #include <string>
 #include <vector>
 

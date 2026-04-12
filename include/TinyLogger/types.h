@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 
 namespace TinyLogger {
@@ -36,6 +37,7 @@ enum class PrinterType {
     File
 };
 
+/* 日志事件 */
 struct LogEvent {
     LogLevel level;
     uint64_t timestamp;
@@ -56,5 +58,50 @@ struct alignas(64) Slot {
     std::atomic<size_t> sequence{0};
     LogEvent event;
 };
+
+static std::optional<LogLevel> string_to_level(std::string s) {
+    if (s == "Debug")
+        return LogLevel::Debug;
+    if (s == "Info")
+        return LogLevel::Info;
+    if (s == "Error")
+        return LogLevel::Error;
+    if (s == "Fatal")
+        return LogLevel::Fatal;
+    return std::nullopt;
+}
+
+static std::string level_to_string(LogLevel level) {
+    switch (level) {
+    case LogLevel::Debug:
+        return "Debug";
+    case LogLevel::Info:
+        return "Info";
+    case LogLevel::Error:
+        return "Error";
+    case LogLevel::Fatal:
+        return "Fatal";
+    default:
+        return "Unknown";
+    }
+}
+
+static std::optional<PrinterType> string_to_printer_type(std::string s) {
+    if (s == "Console")
+        return PrinterType::Console;
+    if (s == "File")
+        return PrinterType::File;
+    return std::nullopt;
+}
+
+static std::optional<OverflowPolicy> string_to_overflow(std::string s) {
+    if (s == "Discard")
+        return OverflowPolicy::Discard;
+    if (s == "Block")
+        return OverflowPolicy::Block;
+    if (s == "DropOldest")
+        return OverflowPolicy::DropOldest;
+    return std::nullopt;
+}
 
 } // namespace TinyLogger
