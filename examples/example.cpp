@@ -11,17 +11,19 @@
  */
 
 #include <TinyLogger/logger.h>
-#include <chrono>
 #include <iostream>
-#include <sys/stat.h>
 #include <thread>
+#include <chrono>
+#include <sys/stat.h>
 
 // 尝试查找配置文件的多个可能路径
 static const char* find_config_file() {
-    const char* candidates[] = {"logger_config.json",             // 当前目录
-                                "examples/logger_config.json",    // 项目根目录运行时
-                                "../examples/logger_config.json", // build/examples 目录运行时
-                                nullptr};
+    const char* candidates[] = {
+        "logger_config.json",           // 当前目录
+        "examples/logger_config.json",  // 项目根目录运行时
+        "../examples/logger_config.json", // build/examples 目录运行时
+        nullptr
+    };
 
     for (int i = 0; candidates[i] != nullptr; i++) {
         struct stat buffer;

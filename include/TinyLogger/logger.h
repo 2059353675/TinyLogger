@@ -6,8 +6,6 @@
 #include "TinyLogger/printer_file.h"
 #include "TinyLogger/ring_buffer.h"
 #include <atomic>
-#include <fmt/chrono.h>
-#include <fmt/format.h>
 #include <memory>
 
 namespace TinyLogger {
@@ -89,15 +87,19 @@ private:
     template <typename... Args> void log(LogLevel lvl, const char* fmt, Args&&... args) {
         char buf[LOG_MSG_SIZE];
 
+        // 获取时间戳
         auto now = std::chrono::steady_clock::now().time_since_epoch();
         uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
 
+        // 获取线程ID
+        auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+
         auto s = fmt::format_to_n(buf, LOG_MSG_SIZE - 1, fmt, std::forward<Args>(args)...);
 
-        size_t len = s.size;
+        size_t len = std::min(s.size, (size_t)(LOG_MSG_SIZE - 1));
         buf[len] = '\0';
 
-        LogEvent e(lvl, ts, buf, len);
+        LogEvent e(lvl, ts, tid, buf, len);
 
         if (!ring_buffer_->enqueue(std::move(e))) {
             handle_overflow();

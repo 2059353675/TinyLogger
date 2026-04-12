@@ -1,3 +1,43 @@
+# 构建目录
 build/
-test/build_test
-.qwen
+test/build_test/
+
+# Qwen Code
+.qwen/
+
+# 测试产生的临时文件
+test/test_temp_*.json
+test/test_temp_*.log
+test/test_*.log
+
+# 示例产生的临时文件
+examples/*.log
+
+# 编译器和 IDE
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.suo
+*.sln
+*.vcxproj
+*.vcxproj.filters
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# 包管理器
+vcpkg_installed/
+conanfile.txt.user
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini

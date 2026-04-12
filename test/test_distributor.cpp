@@ -2,19 +2,10 @@
 #include <TinyLogger/printer.h>
 #include <TinyLogger/ring_buffer.h>
 #include <TinyLogger/types.h>
-#include <atomic>
-#include <chrono>
-#include <cstdio>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <thread>
-#include <vector>
+#include "test_common.h"
 
 using namespace TinyLogger;
+using namespace TinyLogger::test;
 
 // ==================== 测试用 Mock Printer ====================
 
@@ -69,35 +60,19 @@ private:
     bool flushed_ = false;
 };
 
-// ==================== 工具函数 ====================
-
-static LogEvent create_test_event(LogLevel level, const char* msg) {
-    auto now = std::chrono::steady_clock::now().time_since_epoch();
-    uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
-
-    size_t len = std::strlen(msg);
-    return LogEvent(level, ts, msg, len);
-}
-
 // ==================== Distributor 基础测试 ====================
 
 bool test_distributor_creation() {
-    std::cout << "[TEST] Distributor creation... ";
-
     try {
         RingBuffer rb(256);
         Distributor distributor(rb);
-        std::cout << "PASSED" << std::endl;
         return true;
     } catch (...) {
-        std::cout << "FAILED" << std::endl;
         return false;
     }
 }
 
 bool test_distributor_start_stop() {
-    std::cout << "[TEST] Distributor start/stop... ";
-
     RingBuffer rb(256);
     Distributor distributor(rb);
 
@@ -105,13 +80,10 @@ bool test_distributor_start_stop() {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     distributor.stop();
 
-    std::cout << "PASSED" << std::endl;
     return true;
 }
 
 bool test_distributor_add_printer() {
-    std::cout << "[TEST] Distributor add printer... ";
-
     RingBuffer rb(256);
     Distributor distributor(rb);
 
@@ -122,15 +94,12 @@ bool test_distributor_add_printer() {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     distributor.stop();
 
-    std::cout << "PASSED" << std::endl;
     return true;
 }
 
 // ==================== Distributor 分发测试 ====================
 
 bool test_distributor_single_event() {
-    std::cout << "[TEST] Distributor single event... ";
-
     RingBuffer rb(256);
     auto distributor = std::make_unique<Distributor>(rb);
 
@@ -148,22 +117,13 @@ bool test_distributor_single_event() {
     distributor->stop();
 
     if (printer_ptr->get_write_count() != 1) {
-        std::cout << "FAILED (expected 1, got " << printer_ptr->get_write_count() << ")" << std::endl;
         return false;
     }
 
-    if (printer_ptr->get_events()[0].level != LogLevel::Info) {
-        std::cout << "FAILED (level mismatch)" << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED" << std::endl;
-    return true;
+    return printer_ptr->get_events()[0].level == LogLevel::Info;
 }
 
 bool test_distributor_multiple_events() {
-    std::cout << "[TEST] Distributor multiple events... ";
-
     RingBuffer rb(256);
     auto distributor = std::make_unique<Distributor>(rb);
 
@@ -185,18 +145,10 @@ bool test_distributor_multiple_events() {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     distributor->stop();
 
-    if (printer_ptr->get_write_count() != EVENT_COUNT) {
-        std::cout << "FAILED (expected " << EVENT_COUNT << ", got " << printer_ptr->get_write_count() << ")" << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED" << std::endl;
-    return true;
+    return printer_ptr->get_write_count() == static_cast<size_t>(EVENT_COUNT);
 }
 
 bool test_distributor_multiple_printers() {
-    std::cout << "[TEST] Distributor multiple printers... ";
-
     RingBuffer rb(256);
     auto distributor = std::make_unique<Distributor>(rb);
 
@@ -218,33 +170,22 @@ bool test_distributor_multiple_printers() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     distributor->stop();
 
-    // 两个 printer 都应该收到事件
-    if (printer1_ptr->get_write_count() != 1 || printer2_ptr->get_write_count() != 1) {
-        std::cout << "FAILED (p1: " << printer1_ptr->get_write_count() << ", p2: " << printer2_ptr->get_write_count() << ")"
-                  << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED" << std::endl;
-    return true;
+    return printer1_ptr->get_write_count() == 1 && printer2_ptr->get_write_count() == 1;
 }
 
 // ==================== Distributor 级别过滤测试 ====================
 
 bool test_distributor_level_filtering() {
-    std::cout << "[TEST] Distributor level filtering... ";
-
     RingBuffer rb(256);
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Error); // 只记录 Error 及以上
+    printer->set_level(LogLevel::Error);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 
     distributor->start();
 
-    // 写入不同级别的日志
     LogEvent debug_event = create_test_event(LogLevel::Debug, "Debug");
     LogEvent info_event = create_test_event(LogLevel::Info, "Info");
     LogEvent error_event = create_test_event(LogLevel::Error, "Error");
@@ -258,21 +199,12 @@ bool test_distributor_level_filtering() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     distributor->stop();
 
-    // 应该只收到 Error 和 Fatal
-    if (printer_ptr->get_write_count() != 2) {
-        std::cout << "FAILED (expected 2, got " << printer_ptr->get_write_count() << ")" << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED" << std::endl;
-    return true;
+    return printer_ptr->get_write_count() == 2;
 }
 
 // ==================== Distributor 并发测试 ====================
 
 bool test_distributor_concurrent_enqueue() {
-    std::cout << "[TEST] Distributor concurrent enqueue... ";
-
     RingBuffer rb(1024);
     auto distributor = std::make_unique<Distributor>(rb);
 
@@ -294,7 +226,6 @@ bool test_distributor_concurrent_enqueue() {
                 std::snprintf(msg, sizeof(msg), "T%d-E%d", t, i);
                 LogEvent event = create_test_event(LogLevel::Info, msg);
 
-                // 如果缓冲区满了，重试
                 while (!rb.enqueue(std::move(event))) {
                     std::this_thread::yield();
                 }
@@ -310,20 +241,12 @@ bool test_distributor_concurrent_enqueue() {
     distributor->stop();
 
     int expected = THREAD_COUNT * EVENTS_PER_THREAD;
-    if (printer_ptr->get_write_count() != expected) {
-        std::cout << "FAILED (expected " << expected << ", got " << printer_ptr->get_write_count() << ")" << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED" << std::endl;
-    return true;
+    return printer_ptr->get_write_count() == static_cast<size_t>(expected);
 }
 
 // ==================== Distributor 生命周期测试 ====================
 
 bool test_distributor_drain_on_stop() {
-    std::cout << "[TEST] Distributor drain on stop... ";
-
     RingBuffer rb(256);
     auto distributor = std::make_unique<Distributor>(rb);
 
@@ -334,29 +257,17 @@ bool test_distributor_drain_on_stop() {
 
     distributor->start();
 
-    // 写入一些事件
     for (int i = 0; i < 50; ++i) {
         LogEvent event = create_test_event(LogLevel::Info, "Drain test");
         rb.enqueue(std::move(event));
     }
 
-    // 立即停止，应该清空剩余事件
     distributor->stop();
 
-    // 允许一些事件丢失（还未 dequeue 的）
-    // 但不应该全部丢失
-    if (printer_ptr->get_write_count() == 0) {
-        std::cout << "FAILED (no events drained)" << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED (drained " << printer_ptr->get_write_count() << " events)" << std::endl;
-    return true;
+    return printer_ptr->get_write_count() > 0;
 }
 
 bool test_distributor_flush_on_stop() {
-    std::cout << "[TEST] Distributor flush on stop... ";
-
     RingBuffer rb(256);
     auto distributor = std::make_unique<Distributor>(rb);
 
@@ -373,41 +284,27 @@ bool test_distributor_flush_on_stop() {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     distributor->stop();
 
-    // stop 应该调用 flush
-    if (!printer_ptr->is_flushed()) {
-        std::cout << "FAILED (not flushed)" << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED" << std::endl;
-    return true;
+    return printer_ptr->is_flushed();
 }
 
 bool test_distributor_double_start_stop() {
-    std::cout << "[TEST] Distributor double start/stop... ";
-
     RingBuffer rb(256);
     Distributor distributor(rb);
 
-    // 两次 start 应该不会崩溃
     distributor.start();
-    distributor.start(); // 应该被忽略
+    distributor.start();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-    // 两次 stop 应该不会崩溃
     distributor.stop();
-    distributor.stop(); // 应该被忽略
+    distributor.stop();
 
-    std::cout << "PASSED" << std::endl;
     return true;
 }
 
 // ==================== Distributor 批量处理测试 ====================
 
 bool test_distributor_batch_processing() {
-    std::cout << "[TEST] Distributor batch processing... ";
-
     RingBuffer rb(1024);
     auto distributor = std::make_unique<Distributor>(rb);
 
@@ -418,7 +315,6 @@ bool test_distributor_batch_processing() {
 
     distributor->start();
 
-    // 快速写入大量事件，测试批处理
     const int EVENT_COUNT = 200;
     for (int i = 0; i < EVENT_COUNT; ++i) {
         char msg[64];
@@ -430,13 +326,7 @@ bool test_distributor_batch_processing() {
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
     distributor->stop();
 
-    if (printer_ptr->get_write_count() != EVENT_COUNT) {
-        std::cout << "FAILED (expected " << EVENT_COUNT << ", got " << printer_ptr->get_write_count() << ")" << std::endl;
-        return false;
-    }
-
-    std::cout << "PASSED" << std::endl;
-    return true;
+    return printer_ptr->get_write_count() == static_cast<size_t>(EVENT_COUNT);
 }
 
 // ==================== 主函数 ====================
@@ -446,44 +336,21 @@ int main() {
     std::cout << "  Distributor Test Suite" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    int passed = 0;
-    int failed = 0;
+    TestResult result;
 
-    auto run_test = [&](bool (*test_func)()) {
-        if (test_func()) {
-            passed++;
-        } else {
-            failed++;
-        }
-    };
+    run_test("Distributor creation", test_distributor_creation, result);
+    run_test("Distributor start/stop", test_distributor_start_stop, result);
+    run_test("Distributor add printer", test_distributor_add_printer, result);
+    run_test("Distributor single event", test_distributor_single_event, result);
+    run_test("Distributor multiple events", test_distributor_multiple_events, result);
+    run_test("Distributor multiple printers", test_distributor_multiple_printers, result);
+    run_test("Distributor level filtering", test_distributor_level_filtering, result);
+    run_test("Distributor concurrent enqueue", test_distributor_concurrent_enqueue, result);
+    run_test("Distributor drain on stop", test_distributor_drain_on_stop, result);
+    run_test("Distributor flush on stop", test_distributor_flush_on_stop, result);
+    run_test("Distributor double start/stop", test_distributor_double_start_stop, result);
+    run_test("Distributor batch processing", test_distributor_batch_processing, result);
 
-    // 基础测试
-    run_test(test_distributor_creation);
-    run_test(test_distributor_start_stop);
-    run_test(test_distributor_add_printer);
-
-    // 分发测试
-    run_test(test_distributor_single_event);
-    run_test(test_distributor_multiple_events);
-    run_test(test_distributor_multiple_printers);
-
-    // 级别过滤测试
-    run_test(test_distributor_level_filtering);
-
-    // 并发测试
-    run_test(test_distributor_concurrent_enqueue);
-
-    // 生命周期测试
-    run_test(test_distributor_drain_on_stop);
-    run_test(test_distributor_flush_on_stop);
-    run_test(test_distributor_double_start_stop);
-
-    // 批量处理测试
-    run_test(test_distributor_batch_processing);
-
-    std::cout << "========================================" << std::endl;
-    std::cout << "  Results: " << passed << " passed, " << failed << " failed" << std::endl;
-    std::cout << "========================================" << std::endl;
-
-    return failed > 0 ? 1 : 0;
+    print_test_summary("Distributor Test Suite", result);
+    return result.failed > 0 ? 1 : 0;
 }

@@ -127,3 +127,21 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/TinyLoggerConfigVersion.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TinyLogger
 )
+
+# ==================== 清理目标 ====================
+
+# 添加 clean-all 目标：清理构建产物 + 测试临时文件 + 示例产物
+add_custom_target(clean-all
+    COMMAND ${CMAKE_BUILD_TOOL} clean
+    COMMAND ${CMAKE_COMMAND} -E echo "Cleaning test temporary files..."
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_SOURCE_DIR}/test/build_test"
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/test/test_temp_*.json
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/test/test_temp_*.log
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/test/test_*.log
+    COMMAND ${CMAKE_COMMAND} -E echo "Cleaning example temporary files..."
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/examples/example
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/examples/*.log
+    COMMAND ${CMAKE_COMMAND} -E echo "Clean-all complete."
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Cleaning all build artifacts and temporary files"
+)

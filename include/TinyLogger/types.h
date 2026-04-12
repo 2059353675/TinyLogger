@@ -4,9 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <fmt/chrono.h>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <thread>
 
 namespace TinyLogger {
 
@@ -41,11 +44,14 @@ enum class PrinterType {
 struct LogEvent {
     LogLevel level;
     uint64_t timestamp;
+    uint64_t thread_id;
+
     char buffer[LOG_MSG_SIZE];
     uint16_t length;
 
     LogEvent() = default;
-    LogEvent(LogLevel lvl, uint64_t ts, const char* msg, size_t len) : level(lvl), timestamp(ts), length(len) {
+    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, const char* msg, size_t len) 
+        : level(lvl), timestamp(ts), thread_id(tid), length(len) {
         if (len < sizeof(buffer)) {
             std::memcpy(buffer, msg, len);
             buffer[len] = '\0';
@@ -69,21 +75,6 @@ static std::optional<LogLevel> string_to_level(std::string s) {
     if (s == "Fatal")
         return LogLevel::Fatal;
     return std::nullopt;
-}
-
-static std::string level_to_string(LogLevel level) {
-    switch (level) {
-    case LogLevel::Debug:
-        return "Debug";
-    case LogLevel::Info:
-        return "Info";
-    case LogLevel::Error:
-        return "Error";
-    case LogLevel::Fatal:
-        return "Fatal";
-    default:
-        return "Unknown";
-    }
 }
 
 static std::optional<PrinterType> string_to_printer_type(std::string s) {

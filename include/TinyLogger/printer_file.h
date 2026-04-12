@@ -27,16 +27,24 @@ public:
         if (!file_)
             return;
 
-        size_t written = std::fwrite(event.buffer, 1, event.length, file_);
+        std::string ts = format_timestamp(event.timestamp);
+
+        std::string line = fmt::format("[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level),
+                                       std::string_view(event.buffer, event.length));
+
+        size_t written = std::fwrite(line.data(), 1, line.size(), file_);
         current_size_ += written;
 
-        // 简单 flush 策略（可优化）
+        if (line.empty() || line.back() != '\n') {
+            std::fwrite("\n", 1, 1, file_);
+            current_size_ += 1;
+        }
+
         if (++write_count_ >= flush_every_) {
             flush();
             write_count_ = 0;
         }
 
-        // 简单滚动（可选）
         if (max_size_ > 0 && current_size_ >= max_size_) {
             rotate();
         }

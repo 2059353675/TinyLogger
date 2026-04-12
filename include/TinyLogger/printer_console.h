@@ -12,8 +12,14 @@ public:
     }
 
     void write(const LogEvent& event) override {
-        std::fwrite(event.buffer, 1, event.length, stdout);
-        if (event.buffer[event.length - 1] != '\n') {
+        std::string ts = format_timestamp(event.timestamp);
+
+        std::string line = fmt::format("[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level),
+                                       std::string_view(event.buffer, event.length));
+
+        std::fwrite(line.data(), 1, line.size(), stdout);
+
+        if (line.empty() || line.back() != '\n') {
             std::fwrite("\n", 1, 1, stdout);
         }
     }

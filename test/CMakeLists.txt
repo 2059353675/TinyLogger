@@ -1,5 +1,5 @@
 # TinyLogger Tests CMakeLists.txt
-# 
+#
 # 注意：此文件仅作为主 CMakeLists.txt 的子目录使用
 # 不应单独构建此目录
 #
@@ -7,13 +7,6 @@
 #   mkdir build && cd build
 #   cmake ..
 #   make run_tests
-
-cmake_minimum_required(VERSION 3.14)
-
-# 检查是否作为子目录构建
-if(NOT DEFINED PROJECT_NAME)
-    message(FATAL_ERROR "This CMakeLists.txt should only be used as a subdirectory of the main project. Please build from the root directory.")
-endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
