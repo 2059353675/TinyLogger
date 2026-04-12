@@ -26,11 +26,11 @@ bool test_valid_minimal_config() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": [
             {
-                "type": "console",
-                "level": "info"
+                "type": "Console",
+                "level": "Info"
             }
         ]
     })";
@@ -59,15 +59,15 @@ bool test_valid_full_config() {
 
     std::string json = R"({
         "buffer_size": 512,
-        "overflow_policy": "block",
+        "overflow_policy": "Block",
         "printers": [
             {
-                "type": "console",
-                "level": "debug"
+                "type": "Console",
+                "level": "Debug"
             },
             {
-                "type": "file",
-                "level": "info",
+                "type": "File",
+                "level": "Info",
                 "path": "test.log",
                 "max_size": 1048576,
                 "flush_every": 128
@@ -149,7 +149,7 @@ bool test_missing_printers() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard"
+        "overflow_policy": "Discard"
     })";
 
     std::string path = create_temp_config(json, "no_printers.json");
@@ -171,11 +171,11 @@ bool test_invalid_printer_type() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": [
             {
                 "type": "invalid_type",
-                "level": "info"
+                "level": "Info"
             }
         ]
     })";
@@ -202,8 +202,8 @@ bool test_invalid_overflow_policy() {
         "overflow_policy": "invalid_policy",
         "printers": [
             {
-                "type": "console",
-                "level": "info"
+                "type": "Console",
+                "level": "Info"
             }
         ]
     })";
@@ -227,11 +227,11 @@ bool test_invalid_log_level() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": [
             {
-                "type": "console",
-                "level": "verbose"
+                "type": "Console",
+                "level": "Verbose"
             }
         ]
     })";
@@ -255,11 +255,11 @@ bool test_non_power_of_two_buffer() {
 
     std::string json = R"({
         "buffer_size": 100,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": [
             {
-                "type": "console",
-                "level": "info"
+                "type": "Console",
+                "level": "Info"
             }
         ]
     })";
@@ -283,11 +283,11 @@ bool test_missing_file_path() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": [
             {
-                "type": "file",
-                "level": "info"
+                "type": "File",
+                "level": "Info"
             }
         ]
     })";
@@ -313,14 +313,14 @@ bool test_case_insensitive_parsing() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "DISCARD",
+        "overflow_policy": "Discard",
         "printers": [
             {
                 "type": "Console",
-                "level": "DEBUG"
+                "level": "Debug"
             },
             {
-                "type": "FILE",
+                "type": "File",
                 "level": "Info",
                 "path": "test.log"
             }
@@ -352,10 +352,10 @@ bool test_default_values() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": [
             {
-                "type": "console"
+                "type": "Console"
             }
         ]
     })";
@@ -390,7 +390,7 @@ bool test_empty_printers_array() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": []
     })";
 
@@ -413,15 +413,15 @@ bool test_multiple_printers_same_type() {
 
     std::string json = R"({
         "buffer_size": 256,
-        "overflow_policy": "discard",
+        "overflow_policy": "Discard",
         "printers": [
             {
-                "type": "console",
-                "level": "debug"
+                "type": "Console",
+                "level": "Debug"
             },
             {
-                "type": "console",
-                "level": "error"
+                "type": "Console",
+                "level": "Error"
             }
         ]
     })";
