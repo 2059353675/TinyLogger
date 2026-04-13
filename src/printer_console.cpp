@@ -7,9 +7,6 @@ ConsolePrinter::ConsolePrinter(const PrinterConfig& config) {
 }
 
 void ConsolePrinter::write(const LogEvent& event) {
-    if (!should_log(event.level))
-        return;
-
     std::string ts = format_timestamp(event.timestamp);
 
     std::string line = fmt::format(

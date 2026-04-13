@@ -55,8 +55,23 @@ public:
         return static_cast<uint8_t>(lvl) >= static_cast<uint8_t>(min_level_);
     }
 
+    size_t error_count() const {
+        return error_count_.load(std::memory_order_relaxed);
+    }
+    void reset_error_count() {
+        error_count_.store(0, std::memory_order_relaxed);
+    }
+    void increment_error_count() {
+        error_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    LogLevel min_level() const {
+        return min_level_;
+    }
+
 protected:
     LogLevel min_level_;
+    std::atomic<size_t> error_count_{0};
 };
 
 using PrinterCreator = std::function<std::unique_ptr<Printer>(const PrinterConfig&)>;

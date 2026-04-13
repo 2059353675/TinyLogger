@@ -13,13 +13,16 @@ using namespace TinyLogger::test;
 class MockPrinter : public Printer
 {
 public:
-    MockPrinter() : write_count_(0) {
-        min_level_ = LogLevel::Debug; // 默认级别
+    MockPrinter() : write_count_(0), should_throw_(false) {
+        min_level_ = LogLevel::Debug;
     }
 
     void write(const LogEvent& event) override {
         if (!should_log(event.level))
             return;
+        if (should_throw_) {
+            throw std::runtime_error("Mock printer error");
+        }
         std::lock_guard<std::mutex> lock(mutex_);
         events_.push_back(event);
         write_count_.fetch_add(1);
@@ -45,11 +48,17 @@ public:
         min_level_ = level;
     }
 
+    void set_throw_on_write(bool should_throw) {
+        should_throw_ = should_throw;
+    }
+
     void reset() {
         std::lock_guard<std::mutex> lock(mutex_);
         events_.clear();
         write_count_.store(0);
         flushed_ = false;
+        error_count_.store(0);
+        should_throw_ = false;
     }
 
 private:
@@ -57,6 +66,7 @@ private:
     std::vector<LogEvent> events_;
     std::atomic<size_t> write_count_;
     bool flushed_ = false;
+    bool should_throw_;
 };
 
 // ==================== Distributor 基础测试 ====================
@@ -326,6 +336,31 @@ bool test_distributor_batch_processing() {
     return printer_ptr->get_write_count() == static_cast<size_t>(EVENT_COUNT);
 }
 
+// ==================== Distributor 异常处理测试 ====================
+
+bool test_distributor_printer_exception_handling() {
+    RingBuffer rb(256);
+    auto distributor = std::make_unique<Distributor>(rb);
+
+    auto printer = std::make_unique<MockPrinter>();
+    printer->set_min_level(LogLevel::Debug);
+    printer->set_throw_on_write(true);
+    MockPrinter* printer_ptr = printer.get();
+    distributor->add_printer(std::move(printer));
+
+    distributor->start();
+
+    for (int i = 0; i < 10; ++i) {
+        LogEvent event = create_test_event(LogLevel::Info, "Test");
+        rb.enqueue(std::move(event));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    distributor->stop();
+
+    return printer_ptr->error_count() > 0;
+}
+
 // ==================== 主函数 ====================
 
 int main() {
@@ -347,6 +382,7 @@ int main() {
     run_test("Distributor flush on stop", test_distributor_flush_on_stop, result);
     run_test("Distributor double start/stop", test_distributor_double_start_stop, result);
     run_test("Distributor batch processing", test_distributor_batch_processing, result);
+    run_test("Distributor printer exception handling", test_distributor_printer_exception_handling, result);
 
     print_test_summary("Distributor Test Suite", result);
     return result.failed > 0 ? 1 : 0;

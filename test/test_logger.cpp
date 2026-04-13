@@ -450,6 +450,87 @@ bool test_logger_start_stop_cycle() {
     return true;
 }
 
+// ==================== 异常处理和错误回调测试 ====================
+
+bool test_logger_error_callback_on_invalid_config() {
+    Logger logger;
+    bool callback_called = false;
+    logger.set_error_callback([&callback_called](LoggerException::Code code, const std::string& msg) {
+        callback_called = true;
+    });
+
+    bool init_result = logger.init("nonexistent.json");
+    return !init_result && callback_called;
+}
+
+bool test_logger_dropped_count() {
+    TempLogFile log_file("dropped.log");
+
+    std::string json = R"({
+        "buffer_size": 16,
+        "overflow_policy": "Discard",
+        "printers": [
+            {
+                "type": "File",
+                "level": "Info",
+                "path": ")" +
+                       log_file.path() + R"(",
+                "flush_every": 100
+            }
+        ]
+    })";
+
+    TempConfigFile config("dropped.json", json);
+
+    Logger logger;
+    if (!logger.init(config.path())) {
+        return false;
+    }
+
+    for (int i = 0; i < 1000; ++i) {
+        logger.info("Overflow test message {}", i);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    logger.shutdown();
+
+    return logger.dropped_count() > 0;
+}
+
+bool test_logger_error_callback_called() {
+    std::string json = R"({
+        "buffer_size": 256,
+        "overflow_policy": "Discard",
+        "printers": [
+            {
+                "type": "Console",
+                "level": "Info"
+            }
+        ]
+    })";
+
+    TempConfigFile config("callback.json", json);
+
+    Logger logger;
+    bool callback_called = false;
+    LoggerException::Code last_code = LoggerException::Code::Unknown;
+    std::string last_msg;
+
+    logger.set_error_callback([&callback_called, &last_code, &last_msg](LoggerException::Code code, const std::string& msg) {
+        callback_called = true;
+        last_code = code;
+        last_msg = msg;
+    });
+
+    if (!logger.init(config.path())) {
+        return false;
+    }
+
+    logger.shutdown();
+
+    return callback_called == false;
+}
+
 // ==================== 主函数 ====================
 
 int main() {
@@ -474,6 +555,10 @@ int main() {
     run_test("Logger with multiple printers", test_logger_multiple_printers, result);
 
     run_test("Logger start/stop cycle", test_logger_start_stop_cycle, result);
+
+    run_test("Logger error callback on invalid config", test_logger_error_callback_on_invalid_config, result);
+    run_test("Logger dropped count", test_logger_dropped_count, result);
+    run_test("Logger error callback not called on success", test_logger_error_callback_called, result);
 
     print_test_summary("Logger Integration Test Suite", result);
 

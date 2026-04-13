@@ -113,4 +113,22 @@ static std::optional<OverflowPolicy> string_to_overflow(std::string s) {
     return std::nullopt;
 }
 
+class LoggerException : public std::runtime_error {
+public:
+    enum class Code {
+        InitFailed,
+        PrinterCreateFailed,
+        BufferAllocFailed,
+        WriteFailed,
+        Unknown
+    };
+
+    LoggerException(Code code, const std::string& msg) : std::runtime_error(msg), code_(code) {}
+
+    Code code() const { return code_; }
+
+private:
+    Code code_;
+};
+
 } // namespace TinyLogger

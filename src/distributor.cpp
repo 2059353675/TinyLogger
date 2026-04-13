@@ -12,15 +12,29 @@ Distributor::~Distributor() {
 }
 
 void Distributor::start() {
+    // 运行标记
     bool expected = false;
     if (!running_.compare_exchange_strong(expected, true)) {
         return; // already running
+    }
+
+    // 构建日志级别表
+    for (auto& vec : level_routing_) {
+        vec.clear();
+    }
+    for (auto& p : printers_) {
+        LogLevel min_lvl = p->min_level();
+
+        for (uint8_t lvl = static_cast<uint8_t>(min_lvl); lvl < LOG_LEVEL_COUNT; ++lvl) {
+            level_routing_[lvl].push_back(p.get());
+        }
     }
 
     worker_ = std::thread(&Distributor::run, this);
 }
 
 void Distributor::stop() {
+    // 运行标记
     bool expected = true;
     if (!running_.compare_exchange_strong(expected, false)) {
         return; // already stopped
@@ -63,8 +77,13 @@ void Distributor::run() {
         for (size_t i = 0; i < count; ++i) {
             const LogEvent& event = batch[i];
 
-            for (auto& p : printers_) {
-                p->write(event);
+            auto lvl = static_cast<uint8_t>(event.level);
+            auto& targets = level_routing_[lvl];
+
+            for (auto* p : targets) {
+                try {
+                    p->write(event);
+                } catch (const std::exception&) { p->increment_error_count(); }
             }
         }
     }

@@ -31,8 +31,6 @@ FilePrinter::~FilePrinter() {
 }
 
 void FilePrinter::write(const LogEvent& event) {
-    if (!should_log(event.level))
-        return;
     if (!file_)
         return;
 

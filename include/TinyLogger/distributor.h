@@ -5,6 +5,8 @@
 
 namespace TinyLogger {
 
+static constexpr size_t LOG_LEVEL_COUNT = 5;
+
 class Distributor
 {
 public:
@@ -24,6 +26,7 @@ private:
 private:
     RingBuffer& ring_buffer_;
     std::vector<std::unique_ptr<Printer>> printers_;
+    std::array<std::vector<Printer*>, LOG_LEVEL_COUNT> level_routing_;
 
     std::atomic<bool> running_{false};
     std::thread worker_;
