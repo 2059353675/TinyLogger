@@ -50,8 +50,11 @@ struct LogEvent {
     uint16_t length;
 
     LogEvent() = default;
-    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, const char* msg, size_t len) 
-        : level(lvl), timestamp(ts), thread_id(tid), length(len) {
+    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, const char* msg, size_t len)
+        : level(lvl),
+          timestamp(ts),
+          thread_id(tid),
+          length(len) {
         if (len < sizeof(buffer)) {
             std::memcpy(buffer, msg, len);
             buffer[len] = '\0';
@@ -63,6 +66,21 @@ struct LogEvent {
 struct alignas(64) Slot {
     std::atomic<size_t> sequence{0};
     LogEvent event;
+};
+
+/* 打印器配置 */
+struct PrinterConfig {
+    PrinterType type;
+    LogLevel min_level{LogLevel::Info};
+
+    json raw; // 存储 printer 独有字段
+};
+
+/* 日志器配置 */
+struct LoggerConfig {
+    size_t buffer_size{256};
+    OverflowPolicy overflow_policy{OverflowPolicy::Discard};
+    std::vector<PrinterConfig> printers;
 };
 
 static std::optional<LogLevel> string_to_level(std::string s) {

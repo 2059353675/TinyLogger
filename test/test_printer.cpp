@@ -1,7 +1,7 @@
+#include "test_common.h"
 #include <TinyLogger/printer_console.h>
 #include <TinyLogger/printer_file.h>
 #include <TinyLogger/types.h>
-#include "test_common.h"
 
 using namespace TinyLogger;
 using namespace TinyLogger::test;
@@ -10,20 +10,19 @@ using namespace TinyLogger::test;
 
 bool test_console_printer_init() {
     try {
-        ConsolePrinter printer;
-        json cfg;
-        printer.init(cfg);
+        PrinterConfig config;
+        config.type = PrinterType::Console;
+        config.min_level = LogLevel::Debug;
+        ConsolePrinter printer(config);
         return true;
-    } catch (...) {
-        return false;
-    }
+    } catch (...) { return false; }
 }
 
 bool test_console_printer_write() {
-    ConsolePrinter printer;
-    json cfg;
-    printer.init(cfg);
-    printer.set_level(LogLevel::Debug);
+    PrinterConfig config;
+    config.type = PrinterType::Console;
+    config.min_level = LogLevel::Debug;
+    ConsolePrinter printer(config);
 
     LogEvent event = create_test_event(LogLevel::Info, "Test message");
 
@@ -31,16 +30,14 @@ bool test_console_printer_write() {
         printer.write(event);
         printer.flush();
         return true;
-    } catch (...) {
-        return false;
-    }
+    } catch (...) { return false; }
 }
 
 bool test_console_printer_write_multiline() {
-    ConsolePrinter printer;
-    json cfg;
-    printer.init(cfg);
-    printer.set_level(LogLevel::Debug);
+    PrinterConfig config;
+    config.type = PrinterType::Console;
+    config.min_level = LogLevel::Debug;
+    ConsolePrinter printer(config);
 
     LogEvent event = create_test_event(LogLevel::Debug, "Line 1\nLine 2\nLine 3");
 
@@ -48,9 +45,7 @@ bool test_console_printer_write_multiline() {
         printer.write(event);
         printer.flush();
         return true;
-    } catch (...) {
-        return false;
-    }
+    } catch (...) { return false; }
 }
 
 // ==================== FilePrinter 测试 ====================
@@ -59,23 +54,24 @@ bool test_file_printer_init() {
     TempLogFile test_file("init.log");
 
     try {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        return test_file.exists();
-    } catch (...) {
-        return false;
-    }
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
+        return true;
+    } catch (...) { return false; }
 }
 
 bool test_file_printer_write() {
     TempLogFile test_file("write.log");
 
     {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(LogLevel::Debug);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
         printer.set_flush_every(1); // 立即 flush
 
         LogEvent event = create_test_event(LogLevel::Info, "Hello, File!");
@@ -91,10 +87,11 @@ bool test_file_printer_multiple_writes() {
     TempLogFile test_file("multi_write.log");
 
     {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(LogLevel::Debug);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
         printer.set_flush_every(1);
 
         for (int i = 0; i < 10; ++i) {
@@ -124,10 +121,11 @@ bool test_file_printer_flush() {
     TempLogFile test_file("flush.log");
 
     {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(LogLevel::Debug);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
         printer.set_flush_every(1000); // 很大的值，不会自动 flush
 
         LogEvent event = create_test_event(LogLevel::Info, "Flush test");
@@ -147,10 +145,11 @@ bool test_file_printer_rotation() {
     std::remove(backup_file.c_str());
 
     {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(LogLevel::Debug);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
         printer.set_flush_every(1);
         printer.set_max_size(100); // 很小的值触发滚动
 
@@ -177,10 +176,11 @@ bool test_file_printer_append_mode() {
 
     // 第一次写入
     {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(LogLevel::Debug);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
         printer.set_flush_every(1);
 
         LogEvent event = create_test_event(LogLevel::Info, "First");
@@ -190,10 +190,11 @@ bool test_file_printer_append_mode() {
 
     // 第二次写入
     {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(LogLevel::Debug);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
         printer.set_flush_every(1);
 
         LogEvent event = create_test_event(LogLevel::Info, "Second");
@@ -202,17 +203,17 @@ bool test_file_printer_append_mode() {
     }
 
     std::string content = test_file.read_content();
-    return content.find("First") != std::string::npos && 
-           content.find("Second") != std::string::npos;
+    return content.find("First") != std::string::npos && content.find("Second") != std::string::npos;
 }
 
 // ==================== Printer 级别过滤测试 ====================
 
 bool test_printer_level_filtering() {
-    ConsolePrinter printer;
-    json cfg;
-    printer.init(cfg);
-    printer.set_level(LogLevel::Error); // 只记录 Error 及以上
+    PrinterConfig config;
+    config.type = PrinterType::Console;
+    config.min_level = LogLevel::Error; // 只记录 Error 及以上
+
+    ConsolePrinter printer(config);
 
     LogEvent debug_event = create_test_event(LogLevel::Debug, "Debug msg");
     LogEvent info_event = create_test_event(LogLevel::Info, "Info msg");
@@ -243,10 +244,10 @@ bool test_printer_level_ordering() {
     LogLevel levels[] = {LogLevel::Debug, LogLevel::Info, LogLevel::Error, LogLevel::Fatal};
 
     for (size_t i = 0; i < 4; ++i) {
-        ConsolePrinter printer;
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(levels[i]);
+        PrinterConfig config;
+        config.type = PrinterType::Console;
+        config.min_level = levels[i];
+        ConsolePrinter printer(config);
 
         // 应该记录当前级别及更高级别
         for (size_t j = i; j < 4; ++j) {
@@ -273,9 +274,11 @@ bool test_file_printer_invalid_path() {
     std::string invalid_path = "/invalid/path/that/does/not/exist/test.log";
 
     try {
-        FilePrinter printer(invalid_path);
-        json cfg;
-        printer.init(cfg);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = invalid_path;
+        FilePrinter printer(config);
 
         // 应该 fallback 到 stderr，不崩溃
         LogEvent event = create_test_event(LogLevel::Error, "Test");
@@ -283,19 +286,18 @@ bool test_file_printer_invalid_path() {
         printer.flush();
 
         return true;
-    } catch (...) {
-        return false;
-    }
+    } catch (...) { return false; }
 }
 
 bool test_file_printer_empty_message() {
     TempLogFile test_file("empty.log");
 
     {
-        FilePrinter printer(test_file.path());
-        json cfg;
-        printer.init(cfg);
-        printer.set_level(LogLevel::Debug);
+        PrinterConfig config;
+        config.type = PrinterType::File;
+        config.min_level = LogLevel::Debug;
+        config.raw["path"] = test_file.path();
+        FilePrinter printer(config);
         printer.set_flush_every(1);
 
         LogEvent event = create_test_event(LogLevel::Info, "");

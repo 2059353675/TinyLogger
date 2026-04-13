@@ -1,6 +1,6 @@
+#include "test_common.h"
 #include <TinyLogger/logger.h>
 #include <TinyLogger/types.h>
-#include "test_common.h"
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -53,7 +53,8 @@ bool test_logger_init_file_printer() {
             {
                 "type": "File",
                 "level": "Debug",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -82,7 +83,8 @@ bool test_logger_info() {
             {
                 "type": "File",
                 "level": "Info",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -113,7 +115,8 @@ bool test_logger_debug() {
             {
                 "type": "File",
                 "level": "Debug",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -144,7 +147,8 @@ bool test_logger_error() {
             {
                 "type": "File",
                 "level": "Error",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -175,7 +179,8 @@ bool test_logger_fatal() {
             {
                 "type": "File",
                 "level": "Fatal",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -206,7 +211,8 @@ bool test_logger_formatted_output() {
             {
                 "type": "File",
                 "level": "Info",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -226,8 +232,7 @@ bool test_logger_formatted_output() {
     logger.shutdown();
 
     std::string content = log_file.read_content();
-    return content.find("Value: 42") != std::string::npos &&
-           content.find("String: test") != std::string::npos;
+    return content.find("Value: 42") != std::string::npos && content.find("String: test") != std::string::npos;
 }
 
 // ==================== Logger 级别过滤测试 ====================
@@ -242,7 +247,8 @@ bool test_logger_level_filtering() {
             {
                 "type": "File",
                 "level": "Error",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -265,13 +271,11 @@ bool test_logger_level_filtering() {
 
     std::string content = log_file.read_content();
 
-    if (content.find("Debug message") != std::string::npos ||
-        content.find("Info message") != std::string::npos) {
+    if (content.find("Debug message") != std::string::npos || content.find("Info message") != std::string::npos) {
         return false;
     }
 
-    if (content.find("Error message") == std::string::npos ||
-        content.find("Fatal message") == std::string::npos) {
+    if (content.find("Error message") == std::string::npos || content.find("Fatal message") == std::string::npos) {
         return false;
     }
 
@@ -290,7 +294,8 @@ bool test_logger_concurrent_logging() {
             {
                 "type": "File",
                 "level": "Info",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 10
             }
         ]
@@ -338,7 +343,8 @@ bool test_logger_overflow_discard() {
             {
                 "type": "File",
                 "level": "Info",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 100
             }
         ]
@@ -378,7 +384,8 @@ bool test_logger_multiple_printers() {
             {
                 "type": "File",
                 "level": "Info",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]
@@ -411,7 +418,8 @@ bool test_logger_start_stop_cycle() {
             {
                 "type": "File",
                 "level": "Info",
-                "path": ")" + log_file.path() + R"(",
+                "path": ")" +
+                       log_file.path() + R"(",
                 "flush_every": 1
             }
         ]

@@ -40,6 +40,8 @@ set(TINYLOGGER_SOURCES
     src/ring_buffer.cpp
     src/config.cpp
     src/distributor.cpp
+    src/printer_console.cpp
+    src/printer_file.cpp
 )
 
 # 创建静态库

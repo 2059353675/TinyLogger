@@ -1,14 +1,13 @@
 /**
  * TinyLogger 测试公共工具头文件
- * 
+ *
  * 提供所有测试共享的工具函数和类：
  * - create_test_event: 创建测试用 LogEvent
  * - TempConfigFile: RAII 风格的临时配置文件管理
  * - run_test_suite: 统一的测试运行框架
  */
 
-#ifndef TINYLOGGER_TEST_COMMON_H
-#define TINYLOGGER_TEST_COMMON_H
+#pragma once
 
 #include <TinyLogger/types.h>
 #include <atomic>
@@ -29,7 +28,7 @@ namespace test {
 
 /**
  * 创建测试用的 LogEvent
- * 
+ *
  * @param level 日志级别
  * @param msg 日志消息
  * @return 构造好的 LogEvent
@@ -45,7 +44,7 @@ inline LogEvent create_test_event(LogLevel level, const char* msg) {
 
 /**
  * 创建测试用的 LogEvent（支持 bool 返回值版本，用于 ring_buffer 测试）
- * 
+ *
  * @param event 输出的 LogEvent
  * @param level 日志级别
  * @param msg 日志消息
@@ -69,22 +68,22 @@ inline bool create_test_event(LogEvent& event, LogLevel level, const char* msg) 
 
 /**
  * RAII 风格的临时配置文件管理器
- * 
+ *
  * 用法：
  *   TempConfigFile config("test.json", json_content);
  *   auto result = load_config(config.path(), error);
  *   // 析构时自动删除临时文件
  */
-class TempConfigFile {
+class TempConfigFile
+{
 public:
     /**
      * 创建临时配置文件
-     * 
+     *
      * @param filename 文件名（会添加前缀 test_temp_）
      * @param content 文件内容
      */
-    TempConfigFile(const std::string& filename, const std::string& content)
-        : path_("test_temp_" + filename) {
+    TempConfigFile(const std::string& filename, const std::string& content) : path_("test_temp_" + filename) {
         std::ofstream ofs(path_);
         if (ofs.is_open()) {
             ofs << content;
@@ -114,8 +113,12 @@ public:
         return *this;
     }
 
-    const std::string& path() const { return path_; }
-    bool valid() const { return !path_.empty(); }
+    const std::string& path() const {
+        return path_;
+    }
+    bool valid() const {
+        return !path_.empty();
+    }
 
 private:
     void cleanup() {
@@ -129,16 +132,16 @@ private:
 
 /**
  * RAII 风格的临时日志文件管理器
- * 
+ *
  * 用法：
  *   TempLogFile log("test.log");
  *   // 使用 log.path() 作为日志输出路径
  *   // 析构时自动删除临时日志文件
  */
-class TempLogFile {
+class TempLogFile
+{
 public:
-    explicit TempLogFile(const std::string& filename)
-        : path_("test_temp_" + filename) {
+    explicit TempLogFile(const std::string& filename) : path_("test_temp_" + filename) {
         std::remove(path_.c_str()); // 清理可能残留的旧文件
     }
 
@@ -162,8 +165,12 @@ public:
         return *this;
     }
 
-    const std::string& path() const { return path_; }
-    bool valid() const { return !path_.empty(); }
+    const std::string& path() const {
+        return path_;
+    }
+    bool valid() const {
+        return !path_.empty();
+    }
 
     /**
      * 读取当前文件内容
@@ -173,8 +180,7 @@ public:
         if (!ifs.is_open()) {
             return "";
         }
-        return std::string((std::istreambuf_iterator<char>(ifs)),
-                          std::istreambuf_iterator<char>());
+        return std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     }
 
     /**
@@ -209,7 +215,7 @@ struct TestResult {
 inline void run_test(const std::string& name, std::function<bool()> test_func, TestResult& result) {
     std::cout << "[TEST] " << name << "... ";
     std::cout.flush();
-    
+
     try {
         if (test_func()) {
             std::cout << "PASSED" << std::endl;
@@ -237,18 +243,16 @@ inline void print_test_summary(const std::string& suite_name, const TestResult& 
     std::cout << "========================================" << std::endl;
     std::cout << "  " << suite_name << std::endl;
     std::cout << "  Results: " << result.passed << " passed, " << result.failed << " failed" << std::endl;
-    
+
     if (!result.failures.empty()) {
         std::cout << "  Failed tests:" << std::endl;
         for (const auto& f : result.failures) {
             std::cout << "    - " << f << std::endl;
         }
     }
-    
+
     std::cout << "========================================" << std::endl;
 }
 
 } // namespace test
 } // namespace TinyLogger
-
-#endif // TINYLOGGER_TEST_COMMON_H

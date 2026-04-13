@@ -19,6 +19,8 @@ set(TINYLOGGER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/ring_buffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/config.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/distributor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/printer_console.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/printer_file.cpp
 )
 
 # ==================== 测试可执行文件 ====================

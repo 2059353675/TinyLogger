@@ -14,13 +14,12 @@ class MockPrinter : public Printer
 {
 public:
     MockPrinter() : write_count_(0) {
-    }
-
-    void init(const json& cfg) override {
-        initialized_ = true;
+        min_level_ = LogLevel::Debug; // 默认级别
     }
 
     void write(const LogEvent& event) override {
+        if (!should_log(event.level))
+            return;
         std::lock_guard<std::mutex> lock(mutex_);
         events_.push_back(event);
         write_count_.fetch_add(1);
@@ -38,12 +37,12 @@ public:
         return events_;
     }
 
-    bool is_initialized() const {
-        return initialized_;
-    }
-
     bool is_flushed() const {
         return flushed_;
+    }
+
+    void set_min_level(LogLevel level) {
+        min_level_ = level;
     }
 
     void reset() {
@@ -57,7 +56,6 @@ private:
     std::mutex mutex_;
     std::vector<LogEvent> events_;
     std::atomic<size_t> write_count_;
-    bool initialized_ = false;
     bool flushed_ = false;
 };
 
@@ -103,7 +101,7 @@ bool test_distributor_single_event() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Debug);
+    printer->set_min_level(LogLevel::Debug);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 
@@ -127,7 +125,7 @@ bool test_distributor_multiple_events() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Debug);
+    printer->set_min_level(LogLevel::Debug);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 
@@ -152,12 +150,12 @@ bool test_distributor_multiple_printers() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer1 = std::make_unique<MockPrinter>();
-    printer1->set_level(LogLevel::Debug);
+    printer1->set_min_level(LogLevel::Debug);
     MockPrinter* printer1_ptr = printer1.get();
     distributor->add_printer(std::move(printer1));
 
     auto printer2 = std::make_unique<MockPrinter>();
-    printer2->set_level(LogLevel::Info);
+    printer2->set_min_level(LogLevel::Info);
     MockPrinter* printer2_ptr = printer2.get();
     distributor->add_printer(std::move(printer2));
 
@@ -179,7 +177,7 @@ bool test_distributor_level_filtering() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Error);
+    printer->set_min_level(LogLevel::Error);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 
@@ -208,7 +206,7 @@ bool test_distributor_concurrent_enqueue() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Debug);
+    printer->set_min_level(LogLevel::Debug);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 
@@ -250,7 +248,7 @@ bool test_distributor_drain_on_stop() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Debug);
+    printer->set_min_level(LogLevel::Debug);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 
@@ -271,7 +269,7 @@ bool test_distributor_flush_on_stop() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Debug);
+    printer->set_min_level(LogLevel::Debug);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 
@@ -308,7 +306,7 @@ bool test_distributor_batch_processing() {
     auto distributor = std::make_unique<Distributor>(rb);
 
     auto printer = std::make_unique<MockPrinter>();
-    printer->set_level(LogLevel::Debug);
+    printer->set_min_level(LogLevel::Debug);
     MockPrinter* printer_ptr = printer.get();
     distributor->add_printer(std::move(printer));
 

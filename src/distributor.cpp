@@ -64,9 +64,7 @@ void Distributor::run() {
             const LogEvent& event = batch[i];
 
             for (auto& p : printers_) {
-                if (p->should_log(event.level)) {
-                    p->write(event);
-                }
+                p->write(event);
             }
         }
     }
@@ -79,9 +77,7 @@ void Distributor::drain_remaining() {
 
     while (ring_buffer_.dequeue(event)) {
         for (auto& p : printers_) {
-            if (p->should_log(event.level)) {
-                p->write(event);
-            }
+            p->write(event);
         }
     }
 

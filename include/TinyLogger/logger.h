@@ -20,6 +20,13 @@ public:
     }
 
     bool init(const std::string& path) {
+        // 注册 printers（仅首次生效）
+        static bool registered = []{
+            register_console_printer();
+            register_file_printer();
+            return true;
+        }();
+
         // 读取配置
         ConfigError err;
         auto cfg = load_config(path, err);
@@ -34,26 +41,12 @@ public:
 
         // 创建 printers
         for (const auto& pc : config_.printers) {
-            std::unique_ptr<Printer> p;
-
-            if (pc.type == PrinterType::Console) {
-                p = std::make_unique<ConsolePrinter>();
-            } else if (pc.type == PrinterType::File) {
-                auto fp = std::make_unique<FilePrinter>(pc.file_path);
-
-                if (pc.flush_every)
-                    fp->set_flush_every(pc.flush_every);
-
-                if (pc.max_size)
-                    fp->set_max_size(pc.max_size);
-
-                p = std::move(fp);
+            auto printer = PrinterRegistry::instance().create(pc);
+            if (!printer) {
+                throw std::runtime_error("Failed to create printer.");
+                return false;
             }
-
-            p->set_level(pc.min_level);
-            p->init({}); // 预留 JSON
-
-            distributor_->add_printer(std::move(p));
+            distributor_->add_printer(std::move(printer));
         }
 
         distributor_->start();
@@ -107,11 +100,16 @@ private:
     }
 
     void handle_overflow() {
-        if (config_.overflow_policy == OverflowPolicy::Discard) {
-            dropped_.fetch_add(1, std::memory_order_relaxed);
-        } else if (config_.overflow_policy == OverflowPolicy::Block) {
-            // 简单阻塞（避免死循环）
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
+        switch (config_.overflow_policy) {
+            case OverflowPolicy::Discard:
+                dropped_.fetch_add(1, std::memory_order_relaxed);
+                break;
+            case OverflowPolicy::Block:
+                // 简单阻塞（避免死循环）
+                std::this_thread::sleep_for(std::chrono::microseconds(10));
+                break;
+            default:
+                break;
         }
     }
 

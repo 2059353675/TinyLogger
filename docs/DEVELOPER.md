@@ -340,6 +340,7 @@ print_test_summary("Suite Name", result);
 ### 代码风格
 
 - **换行、空格等：** 由 `.clang-format` 自动配置
+- **枚举类型的简单判断：** 优先用 `switch` 结构
 - **头文件保护：** `#pragma once` 风格
 - **注释：** 中文，Doxygen 风格；关键逻辑必须注释
 
@@ -416,60 +417,6 @@ print_test_summary("Suite Name", result);
 
 将格式化工作由 Logger + Printer，完全交付给 Printer，进一步减轻应用进程负担。但这个改动动作较大且实现较困难，要谨慎设计。
 
-### 组件初始化解耦（B）
-
-目前，如果想新增一个 printer，需要修改 `logger.h`：
-
-```cpp
-bool init(const std::string& path) {
-    // 读取配置...
-
-    // 初始化缓冲区和分发器...
-
-    // 创建 printers
-    for (const auto& pc : config_.printers) {
-        std::unique_ptr<Printer> p;
-
-        // [!] 修改处
-        if (pc.type == PrinterType::Console) {
-            // ...
-        } else if (pc.type == PrinterType::File) {
-            // ...
-        } // 新 printer ...
-
-        // ...
-    }
-
-    // ...
-}
-```
-
-还要修改 `config.cpp`：
-
-```cpp
-std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& error) {
-    // 加载配置文件等
-
-    /* 加载打印器 */
-    // ...
-    for (const auto& pj : j["printers"]) {
-        PrinterConfig pc;
-
-        // type...
-
-        // level...
-
-        // [!] 修改处
-        // file 特有字段...
-        // 其它 printer 特有字段
-
-        config.printers.push_back(std::move(pc));
-    }
-
-    // ...
-}
-```
-
 ### 更好的异常处理（B）
 
 目前，在初始化阶段没有为应用提供详细的错误信息，错误类型仅在 `load_config()` 内部描述：
@@ -486,7 +433,11 @@ config_ = *cfg;
 
 而且目前异常处理还不够标准，例如可以直接抛出异常类型+详细信息，而不是自定义的枚举异常类型。（？不知道是否合理）
 
-### 自定义日志输出格式化（C）
+### 增加串口打印（C）
+
+支持 RS-232、RS-485/RS-422、UART 等串口通信方式
+
+### 自定义日志输出格式化（D）
 
 目前，每个 printer 的格式化方法都被硬编码进 `printer_xxx.h`，未来可以支持在配置文件中增加可选的自定义 pattern（类似 spdlog %Y-%m-%d [%l] %v）
 
@@ -497,7 +448,3 @@ config_ = *cfg;
 - **vcpkg：** 添加 `vcpkg.json`
 - **Conan：** 添加 `conanfile.txt`
 - **FetchContent：** CMake 自动下载
-
----
-
-**用户请参考：** [用户指南](USER_GUIDE.md)

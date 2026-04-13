@@ -1,6 +1,9 @@
 #pragma once
 
 #include "types.h"
+#include <functional>
+#include <mutex>
+#include <unordered_map>
 
 namespace TinyLogger {
 
@@ -15,22 +18,28 @@ inline std::string format_timestamp(uint64_t ts_us) {
 
     auto us = ts_us % 1000000;
 
-    return fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
-                       tm.tm_min, tm.tm_sec, us);
+    return fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}",
+                       tm.tm_year + 1900,
+                       tm.tm_mon + 1,
+                       tm.tm_mday,
+                       tm.tm_hour,
+                       tm.tm_min,
+                       tm.tm_sec,
+                       us);
 }
 
 inline const char* level_to_string(LogLevel level) {
     switch (level) {
-    case LogLevel::Debug:
-        return "Debug";
-    case LogLevel::Info:
-        return "Info";
-    case LogLevel::Error:
-        return "Error";
-    case LogLevel::Fatal:
-        return "Fatal";
-    default:
-        return "Unknown";
+        case LogLevel::Debug:
+            return "Debug";
+        case LogLevel::Info:
+            return "Info";
+        case LogLevel::Error:
+            return "Error";
+        case LogLevel::Fatal:
+            return "Fatal";
+        default:
+            return "Unknown";
     }
 }
 
@@ -39,7 +48,6 @@ class Printer
 public:
     virtual ~Printer() = default;
 
-    virtual void init(const json& cfg) = 0;
     virtual void write(const LogEvent& event) = 0;
     virtual void flush() = 0;
 
@@ -47,12 +55,39 @@ public:
         return static_cast<uint8_t>(lvl) >= static_cast<uint8_t>(min_level_);
     }
 
-    void set_level(LogLevel lvl) {
-        min_level_ = lvl;
-    }
-
 protected:
     LogLevel min_level_;
+};
+
+using PrinterCreator = std::function<std::unique_ptr<Printer>(const PrinterConfig&)>;
+
+class PrinterRegistry
+{
+public:
+    static PrinterRegistry& instance() {
+        static PrinterRegistry inst;
+        return inst;
+    }
+
+    void register_printer(PrinterType type, PrinterCreator creator) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        creators_[type] = std::move(creator);
+    }
+
+    std::unique_ptr<Printer> create(const PrinterConfig& config) {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        auto it = creators_.find(config.type);
+        if (it == creators_.end()) {
+            return nullptr;
+        }
+
+        return (it->second)(config);
+    }
+
+private:
+    std::unordered_map<PrinterType, PrinterCreator> creators_;
+    std::mutex mutex_;
 };
 
 } // namespace TinyLogger

@@ -8,8 +8,10 @@ RingBuffer::RingBuffer(size_t capacity)
       buffer_(static_cast<Slot*>(operator new[](sizeof(Slot) * capacity_))),
       write_pos_(0),
       read_pos_(0) {
+    // 检查缓冲区槽位数量是否为 2 的幂次
     assert((capacity & (capacity - 1)) == 0 && "capacity must be a power of 2");
 
+    // 序列号初始化
     for (size_t i = 0; i < capacity_; ++i) {
         new (&buffer_[i]) Slot();
         buffer_[i].sequence.store(i, std::memory_order_relaxed);
@@ -24,6 +26,7 @@ RingBuffer::~RingBuffer() {
 }
 
 bool RingBuffer::enqueue(LogEvent&& e) {
+    // 获取当前的全局写指针
     size_t pos = write_pos_.load(std::memory_order_relaxed);
 
     while (true) {
@@ -31,9 +34,10 @@ bool RingBuffer::enqueue(LogEvent&& e) {
         size_t seq = slot.sequence.load(std::memory_order_acquire);
 
         if (seq == pos) {
+            // 槽位归生产者所有，可以写入
             if (write_pos_.compare_exchange_weak(pos, pos + 1)) {
                 slot.event = e;
-                slot.sequence.store(pos + 1, std::memory_order_release);
+                slot.sequence.store(pos + 1, std::memory_order_release); // 标记槽位可读
                 return true;
             }
         } else {
