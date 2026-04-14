@@ -53,6 +53,7 @@ TinyLogger/
 │   └── run_tests.bat           # Windows 测试脚本
 ├── examples/                   # 示例程序
 │   ├── example.cpp
+│   ├── speed_test.cpp
 │   ├── logger_config.json
 ├── cmake/                      # CMake 模块
 │   └── TinyLoggerConfig.cmake.in
@@ -416,22 +417,6 @@ print_test_summary("Suite Name", result);
 ### 延迟格式化（B）
 
 将格式化工作由 Logger + Printer，完全交付给 Printer，进一步减轻应用进程负担。但这个改动动作较大且实现较困难，要谨慎设计。
-
-### 更好的异常处理（B）
-
-目前，在初始化阶段没有为应用提供详细的错误信息，错误类型仅在 `load_config()` 内部描述：
-
-```cpp
-// 读取配置
-ConfigError err;
-auto cfg = load_config(path, err);
-if (!cfg) {
-    return false;
-}
-config_ = *cfg;
-```
-
-而且目前异常处理还不够标准，例如可以直接抛出异常类型+详细信息，而不是自定义的枚举异常类型。（？不知道是否合理）
 
 ### 增加串口打印（C）
 

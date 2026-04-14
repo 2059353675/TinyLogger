@@ -26,7 +26,7 @@ private:
 private:
     RingBuffer& ring_buffer_;
     std::vector<std::unique_ptr<Printer>> printers_;
-    std::array<std::vector<Printer*>, LOG_LEVEL_COUNT> level_routing_;
+    LogLevel global_min_level_;
 
     std::atomic<bool> running_{false};
     std::thread worker_;

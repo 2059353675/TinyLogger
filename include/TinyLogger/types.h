@@ -37,7 +37,8 @@ enum class OverflowPolicy {
 /* 输出类型 */
 enum class PrinterType {
     Console,
-    File
+    File,
+    Null
 };
 
 /* 日志事件 */
@@ -100,6 +101,8 @@ static std::optional<PrinterType> string_to_printer_type(std::string s) {
         return PrinterType::Console;
     if (s == "File")
         return PrinterType::File;
+    if (s == "Null")
+        return PrinterType::Null;
     return std::nullopt;
 }
 
@@ -113,7 +116,8 @@ static std::optional<OverflowPolicy> string_to_overflow(std::string s) {
     return std::nullopt;
 }
 
-class LoggerException : public std::runtime_error {
+class LoggerException : public std::runtime_error
+{
 public:
     enum class Code {
         InitFailed,
@@ -123,9 +127,12 @@ public:
         Unknown
     };
 
-    LoggerException(Code code, const std::string& msg) : std::runtime_error(msg), code_(code) {}
+    LoggerException(Code code, const std::string& msg) : std::runtime_error(msg), code_(code) {
+    }
 
-    Code code() const { return code_; }
+    Code code() const {
+        return code_;
+    }
 
 private:
     Code code_;

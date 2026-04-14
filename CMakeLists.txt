@@ -42,6 +42,7 @@ set(TINYLOGGER_SOURCES
     src/distributor.cpp
     src/printer_console.cpp
     src/printer_file.cpp
+    src/printer_null.cpp
 )
 
 # 创建静态库
@@ -72,7 +73,9 @@ if(TINYLOGGER_BUILD_EXAMPLES)
     add_executable(example examples/example.cpp)
     target_link_libraries(example PRIVATE tinylogger)
     
-    # 复制配置文件到构建目录
+    add_executable(speed_test examples/speed_test.cpp)
+    target_link_libraries(speed_test PRIVATE tinylogger)
+    
     file(COPY examples/logger_config.json
          DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
     file(COPY examples/logger_config.json

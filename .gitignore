@@ -41,3 +41,6 @@ conanfile.txt.user
 # Windows
 Thumbs.db
 desktop.ini
+
+# 统计工具
+count.sh

@@ -1,0 +1,10 @@
+{
+    "buffer_size": 65536,
+    "overflow_policy": "Discard",
+    "printers": [
+        {
+            "type": "Null",
+            "level": "Debug"
+        }
+    ]
+}

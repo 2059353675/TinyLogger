@@ -12,29 +12,24 @@ Distributor::~Distributor() {
 }
 
 void Distributor::start() {
-    // 运行标记
+    LogLevel min_level = LogLevel::Fatal;
+    for (const auto& printer : printers_) {
+        LogLevel printer_level = printer->min_level();
+        if (static_cast<uint8_t>(printer_level) < static_cast<uint8_t>(min_level)) {
+            min_level = printer_level;
+        }
+    }
+    global_min_level_ = min_level;
+
     bool expected = false;
     if (!running_.compare_exchange_strong(expected, true)) {
         return; // already running
-    }
-
-    // 构建日志级别表
-    for (auto& vec : level_routing_) {
-        vec.clear();
-    }
-    for (auto& p : printers_) {
-        LogLevel min_lvl = p->min_level();
-
-        for (uint8_t lvl = static_cast<uint8_t>(min_lvl); lvl < LOG_LEVEL_COUNT; ++lvl) {
-            level_routing_[lvl].push_back(p.get());
-        }
     }
 
     worker_ = std::thread(&Distributor::run, this);
 }
 
 void Distributor::stop() {
-    // 运行标记
     bool expected = true;
     if (!running_.compare_exchange_strong(expected, false)) {
         return; // already stopped
@@ -44,7 +39,6 @@ void Distributor::stop() {
         worker_.join();
     }
 
-    // 退出前 flush 所有 printer
     flush_all();
 }
 
@@ -76,14 +70,16 @@ void Distributor::run() {
         // 分发到 printers
         for (size_t i = 0; i < count; ++i) {
             const LogEvent& event = batch[i];
-
-            auto lvl = static_cast<uint8_t>(event.level);
-            auto& targets = level_routing_[lvl];
-
-            for (auto* p : targets) {
+            if (static_cast<uint8_t>(event.level) < static_cast<uint8_t>(global_min_level_))
+                continue;
+            for (auto& p : printers_) {
+                if (!p->should_log(event.level))
+                    continue;
                 try {
                     p->write(event);
-                } catch (const std::exception&) { p->increment_error_count(); }
+                } catch (const std::exception&) {
+                    p->increment_error_count();
+                }
             }
         }
     }
@@ -95,8 +91,16 @@ void Distributor::drain_remaining() {
     LogEvent event;
 
     while (ring_buffer_.dequeue(event)) {
+        if (static_cast<uint8_t>(event.level) < static_cast<uint8_t>(global_min_level_))
+            continue;
         for (auto& p : printers_) {
-            p->write(event);
+            if (!p->should_log(event.level))
+                continue;
+            try {
+                p->write(event);
+            } catch (const std::exception&) {
+                p->increment_error_count();
+            }
         }
     }
 
