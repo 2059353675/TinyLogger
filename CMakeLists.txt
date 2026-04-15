@@ -4,31 +4,17 @@ project(TinyLogger VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 # 选项
 option(TINYLOGGER_BUILD_TESTS "Build tests" ON)
 option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
 
 # ==================== 查找依赖 ====================
 
-# nlohmann/json - 使用系统路径
-find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp PATHS /usr/include /usr/local/include)
-if(NOT NLOHMANN_JSON_INCLUDE_DIR)
-    message(FATAL_ERROR "nlohmann/json.hpp not found. Please install nlohmann-json package.")
-endif()
-add_library(nlohmann_json INTERFACE IMPORTED)
-target_include_directories(nlohmann_json INTERFACE ${NLOHMANN_JSON_INCLUDE_DIR})
-
-# fmt - 使用系统路径
-find_path(FMT_INCLUDE_DIR NAMES fmt/format.h PATHS /usr/include /usr/local/include)
-find_library(FMT_LIBRARY NAMES fmt PATHS /usr/lib /usr/local/lib)
-if(NOT FMT_INCLUDE_DIR OR NOT FMT_LIBRARY)
-    message(FATAL_ERROR "fmt library not found. Please install libfmt-dev package.")
-endif()
-add_library(fmt UNKNOWN IMPORTED)
-set_target_properties(fmt PROPERTIES
-    IMPORTED_LOCATION ${FMT_LIBRARY}
-    INTERFACE_INCLUDE_DIRECTORIES ${FMT_INCLUDE_DIR}
-)
+find_package(fmt REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # ==================== 库定义 ====================
 
@@ -47,6 +33,8 @@ set(TINYLOGGER_SOURCES
 
 # 创建静态库
 add_library(tinylogger STATIC ${TINYLOGGER_SOURCES})
+add_library(TinyLogger::tinylogger ALIAS tinylogger)
+
 target_include_directories(tinylogger
     PUBLIC
         $<BUILD_INTERFACE:${TINYLOGGER_INCLUDE_DIR}>
@@ -54,9 +42,8 @@ target_include_directories(tinylogger
 )
 target_link_libraries(tinylogger
     PUBLIC
-        fmt
-    PRIVATE
-        nlohmann_json
+        fmt::fmt
+        nlohmann_json::nlohmann_json
 )
 
 # 设置库属性
@@ -65,7 +52,16 @@ set_target_properties(tinylogger PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
     POSITION_INDEPENDENT_CODE ON
     OUTPUT_NAME TinyLogger
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
 )
+
+# 编译器警告
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(tinylogger PRIVATE -Wall -Wextra -Wpedantic)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    target_compile_options(tinylogger PRIVATE /W4)
+endif()
 
 # ==================== 示例程序 ====================
 
@@ -91,8 +87,6 @@ endif()
 
 # ==================== 安装 ====================
 
-include(GNUInstallDirs)
-
 # 安装头文件
 install(DIRECTORY include/TinyLogger
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
@@ -113,8 +107,6 @@ install(EXPORT TinyLoggerTargets
 )
 
 # 生成配置文件
-include(CMakePackageConfigHelpers)
-
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/TinyLoggerConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}

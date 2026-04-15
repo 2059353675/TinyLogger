@@ -86,7 +86,9 @@ void FilePrinter::rotate() {
     std::fclose(file_);
 
     std::string backup = file_path_ + ".1";
-    std::rename(file_path_.c_str(), backup.c_str());
+    if (std::rename(file_path_.c_str(), backup.c_str()) != 0) {
+        std::fprintf(stderr, "[TinyLogger] Failed to rotate log file: %s\n", file_path_.c_str());
+    }
 
     open_file();
     current_size_ = 0;

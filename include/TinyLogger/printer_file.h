@@ -13,6 +13,12 @@ public:
 
     ~FilePrinter() override;
 
+    FilePrinter(const FilePrinter&) = delete;
+    FilePrinter& operator=(const FilePrinter&) = delete;
+
+    FilePrinter(FilePrinter&&) = default;
+    FilePrinter& operator=(FilePrinter&&) = default;
+
     void write(const LogEvent& event) override;
 
     void flush() override;

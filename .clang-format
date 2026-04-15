@@ -1,0 +1,58 @@
+# 基础风格基于 LLVM
+BasedOnStyle: LLVM
+
+# 缩进宽度设置为 4
+IndentWidth: 4
+
+# 制表符宽度
+TabWidth: 4
+
+# 使用空格代替制表符
+UseTab: Never
+
+# 缩进 case 标签
+IndentCaseLabels: true
+
+# 大括号换行策略
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true        # 类定义大括号换行 (class A -> class A\n{)
+  AfterStruct: false       # 结构体定义大括号换行
+  AfterUnion: false        # 联合体定义大括号换行
+  AfterEnum: false         # 枚举定义大括号换行
+  AfterFunction: false     # 函数定义大括号换行
+  AfterNamespace: false   # 命名空间是否换行，视情况而定
+  BeforeElse: false
+  BeforeCatch: false
+
+# 控制模板声明/短代码块/函数定义放在同一行
+AlwaysBreakTemplateDeclarations: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: false
+
+# 函数调用的参数换行对齐方式
+AlignAfterOpenBracket: Align  # 左括号后的参数与括号对齐
+BinPackArguments: false # 参数打包（false 优先每行一个参数）
+
+# 连续赋值对齐（可选，让代码更美观）
+AlignConsecutiveAssignments: false
+
+# 限制单行长度（LLVM 默认为 80，你可以根据需要调大）
+ColumnLimit: 130
+
+# BreakBeforeTemplateDeclaration: true   # 强制模板声明后换行
+# BreakTemplateDeclarations: true        # 模板声明 > 后换行（可选）
+
+# 让指针/引用符号靠近类型（左侧）
+PointerAlignment: Left
+
+# 访问修饰符与 class/struct 关键字保持同级对齐
+AccessModifierOffset: -4
+
+# 构造函数初始化列表
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+AllowAllConstructorInitializersOnNextLine: false
+BreakConstructorInitializers: BeforeColon
+
+# 枚举类
+AllowShortEnumsOnASingleLine: false

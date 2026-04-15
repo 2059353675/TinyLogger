@@ -59,6 +59,10 @@ struct LogEvent {
         if (len < sizeof(buffer)) {
             std::memcpy(buffer, msg, len);
             buffer[len] = '\0';
+        } else if (len > 0) {
+            std::memcpy(buffer, msg, sizeof(buffer) - 1);
+            buffer[sizeof(buffer) - 1] = '\0';
+            length = sizeof(buffer) - 1;
         }
     }
 };

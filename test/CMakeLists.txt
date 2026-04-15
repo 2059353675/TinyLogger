@@ -8,46 +8,29 @@
 #   cmake ..
 #   make run_tests
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# ==================== 包含头文件 ====================
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
-
-# 源文件
-set(TINYLOGGER_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/ring_buffer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/config.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/distributor.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/printer_console.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/printer_file.cpp
-)
-
 # ==================== 测试可执行文件 ====================
 
 # RingBuffer 测试
-add_executable(test_ring_buffer test_ring_buffer.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_ring_buffer fmt nlohmann_json)
+add_executable(test_ring_buffer test_ring_buffer.cpp)
+target_link_libraries(test_ring_buffer PRIVATE TinyLogger::tinylogger)
 
 # Config 测试
-add_executable(test_config test_config.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_config fmt nlohmann_json)
+add_executable(test_config test_config.cpp)
+target_link_libraries(test_config PRIVATE TinyLogger::tinylogger)
 
 # Printer 测试
-add_executable(test_printer test_printer.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_printer fmt nlohmann_json)
+add_executable(test_printer test_printer.cpp)
+target_link_libraries(test_printer PRIVATE TinyLogger::tinylogger)
 
 # Distributor 测试
-add_executable(test_distributor test_distributor.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_distributor fmt nlohmann_json)
+add_executable(test_distributor test_distributor.cpp)
+target_link_libraries(test_distributor PRIVATE TinyLogger::tinylogger)
 
 # Logger 集成测试
-add_executable(test_logger test_logger.cpp ${TINYLOGGER_SOURCES})
-target_link_libraries(test_logger fmt nlohmann_json)
+add_executable(test_logger test_logger.cpp)
+target_link_libraries(test_logger PRIVATE TinyLogger::tinylogger)
 
 # ==================== 测试配置 ====================
-
-# 注意：enable_testing() 已在根 CMakeLists.txt 中调用
 
 add_test(NAME RingBufferTest COMMAND test_ring_buffer)
 add_test(NAME ConfigTest COMMAND test_config)
