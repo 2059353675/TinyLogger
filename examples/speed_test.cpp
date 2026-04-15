@@ -16,6 +16,7 @@
  */
 
 #include <TinyLogger/logger.h>
+#include <TinyLogger/printer_console.h>
 #include <TinyLogger/printer_null.h>
 #include <atomic>
 #include <chrono>
@@ -36,12 +37,17 @@ struct TimingStats {
 
 static std::vector<double> g_samples;
 
-void reset_samples() { g_samples.clear(); }
-void add_sample(double ns) { g_samples.push_back(ns); }
+void reset_samples() {
+    g_samples.clear();
+}
+void add_sample(double ns) {
+    g_samples.push_back(ns);
+}
 
 TimingStats analyze() {
     TimingStats s;
-    if (g_samples.empty()) return s;
+    if (g_samples.empty())
+        return s;
 
     std::sort(g_samples.begin(), g_samples.end());
     s.min_ns = g_samples.front();
@@ -50,7 +56,8 @@ TimingStats analyze() {
     s.p99_ns = g_samples[static_cast<size_t>(g_samples.size() * 0.99)];
 
     double sum = 0;
-    for (double v : g_samples) sum += v;
+    for (double v : g_samples)
+        sum += v;
     s.avg_ns = sum / g_samples.size();
     return s;
 }
@@ -109,25 +116,51 @@ int main() {
     const int WARMUP = 500;
     const int MEASURE = 5000;
 
-    printf("【测试1】NullPrinter (无 I/O)\n");
+    printf("\n【测试1】ConsolePrinter (含 I/O)\n");
     {
-        TinyLogger::register_null_printer();
         TinyLogger::Logger logger;
-        logger.init("speed_test_config.json");
-        auto r = run_test(logger, WARMUP, MEASURE);
-        printf("  丢弃: %zu\n", r.dropped);
-        print("logger.info() 返回", r.info_return);
-        print("fmt::format 单独", r.fmt_standalone);
+
+        TinyLogger::PrinterConfig console_config;
+        console_config.type = TinyLogger::PrinterType::Console;
+        console_config.min_level = TinyLogger::LogLevel::Debug;
+
+        TinyLogger::LoggerConfig config;
+        config.overflow_policy = TinyLogger::OverflowPolicy::Block;
+        config.printers.push_back(console_config);
+
+        if (logger.init(config) != TinyLogger::ErrorCode::None) {
+            printf("  初始化失败\n");
+            return 1;
+        } else {
+            auto r = run_test(logger, WARMUP, MEASURE);
+            printf("  丢弃: %zu\n", r.dropped);
+            print("logger.info() 返回", r.info_return);
+            print("fmt::format 单独", r.fmt_standalone);
+        }
     }
 
-    printf("\n【测试2】ConsolePrinter (含 I/O)\n");
+    printf("【测试2】NullPrinter (无 I/O)\n");
     {
+        TinyLogger::register_null_printer();
+
+        TinyLogger::PrinterConfig null_config;
+        null_config.type = TinyLogger::PrinterType::Null;
+        null_config.min_level = TinyLogger::LogLevel::Debug;
+
         TinyLogger::Logger logger;
-        logger.init("examples/logger_config.json");
-        auto r = run_test(logger, WARMUP, MEASURE);
-        printf("  丢弃: %zu\n", r.dropped);
-        print("logger.info() 返回", r.info_return);
-        print("fmt::format 单独", r.fmt_standalone);
+        TinyLogger::LoggerConfig config;
+        config.overflow_policy = TinyLogger::OverflowPolicy::Block;
+        config.printers.push_back(null_config);
+
+        if (logger.init(config) != TinyLogger::ErrorCode::None) {
+            printf("  初始化失败\n");
+            return 1;
+        } else {
+            auto r = run_test(logger, WARMUP, MEASURE);
+            printf("  丢弃: %zu\n", r.dropped);
+            print("logger.info() 返回", r.info_return);
+            print("fmt::format 单独", r.fmt_standalone);
+        }
     }
 
     printf("\n===== 环节分解 =====\n");

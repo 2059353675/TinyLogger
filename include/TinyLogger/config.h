@@ -6,13 +6,16 @@
 
 namespace TinyLogger {
 
-enum class ConfigError {
+enum class ErrorCode {
     FileNotFound,
     ParseError,
     InvalidBufferSize,
     InvalidOverflowPolicy,
     InvalidPrinterType,
     InvalidLevel,
+    BufferAllocFailed,
+    PrinterCreateFailed,
+    ConfigNotFound,
     UnknownError,
     None
 };
@@ -23,6 +26,6 @@ enum class ConfigError {
  * @param error 用于返回具体的配置错误类型
  * @return 成功时返回 LoggerConfig，失败时返回 std::nullopt
  */
-std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& error);
+std::optional<LoggerConfig> load_config(const std::string& path, ErrorCode& error);
 
 } // namespace TinyLogger

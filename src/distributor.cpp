@@ -70,7 +70,7 @@ void Distributor::run() {
         // 分发到 printers
         for (size_t i = 0; i < count; ++i) {
             const LogEvent& event = batch[i];
-            if (static_cast<uint8_t>(event.level) < static_cast<uint8_t>(global_min_level_))
+            if (!should_log(event.level))
                 continue;
             for (auto& p : printers_) {
                 if (!p->should_log(event.level))
@@ -91,7 +91,7 @@ void Distributor::drain_remaining() {
     LogEvent event;
 
     while (ring_buffer_.dequeue(event)) {
-        if (static_cast<uint8_t>(event.level) < static_cast<uint8_t>(global_min_level_))
+        if (!should_log(event.level))
             continue;
         for (auto& p : printers_) {
             if (!p->should_log(event.level))

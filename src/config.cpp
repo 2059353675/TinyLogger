@@ -5,11 +5,11 @@
 
 namespace TinyLogger {
 
-std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& error) {
+std::optional<LoggerConfig> load_config(const std::string& path, ErrorCode& error) {
     /* 加载配置文件 */
     std::ifstream f(path);
     if (!f.is_open()) {
-        error = ConfigError::FileNotFound;
+        error = ErrorCode::FileNotFound;
         return std::nullopt;
     }
 
@@ -17,10 +17,10 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
     try {
         f >> j;
     } catch (const json::parse_error&) {
-        error = ConfigError::ParseError;
+        error = ErrorCode::ParseError;
         return std::nullopt;
     } catch (...) {
-        error = ConfigError::UnknownError;
+        error = ErrorCode::UnknownError;
         return std::nullopt;
     }
 
@@ -32,7 +32,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
 
         // 检查是否为 2 的幂
         if ((config.buffer_size & (config.buffer_size - 1)) != 0) {
-            error = ConfigError::InvalidBufferSize;
+            error = ErrorCode::InvalidBufferSize;
             return std::nullopt;
         }
     }
@@ -41,7 +41,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
     if (j.contains("overflow_policy")) {
         auto policy = string_to_overflow(j["overflow_policy"].get<std::string>());
         if (!policy) {
-            error = ConfigError::InvalidOverflowPolicy;
+            error = ErrorCode::InvalidOverflowPolicy;
             return std::nullopt;
         }
         config.overflow_policy = *policy;
@@ -49,7 +49,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
 
     /* 加载打印器 */
     if (!j.contains("printers") || !j["printers"].is_array()) {
-        error = ConfigError::InvalidPrinterType;
+        error = ErrorCode::InvalidPrinterType;
         return std::nullopt;
     }
     for (const auto& pj : j["printers"]) {
@@ -57,12 +57,12 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
 
         // type
         if (!pj.contains("type")) {
-            error = ConfigError::InvalidPrinterType;
+            error = ErrorCode::InvalidPrinterType;
             return std::nullopt;
         }
         auto type = string_to_printer_type(pj["type"].get<std::string>());
         if (!type) {
-            error = ConfigError::InvalidPrinterType;
+            error = ErrorCode::InvalidPrinterType;
             return std::nullopt;
         }
         pc.type = *type;
@@ -71,7 +71,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
         if (pj.contains("level")) {
             auto lvl = string_to_level(pj["level"].get<std::string>());
             if (!lvl) {
-                error = ConfigError::InvalidLevel;
+                error = ErrorCode::InvalidLevel;
                 return std::nullopt;
             }
             pc.min_level = *lvl;
@@ -83,7 +83,7 @@ std::optional<LoggerConfig> load_config(const std::string& path, ConfigError& er
         config.printers.push_back(std::move(pc));
     }
 
-    error = ConfigError::None;
+    error = ErrorCode::None;
     return config;
 }
 

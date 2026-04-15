@@ -19,10 +19,10 @@ bool test_valid_minimal_config() {
     })";
 
     TempConfigFile config("minimal.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
 
-    return config_ptr && error == ConfigError::None && config_ptr->buffer_size == 256 &&
+    return config_ptr && error == ErrorCode::None && config_ptr->buffer_size == 256 &&
            config_ptr->overflow_policy == OverflowPolicy::Discard && config_ptr->printers.size() == 1;
 }
 
@@ -46,10 +46,10 @@ bool test_valid_full_config() {
     })";
 
     TempConfigFile config("full.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
 
-    if (!config_ptr || error != ConfigError::None) {
+    if (!config_ptr || error != ErrorCode::None) {
         return false;
     }
 
@@ -90,17 +90,17 @@ bool test_valid_full_config() {
 // ==================== 错误处理测试 ====================
 
 bool test_file_not_found() {
-    ConfigError error;
+    ErrorCode error;
     auto config = load_config("nonexistent_file.json", error);
-    return !config && error == ConfigError::FileNotFound;
+    return !config && error == ErrorCode::FileNotFound;
 }
 
 bool test_invalid_json() {
     std::string json = "{ invalid json }";
     TempConfigFile config("invalid.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
-    return !config_ptr && error == ConfigError::ParseError;
+    return !config_ptr && error == ErrorCode::ParseError;
 }
 
 bool test_missing_printers() {
@@ -110,9 +110,9 @@ bool test_missing_printers() {
     })";
 
     TempConfigFile config("no_printers.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
-    return !config_ptr && error == ConfigError::InvalidPrinterType;
+    return !config_ptr && error == ErrorCode::InvalidPrinterType;
 }
 
 bool test_invalid_printer_type() {
@@ -128,9 +128,9 @@ bool test_invalid_printer_type() {
     })";
 
     TempConfigFile config("invalid_type.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
-    return !config_ptr && error == ConfigError::InvalidPrinterType;
+    return !config_ptr && error == ErrorCode::InvalidPrinterType;
 }
 
 bool test_invalid_overflow_policy() {
@@ -146,9 +146,9 @@ bool test_invalid_overflow_policy() {
     })";
 
     TempConfigFile config("invalid_overflow.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
-    return !config_ptr && error == ConfigError::InvalidOverflowPolicy;
+    return !config_ptr && error == ErrorCode::InvalidOverflowPolicy;
 }
 
 bool test_invalid_log_level() {
@@ -164,9 +164,9 @@ bool test_invalid_log_level() {
     })";
 
     TempConfigFile config("invalid_level.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
-    return !config_ptr && error == ConfigError::InvalidLevel;
+    return !config_ptr && error == ErrorCode::InvalidLevel;
 }
 
 bool test_non_power_of_two_buffer() {
@@ -182,7 +182,7 @@ bool test_non_power_of_two_buffer() {
     })";
 
     TempConfigFile config("bad_buffer.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
     return !config_ptr;
 }
@@ -200,10 +200,10 @@ bool test_missing_file_path() {
     })";
 
     TempConfigFile config("missing_path.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
     // config.cpp 不在加载时验证 path 字段，由 FilePrinter 构造函数验证
-    return config_ptr && error == ConfigError::None && config_ptr->printers.size() == 1;
+    return config_ptr && error == ErrorCode::None && config_ptr->printers.size() == 1;
 }
 
 // ==================== 边界情况测试 ====================
@@ -226,7 +226,7 @@ bool test_case_insensitive_parsing() {
     })";
 
     TempConfigFile config("case_test.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
 
     if (!config_ptr) {
@@ -253,10 +253,10 @@ bool test_default_values() {
     })";
 
     TempConfigFile config("defaults.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
 
-    if (!config_ptr || error != ConfigError::None) {
+    if (!config_ptr || error != ErrorCode::None) {
         return false;
     }
 
@@ -288,7 +288,7 @@ bool test_empty_printers_array() {
     })";
 
     TempConfigFile config("empty_printers.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
     return config_ptr && config_ptr->printers.size() == 0;
 }
@@ -310,7 +310,7 @@ bool test_multiple_printers_same_type() {
     })";
 
     TempConfigFile config("multi_console.json", json);
-    ConfigError error;
+    ErrorCode error;
     auto config_ptr = load_config(config.path(), error);
 
     if (!config_ptr || config_ptr->printers.size() != 2) {

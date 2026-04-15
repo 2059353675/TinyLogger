@@ -1,3 +1,5 @@
+#pragma once
+
 #include "printer.h"
 #include "ring_buffer.h"
 #include "types.h"
@@ -17,6 +19,9 @@ public:
     void start();
     void stop();
     void add_printer(std::unique_ptr<Printer> p);
+    bool should_log(LogLevel lvl) const {
+        return static_cast<uint8_t>(lvl) >= static_cast<uint8_t>(global_min_level_);
+    }
 
 private:
     void run();

@@ -8,10 +8,6 @@ RingBuffer::RingBuffer(size_t capacity)
       buffer_(static_cast<Slot*>(operator new[](sizeof(Slot) * capacity_))),
       write_pos_(0),
       read_pos_(0) {
-    // 检查缓冲区槽位数量是否为 2 的幂次
-    assert((capacity & (capacity - 1)) == 0 && "capacity must be a power of 2");
-
-    // 序列号初始化
     for (size_t i = 0; i < capacity_; ++i) {
         new (&buffer_[i]) Slot();
         buffer_[i].sequence.store(i, std::memory_order_relaxed);

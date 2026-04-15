@@ -30,7 +30,7 @@ bool test_logger_init_valid_config() {
     TempConfigFile config("init.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -40,7 +40,7 @@ bool test_logger_init_valid_config() {
 
 bool test_logger_init_invalid_config() {
     Logger logger;
-    return !logger.init("nonexistent.json");
+    return logger.init("nonexistent.json") == ErrorCode::FileNotFound;
 }
 
 bool test_logger_init_file_printer() {
@@ -63,7 +63,7 @@ bool test_logger_init_file_printer() {
     TempConfigFile config("file.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -93,7 +93,7 @@ bool test_logger_info() {
     TempConfigFile config("info.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -125,7 +125,7 @@ bool test_logger_debug() {
     TempConfigFile config("debug.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -157,7 +157,7 @@ bool test_logger_error() {
     TempConfigFile config("error.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -189,7 +189,7 @@ bool test_logger_fatal() {
     TempConfigFile config("fatal.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -221,7 +221,7 @@ bool test_logger_formatted_output() {
     TempConfigFile config("format.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -257,7 +257,7 @@ bool test_logger_level_filtering() {
     TempConfigFile config("filter.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -304,7 +304,7 @@ bool test_logger_concurrent_logging() {
     TempConfigFile config("concurrent.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -353,7 +353,7 @@ bool test_logger_overflow_discard() {
     TempConfigFile config("overflow.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -394,7 +394,7 @@ bool test_logger_multiple_printers() {
     TempConfigFile config("multi.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -429,7 +429,7 @@ bool test_logger_start_stop_cycle() {
 
     for (int i = 0; i < 3; ++i) {
         Logger logger;
-        if (!logger.init(config.path())) {
+        if (logger.init(config.path()) != ErrorCode::None) {
             return false;
         }
 
@@ -450,17 +450,12 @@ bool test_logger_start_stop_cycle() {
     return true;
 }
 
-// ==================== 异常处理和错误回调测试 ====================
+// ==================== 错误处理测试 ====================
 
-bool test_logger_error_callback_on_invalid_config() {
+bool test_logger_init_file_not_found() {
     Logger logger;
-    bool callback_called = false;
-    logger.set_error_callback([&callback_called](LoggerException::Code code, const std::string& msg) {
-        callback_called = true;
-    });
-
-    bool init_result = logger.init("nonexistent.json");
-    return !init_result && callback_called;
+    auto err = logger.init("nonexistent.json");
+    return err == ErrorCode::FileNotFound;
 }
 
 bool test_logger_dropped_count() {
@@ -483,7 +478,7 @@ bool test_logger_dropped_count() {
     TempConfigFile config("dropped.json", json);
 
     Logger logger;
-    if (!logger.init(config.path())) {
+    if (logger.init(config.path()) != ErrorCode::None) {
         return false;
     }
 
@@ -497,7 +492,7 @@ bool test_logger_dropped_count() {
     return logger.dropped_count() > 0;
 }
 
-bool test_logger_error_callback_called() {
+bool test_logger_init_success_no_error() {
     std::string json = R"({
         "buffer_size": 256,
         "overflow_policy": "Discard",
@@ -512,23 +507,14 @@ bool test_logger_error_callback_called() {
     TempConfigFile config("callback.json", json);
 
     Logger logger;
-    bool callback_called = false;
-    LoggerException::Code last_code = LoggerException::Code::Unknown;
-    std::string last_msg;
-
-    logger.set_error_callback([&callback_called, &last_code, &last_msg](LoggerException::Code code, const std::string& msg) {
-        callback_called = true;
-        last_code = code;
-        last_msg = msg;
-    });
-
-    if (!logger.init(config.path())) {
+    auto err = logger.init(config.path());
+    if (err != ErrorCode::None) {
         return false;
     }
 
     logger.shutdown();
 
-    return callback_called == false;
+    return true;
 }
 
 // ==================== 主函数 ====================
@@ -556,9 +542,9 @@ int main() {
 
     run_test("Logger start/stop cycle", test_logger_start_stop_cycle, result);
 
-    run_test("Logger error callback on invalid config", test_logger_error_callback_on_invalid_config, result);
+    run_test("Logger init file not found", test_logger_init_file_not_found, result);
     run_test("Logger dropped count", test_logger_dropped_count, result);
-    run_test("Logger error callback not called on success", test_logger_error_callback_called, result);
+    run_test("Logger init success returns no error", test_logger_init_success_no_error, result);
 
     print_test_summary("Logger Integration Test Suite", result);
 

@@ -83,9 +83,12 @@ struct PrinterConfig {
 
 /* 日志器配置 */
 struct LoggerConfig {
-    size_t buffer_size{256};
-    OverflowPolicy overflow_policy{OverflowPolicy::Discard};
+    size_t buffer_size;
+    OverflowPolicy overflow_policy;
     std::vector<PrinterConfig> printers;
+
+    LoggerConfig() : buffer_size(LOG_COUNT), overflow_policy(OverflowPolicy::Discard) {
+    }
 };
 
 static std::optional<LogLevel> string_to_level(std::string s) {
@@ -119,27 +122,5 @@ static std::optional<OverflowPolicy> string_to_overflow(std::string s) {
         return OverflowPolicy::DropOldest;
     return std::nullopt;
 }
-
-class LoggerException : public std::runtime_error
-{
-public:
-    enum class Code {
-        InitFailed,
-        PrinterCreateFailed,
-        BufferAllocFailed,
-        WriteFailed,
-        Unknown
-    };
-
-    LoggerException(Code code, const std::string& msg) : std::runtime_error(msg), code_(code) {
-    }
-
-    Code code() const {
-        return code_;
-    }
-
-private:
-    Code code_;
-};
 
 } // namespace TinyLogger
