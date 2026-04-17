@@ -74,23 +74,49 @@ sudo make install
 
 ### 基本使用
 
-最简单的使用方式：
+推荐使用程序化配置（类型安全，无需外部文件）：
 
 ```cpp
 #include <TinyLogger/logger.h>
 
 int main() {
-    TinyLogger::Logger logger;
+    using namespace tiny_logger;
     
-    // 通过配置文件初始化
-    logger.init("logger_config.json");
-    
+    // 方式一（推荐）：程序化配置
+    PrinterConfig console_cfg;
+    console_cfg.type = PrinterType::Console;
+    console_cfg.min_level = LogLevel::Debug;
+
+    LoggerConfig config;
+    config.buffer_size = 256;
+    config.overflow_policy = OverflowPolicy::Discard;
+    config.printers.push_back(console_cfg);
+
+    Logger logger;
+    if (logger.init(config) != ErrorCode::None) {
+        std::cerr << "初始化失败" << std::endl;
+        return 1;
+    }
+
     // 记录日志
     logger.info("应用程序启动");
-    logger.debug("调试信息：{}", 42); // 支持 fmt 风格格式化
+    logger.debug("调试信息：{}", 42);
     logger.error("错误：{}", "详细信息");
+
+    return 0;
+}
+```
+
+或使用默认配置（最简单的初始化方式）：
+
+```cpp
+#include <TinyLogger/logger.h>
+
+int main() {
+    tiny_logger::Logger logger;
+    logger.init();  // 使用默认配置：Console + Info级别
     
-    // 程序结束时自动清理
+    logger.info("应用程序启动");
     return 0;
 }
 ```
@@ -163,7 +189,63 @@ TinyLogger 使用 JSON 文件配置日志行为，注意大小写敏感：
 
 ### Logger 类
 
-#### `bool init(const std::string& config_path)`
+#### 程序化配置（推荐）
+
+```cpp
+ErrorCode init(const LoggerConfig& config);
+```
+
+使用 `LoggerConfig` 结构体初始化 Logger。
+
+**参数：**
+- `config`：LoggerConfig 结构体，包含 buffer_size、overflow_policy、printers 等
+
+**返回：**
+- `ErrorCode::None`：初始化成功
+- 其他：初始化失败
+
+**示例：**
+```cpp
+using namespace tiny_logger;
+
+PrinterConfig pc;
+pc.type = PrinterType::Console;
+pc.min_level = LogLevel::Debug;
+
+LoggerConfig cfg;
+cfg.buffer_size = 256;
+cfg.overflow_policy = OverflowPolicy::Discard;
+cfg.printers.push_back(pc);
+
+Logger logger;
+if (logger.init(cfg) != ErrorCode::None) {
+    std::cerr << "初始化失败" << std::endl;
+    return 1;
+}
+```
+
+#### 默认配置
+
+```cpp
+ErrorCode init();
+```
+
+使用默认配置初始化：Console Printer + Info 级别 + Discard 溢出策略。
+
+**返回：**
+- `ErrorCode::None`：初始化成功
+
+**示例：**
+```cpp
+Logger logger;
+logger.init();  // 使用默认配置
+logger.info("Hello");
+```
+
+#### 从文件初始化（备选）
+
+```cpp
+ErrorCode init(const std::string& config_path);
 
 从 JSON 配置文件初始化 Logger。
 

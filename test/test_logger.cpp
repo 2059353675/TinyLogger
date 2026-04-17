@@ -13,7 +13,50 @@
 using namespace tiny_logger;
 using namespace tiny_logger::test;
 
-// ==================== Logger 初始化和销毁测试 ====================
+static LoggerConfig create_console_config(LogLevel level = LogLevel::Debug) {
+    PrinterConfig pc;
+    pc.type = PrinterType::Console;
+    pc.min_level = level;
+    LoggerConfig cfg;
+    cfg.buffer_size = 256;
+    cfg.overflow_policy = OverflowPolicy::Discard;
+    cfg.printers.push_back(pc);
+    return cfg;
+}
+
+static LoggerConfig create_file_config(const std::string& path, LogLevel level = LogLevel::Debug, size_t flush_every = 1) {
+    PrinterConfig pc;
+    pc.type = PrinterType::File;
+    pc.min_level = level;
+    pc.raw["path"] = path;
+    pc.raw["flush_every"] = flush_every;
+    LoggerConfig cfg;
+    cfg.buffer_size = 256;
+    cfg.overflow_policy = OverflowPolicy::Discard;
+    cfg.printers.push_back(pc);
+    return cfg;
+}
+
+static LoggerConfig create_multi_printer_config(const std::string& file_path) {
+    PrinterConfig console_pc;
+    console_pc.type = PrinterType::Console;
+    console_pc.min_level = LogLevel::Info;
+
+    PrinterConfig file_pc;
+    file_pc.type = PrinterType::File;
+    file_pc.min_level = LogLevel::Info;
+    file_pc.raw["path"] = file_path;
+    file_pc.raw["flush_every"] = 1;
+
+    LoggerConfig cfg;
+    cfg.buffer_size = 256;
+    cfg.overflow_policy = OverflowPolicy::Discard;
+    cfg.printers.push_back(console_pc);
+    cfg.printers.push_back(file_pc);
+    return cfg;
+}
+
+// ==================== Logger 初始化测试 ====================
 
 bool test_logger_init_valid_config() {
     std::string json = R"({
@@ -43,27 +86,22 @@ bool test_logger_init_invalid_config() {
     return logger.init("nonexistent.json") == ErrorCode::FileNotFound;
 }
 
+bool test_logger_init_programmatic() {
+    Logger logger;
+    auto cfg = create_console_config();
+    if (logger.init(cfg) != ErrorCode::None) {
+        return false;
+    }
+    logger.shutdown();
+    return true;
+}
+
 bool test_logger_init_file_printer() {
     TempLogFile log_file("output.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Debug",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("file.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_file_config(log_file.path());
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -76,24 +114,9 @@ bool test_logger_init_file_printer() {
 bool test_logger_info() {
     TempLogFile log_file("info.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Info",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("info.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_file_config(log_file.path(), LogLevel::Info);
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -108,24 +131,9 @@ bool test_logger_info() {
 bool test_logger_debug() {
     TempLogFile log_file("debug.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Debug",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("debug.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_file_config(log_file.path(), LogLevel::Debug);
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -140,24 +148,9 @@ bool test_logger_debug() {
 bool test_logger_error() {
     TempLogFile log_file("error.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Error",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("error.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_file_config(log_file.path(), LogLevel::Error);
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -172,24 +165,9 @@ bool test_logger_error() {
 bool test_logger_fatal() {
     TempLogFile log_file("fatal.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Fatal",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("fatal.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_file_config(log_file.path(), LogLevel::Fatal);
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -204,24 +182,9 @@ bool test_logger_fatal() {
 bool test_logger_formatted_output() {
     TempLogFile log_file("format.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Info",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("format.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_file_config(log_file.path(), LogLevel::Info);
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -240,24 +203,9 @@ bool test_logger_formatted_output() {
 bool test_logger_level_filtering() {
     TempLogFile log_file("filter.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Error",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("filter.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_file_config(log_file.path(), LogLevel::Error);
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -287,24 +235,19 @@ bool test_logger_level_filtering() {
 bool test_logger_concurrent_logging() {
     TempLogFile log_file("concurrent.log");
 
-    std::string json = R"({
-        "buffer_size": 1024,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Info",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 10
-            }
-        ]
-    })";
+    PrinterConfig pc;
+    pc.type = PrinterType::File;
+    pc.min_level = LogLevel::Info;
+    pc.raw["path"] = log_file.path();
+    pc.raw["flush_every"] = 10;
 
-    TempConfigFile config("concurrent.json", json);
+    LoggerConfig cfg;
+    cfg.buffer_size = 1024;
+    cfg.overflow_policy = OverflowPolicy::Discard;
+    cfg.printers.push_back(pc);
 
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -336,24 +279,19 @@ bool test_logger_concurrent_logging() {
 bool test_logger_overflow_discard() {
     TempLogFile log_file("overflow.log");
 
-    std::string json = R"({
-        "buffer_size": 16,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Info",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 100
-            }
-        ]
-    })";
+    PrinterConfig pc;
+    pc.type = PrinterType::File;
+    pc.min_level = LogLevel::Info;
+    pc.raw["path"] = log_file.path();
+    pc.raw["flush_every"] = 100;
 
-    TempConfigFile config("overflow.json", json);
+    LoggerConfig cfg;
+    cfg.buffer_size = 16;
+    cfg.overflow_policy = OverflowPolicy::Discard;
+    cfg.printers.push_back(pc);
 
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -373,28 +311,9 @@ bool test_logger_overflow_discard() {
 bool test_logger_multiple_printers() {
     TempLogFile log_file("multi_printer.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "Console",
-                "level": "Info"
-            },
-            {
-                "type": "File",
-                "level": "Info",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("multi.json", json);
-
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    auto cfg = create_multi_printer_config(log_file.path());
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -411,25 +330,11 @@ bool test_logger_multiple_printers() {
 bool test_logger_start_stop_cycle() {
     TempLogFile log_file("cycle.log");
 
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Info",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 1
-            }
-        ]
-    })";
-
-    TempConfigFile config("cycle.json", json);
+    auto cfg = create_file_config(log_file.path(), LogLevel::Info);
 
     for (int i = 0; i < 3; ++i) {
         Logger logger;
-        if (logger.init(config.path()) != ErrorCode::None) {
+        if (logger.init(cfg) != ErrorCode::None) {
             return false;
         }
 
@@ -461,24 +366,19 @@ bool test_logger_init_file_not_found() {
 bool test_logger_dropped_count() {
     TempLogFile log_file("dropped.log");
 
-    std::string json = R"({
-        "buffer_size": 16,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "File",
-                "level": "Info",
-                "path": ")" +
-                       log_file.path() + R"(",
-                "flush_every": 100
-            }
-        ]
-    })";
+    PrinterConfig pc;
+    pc.type = PrinterType::File;
+    pc.min_level = LogLevel::Info;
+    pc.raw["path"] = log_file.path();
+    pc.raw["flush_every"] = 100;
 
-    TempConfigFile config("dropped.json", json);
+    LoggerConfig cfg;
+    cfg.buffer_size = 16;
+    cfg.overflow_policy = OverflowPolicy::Discard;
+    cfg.printers.push_back(pc);
 
     Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
+    if (logger.init(cfg) != ErrorCode::None) {
         return false;
     }
 
@@ -493,21 +393,9 @@ bool test_logger_dropped_count() {
 }
 
 bool test_logger_init_success_no_error() {
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "Console",
-                "level": "Info"
-            }
-        ]
-    })";
-
-    TempConfigFile config("callback.json", json);
-
     Logger logger;
-    auto err = logger.init(config.path());
+    auto cfg = create_console_config(LogLevel::Info);
+    auto err = logger.init(cfg);
     if (err != ErrorCode::None) {
         return false;
     }
@@ -524,6 +412,7 @@ int main() {
 
     run_test("Logger init with valid config", test_logger_init_valid_config, result);
     run_test("Logger init with invalid config", test_logger_init_invalid_config, result);
+    run_test("Logger init with programmatic config", test_logger_init_programmatic, result);
     run_test("Logger init with file printer", test_logger_init_file_printer, result);
 
     run_test("Logger info()", test_logger_info, result);

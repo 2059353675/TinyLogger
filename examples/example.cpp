@@ -13,42 +13,23 @@
 #include <TinyLogger/logger.h>
 #include <chrono>
 #include <iostream>
-#include <sys/stat.h>
 #include <thread>
 
-// 尝试查找配置文件的多个可能路径
-static const char* find_config_file() {
-    const char* candidates[] = {"logger_config.json",             // 当前目录
-                                "examples/logger_config.json",    // 项目根目录运行时
-                                "../examples/logger_config.json", // build/examples 目录运行时
-                                nullptr};
-
-    for (int i = 0; candidates[i] != nullptr; i++) {
-        struct stat buffer;
-        if (stat(candidates[i], &buffer) == 0) {
-            return candidates[i];
-        }
-    }
-    return nullptr;
-}
-
 int main() {
-    // 方式一：通过配置文件初始化
-    // 配置文件格式参见 test/config.json
+    // 方式一（推荐）：程序化配置 - 类型安全，无需外部文件依赖
+    PrinterConfig console_cfg;
+    console_cfg.type = PrinterType::Console;
+    console_cfg.min_level = LogLevel::Debug;
 
-    // 尝试查找配置文件
-    const char* config_path = find_config_file();
-    if (config_path == nullptr) {
-        std::cerr << "错误：找不到配置文件 logger_config.json" << std::endl;
-        std::cerr << "请确保配置文件存在，或在代码中修改 config_path" << std::endl;
-        return 1;
-    }
-    std::cout << "成功加载配置文件: " << config_path << std::endl;
+    LoggerConfig config;
+    config.buffer_size = 256;
+    config.overflow_policy = OverflowPolicy::Discard;
+    config.printers.push_back(console_cfg);
 
-    tiny_logger::Logger logger;
-    auto err = logger.init(config_path);
-    if (err != tiny_logger::ErrorCode::None) {
-        std::cerr << "错误：初始化失败，错误码：" << static_cast<int>(err) << std::endl;
+    Logger logger;
+    auto err = logger.init(config);
+    if (err != ErrorCode::None) {
+        std::cerr << "初始化失败，错误码：" << static_cast<int>(err) << std::endl;
         return 1;
     }
 

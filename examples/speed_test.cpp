@@ -183,7 +183,7 @@ void test_latency_with_null_printer() {
 }
 
 void test_throughput() {
-    printf("\n========== 吞吐量测试 ==========\n");
+    printf("\n========== 吞吐量测试（Console） ==========\n");
 
     tiny_logger::register_null_printer();
     tiny_logger::PrinterConfig null_config;
@@ -306,12 +306,12 @@ int main() {
 logger.info() 执行流程与开销：
 
   [主线程 - 同步等待部分]
-  1. fmt::format       格式化消息字符串
+  1. fmt::format          初次格式化消息字符串
   2. RingBuffer::enqueue  无锁入队 (CAS 操作)
 
   [后台线程 - 异步消费部分]
   3. RingBuffer::dequeue  无锁出队
-  4. Printer::write       最终格式化 (追加时间戳等)
+  4. Printer::write       最终格式化 (追加时间戳、日志级别、线程ID等)
   5. fwrite               写入输出
 
 关键点：
