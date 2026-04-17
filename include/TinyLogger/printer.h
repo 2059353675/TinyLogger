@@ -7,25 +7,29 @@
 
 namespace tiny_logger {
 
+struct CachedTime {
+    time_t last_sec = 0;
+    char buf[32]; // "YYYY-MM-DD HH:MM:SS"
+};
+
+inline thread_local CachedTime cache;
+
 inline std::string format_timestamp(uint64_t ts_us) {
-    using namespace std::chrono;
+    time_t sec = ts_us / 1000000;
+    if (sec != cache.last_sec) {
+        cache.last_sec = sec;
 
-    system_clock::time_point tp{microseconds(ts_us)};
-    std::time_t t = system_clock::to_time_t(tp);
+        std::tm tm;
+        localtime_r(&sec, &tm);
 
-    std::tm tm{};
-    localtime_r(&t, &tm);
+        std::strftime(cache.buf, sizeof(cache.buf), "%Y-%m-%d %H:%M:%S", &tm);
+    }
 
-    auto us = ts_us % 1000000;
+    char out[64];
+    uint32_t us = ts_us % 1000000;
+    int len = std::snprintf(out, sizeof(out), "%s.%06u", cache.buf, us);
 
-    return fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}",
-                       tm.tm_year + 1900,
-                       tm.tm_mon + 1,
-                       tm.tm_mday,
-                       tm.tm_hour,
-                       tm.tm_min,
-                       tm.tm_sec,
-                       us);
+    return std::string(out, len);
 }
 
 inline const char* level_to_string(LogLevel level) {

@@ -11,6 +11,11 @@
 
 namespace tiny_logger {
 
+inline uint64_t fast_thread_id() {
+    thread_local uint64_t tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    return tid;
+}
+
 class Logger
 {
 public:
@@ -72,7 +77,7 @@ void Logger::log(LogLevel lvl, const char* fmt, Args&&... args) {
     auto now = std::chrono::steady_clock::now().time_since_epoch();
     uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
 
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    auto tid = fast_thread_id();
 
     auto s = fmt::format_to_n(buf, LOG_MSG_SIZE - 1, fmt, std::forward<Args>(args)...);
 
