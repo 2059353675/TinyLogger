@@ -2,7 +2,7 @@
 #include <chrono>
 #include <thread>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 Distributor::Distributor(RingBuffer& rb) : ring_buffer_(rb) {
 }
@@ -113,4 +113,4 @@ void Distributor::flush_all() {
     }
 }
 
-} // namespace TinyLogger
+} // namespace tiny_logger

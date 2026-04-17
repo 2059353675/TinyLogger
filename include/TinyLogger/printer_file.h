@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <string>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 class FilePrinter : public Printer
 {
@@ -47,4 +47,4 @@ private:
 
 void register_file_printer();
 
-} // namespace TinyLogger
+} // namespace tiny_logger

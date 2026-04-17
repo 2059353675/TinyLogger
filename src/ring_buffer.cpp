@@ -1,6 +1,6 @@
 #include "TinyLogger/ring_buffer.h"
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 RingBuffer::RingBuffer(size_t capacity)
     : capacity_(capacity),
@@ -60,4 +60,4 @@ bool RingBuffer::dequeue(LogEvent& e) {
     ++read_pos_;
     return true;
 }
-} // namespace TinyLogger
+} // namespace tiny_logger

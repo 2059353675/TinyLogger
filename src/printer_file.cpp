@@ -1,6 +1,6 @@
 #include "TinyLogger/printer_file.h"
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 FilePrinter::FilePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
@@ -95,8 +95,8 @@ void FilePrinter::rotate() {
 }
 
 void register_file_printer() {
-    TinyLogger::PrinterRegistry::instance().register_printer(
-        TinyLogger::PrinterType::File,
-        [](const TinyLogger::PrinterConfig& cfg) { return std::make_unique<TinyLogger::FilePrinter>(cfg); });
+    tiny_logger::PrinterRegistry::instance().register_printer(
+        tiny_logger::PrinterType::File,
+        [](const tiny_logger::PrinterConfig& cfg) { return std::make_unique<tiny_logger::FilePrinter>(cfg); });
 }
-} // namespace TinyLogger
+} // namespace tiny_logger

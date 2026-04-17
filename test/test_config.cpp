@@ -1,8 +1,8 @@
 #include "test_common.h"
 #include <TinyLogger/config.h>
 
-using namespace TinyLogger;
-using namespace TinyLogger::test;
+using namespace tiny_logger;
+using namespace tiny_logger::test;
 
 // ==================== 基础配置测试 ====================
 

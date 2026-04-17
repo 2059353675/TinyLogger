@@ -11,7 +11,7 @@
 #include <string>
 #include <thread>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 using json = nlohmann::json;
 
@@ -123,4 +123,4 @@ static std::optional<OverflowPolicy> string_to_overflow(std::string s) {
     return std::nullopt;
 }
 
-} // namespace TinyLogger
+} // namespace tiny_logger

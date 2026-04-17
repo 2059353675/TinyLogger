@@ -5,7 +5,7 @@
 #include <cassert>
 #include <optional>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 class RingBuffer
 {
@@ -30,4 +30,4 @@ private:
     std::atomic<uint64_t> dropped_count_{0}; // 丢弃计数
 };
 
-} // namespace TinyLogger
+} // namespace tiny_logger

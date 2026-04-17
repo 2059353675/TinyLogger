@@ -1,6 +1,6 @@
 #include "TinyLogger/logger.h"
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 namespace {
 bool registered = [] {
@@ -78,4 +78,4 @@ void Logger::handle_overflow() {
     }
 }
 
-} // namespace TinyLogger
+} // namespace tiny_logger

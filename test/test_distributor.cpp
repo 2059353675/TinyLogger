@@ -5,8 +5,8 @@
 #include <TinyLogger/types.h>
 #include <mutex>
 
-using namespace TinyLogger;
-using namespace TinyLogger::test;
+using namespace tiny_logger;
+using namespace tiny_logger::test;
 
 // ==================== 测试用 Mock Printer ====================
 
@@ -76,7 +76,9 @@ bool test_distributor_creation() {
         RingBuffer rb(256);
         Distributor distributor(rb);
         return true;
-    } catch (...) { return false; }
+    } catch (...) {
+        return false;
+    }
 }
 
 bool test_distributor_start_stop() {

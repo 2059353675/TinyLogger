@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 enum class ErrorCode {
     FileNotFound,
@@ -28,4 +28,4 @@ enum class ErrorCode {
  */
 std::optional<LoggerConfig> load_config(const std::string& path, ErrorCode& error);
 
-} // namespace TinyLogger
+} // namespace tiny_logger

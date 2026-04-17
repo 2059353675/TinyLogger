@@ -2,8 +2,9 @@
 build/
 test/build_test/
 
-# Qwen Code
+# Agents
 .qwen/
+AGENTS.md
 
 # 测试产生的临时文件
 test/test_temp_*.json

@@ -5,7 +5,7 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 inline std::string format_timestamp(uint64_t ts_us) {
     using namespace std::chrono;
@@ -105,4 +105,4 @@ private:
     std::mutex mutex_;
 };
 
-} // namespace TinyLogger
+} // namespace tiny_logger

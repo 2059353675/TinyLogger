@@ -21,7 +21,7 @@
 #include <thread>
 #include <vector>
 
-namespace TinyLogger {
+namespace tiny_logger {
 namespace test {
 
 // ==================== 工具函数 ====================
@@ -255,4 +255,4 @@ inline void print_test_summary(const std::string& suite_name, const TestResult& 
 }
 
 } // namespace test
-} // namespace TinyLogger
+} // namespace tiny_logger

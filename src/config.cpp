@@ -3,7 +3,7 @@
 #include <cctype>
 #include <fstream>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 std::optional<LoggerConfig> load_config(const std::string& path, ErrorCode& error) {
     /* 加载配置文件 */
@@ -87,4 +87,4 @@ std::optional<LoggerConfig> load_config(const std::string& path, ErrorCode& erro
     return config;
 }
 
-} // namespace TinyLogger
+} // namespace tiny_logger

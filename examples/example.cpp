@@ -45,9 +45,9 @@ int main() {
     }
     std::cout << "成功加载配置文件: " << config_path << std::endl;
 
-    TinyLogger::Logger logger;
+    tiny_logger::Logger logger;
     auto err = logger.init(config_path);
-    if (err != TinyLogger::ErrorCode::None) {
+    if (err != tiny_logger::ErrorCode::None) {
         std::cerr << "错误：初始化失败，错误码：" << static_cast<int>(err) << std::endl;
         return 1;
     }

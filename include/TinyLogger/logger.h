@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <memory>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 class Logger
 {
@@ -86,4 +86,4 @@ void Logger::log(LogLevel lvl, const char* fmt, Args&&... args) {
     }
 }
 
-} // namespace TinyLogger
+} // namespace tiny_logger

@@ -1,6 +1,6 @@
 #include "TinyLogger/printer_console.h"
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 ConsolePrinter::ConsolePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
@@ -24,8 +24,8 @@ void ConsolePrinter::flush() {
 }
 
 void register_console_printer() {
-    TinyLogger::PrinterRegistry::instance().register_printer(
-        TinyLogger::PrinterType::Console,
-        [](const TinyLogger::PrinterConfig& cfg) { return std::make_unique<TinyLogger::ConsolePrinter>(cfg); });
+    tiny_logger::PrinterRegistry::instance().register_printer(
+        tiny_logger::PrinterType::Console,
+        [](const tiny_logger::PrinterConfig& cfg) { return std::make_unique<tiny_logger::ConsolePrinter>(cfg); });
 }
-} // namespace TinyLogger
+} // namespace tiny_logger

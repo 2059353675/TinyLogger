@@ -1,187 +1,324 @@
 /**
- * TinyLogger 速度测试示例 - 各环节耗时精准统计
+ * TinyLogger 性能测试 - 精确测量各环节开销
  *
- * 测试方法：
- *   1. 单线程 warmed-up 测试，避免 buffer 溢出
- *   2. 分别测量 fmt::format 和 logger.info() 返回时间
- *   3. 对比 NullPrinter 和 ConsolePrinter 估算 I/O 开销
+ * 测试内容：
+ *   1. 延迟测试：分别测量 fmt::format、RingBuffer::enqueue、logger.info() 全流程
+ *   2. 吞吐量测试：固定时间窗口内的日志处理能力
+ *   3. 并发测试：多线程同时写入 RingBuffer
  *
- * 编译方式（Linux）：
- *   g++ -std=c++17 -I../include -O2 -o speed_test speed_test.cpp -L../build -lTinyLogger -lfmt -lpthread
- *
- * 或者使用 CMake 构建（在项目根目录执行）：
- *   mkdir build && cd build
- *   cmake .. && make
- *   ./speed_test
+ * 编译（使用 CMake 构建）：
+ *   mkdir build && cd build && cmake .. && make
  */
 
 #include <TinyLogger/logger.h>
-#include <TinyLogger/printer_console.h>
 #include <TinyLogger/printer_null.h>
+#include <TinyLogger/ring_buffer.h>
 #include <atomic>
 #include <chrono>
-#include <climits>
+#include <cmath>
 #include <cstring>
 #include <iostream>
-#include <sys/stat.h>
 #include <thread>
 #include <vector>
 
-struct TimingStats {
+namespace {
+
+constexpr size_t BUFFER_SIZE = 256;
+constexpr int WARMUP_ITERATIONS = 10000;
+constexpr int MEASURE_ITERATIONS = 50000;
+constexpr int THROUGHPUT_DURATION_MS = 1000;
+constexpr int CONCURRENT_THREADS[] = {1, 2, 4, 8};
+
+struct LatencyStats {
     double avg_ns = 0;
     double min_ns = 0;
     double max_ns = 0;
     double p50_ns = 0;
+    double p90_ns = 0;
     double p99_ns = 0;
+    double p999_ns = 0;
+    double stddev_ns = 0;
 };
 
-static std::vector<double> g_samples;
+struct ThroughputStats {
+    double ops_per_sec = 0;
+    size_t total_ops = 0;
+    double duration_ms = 0;
+};
 
-void reset_samples() {
-    g_samples.clear();
-}
-void add_sample(double ns) {
-    g_samples.push_back(ns);
-}
-
-TimingStats analyze() {
-    TimingStats s;
-    if (g_samples.empty())
+inline LatencyStats calculate_stats(std::vector<double>& samples) {
+    LatencyStats s;
+    if (samples.empty())
         return s;
 
-    std::sort(g_samples.begin(), g_samples.end());
-    s.min_ns = g_samples.front();
-    s.max_ns = g_samples.back();
-    s.p50_ns = g_samples[g_samples.size() / 2];
-    s.p99_ns = g_samples[static_cast<size_t>(g_samples.size() * 0.99)];
+    std::sort(samples.begin(), samples.end());
+
+    size_t n = samples.size();
+    size_t idx_p50 = static_cast<size_t>(n * 0.50);
+    size_t idx_p90 = static_cast<size_t>(n * 0.90);
+    size_t idx_p99 = static_cast<size_t>(n * 0.99);
+    size_t idx_p999 = static_cast<size_t>(n * 0.999);
+
+    s.min_ns = samples.front();
+    s.max_ns = samples.back();
+    s.p50_ns = samples[idx_p50];
+    s.p90_ns = samples[idx_p90];
+    s.p99_ns = samples[idx_p99];
+    s.p999_ns = samples[idx_p999];
 
     double sum = 0;
-    for (double v : g_samples)
+    for (double v : samples) {
         sum += v;
-    s.avg_ns = sum / g_samples.size();
+    }
+    s.avg_ns = sum / n;
+
+    double variance_sum = 0;
+    for (double v : samples) {
+        double diff = v - s.avg_ns;
+        variance_sum += diff * diff;
+    }
+    s.stddev_ns = std::sqrt(variance_sum / n);
+
     return s;
 }
 
-struct TestResult {
-    TimingStats info_return;
-    TimingStats fmt_standalone;
-    size_t dropped = 0;
-};
+void print_latency_stats(const char* name, const LatencyStats& s) {
+    printf("  %s:\n", name);
+    printf("    avg:    %8.1f ns  (stddev: %.1f ns)\n", s.avg_ns, s.stddev_ns);
+    printf("    p50:    %8.1f ns\n", s.p50_ns);
+    printf("    p90:    %8.1f ns\n", s.p90_ns);
+    printf("    p99:    %8.1f ns\n", s.p99_ns);
+    printf("    p99.9:  %8.1f ns\n", s.p999_ns);
+    printf("    min:    %8.1f ns\n", s.min_ns);
+    printf("    max:    %8.1f ns\n", s.max_ns);
+}
 
-TestResult run_test(TinyLogger::Logger& logger, int warmup, int measure) {
-    reset_samples();
-    for (int i = 0; i < warmup; ++i) {
-        logger.info("warmup {}", i);
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+void print_throughput_stats(const char* name, const ThroughputStats& s) {
+    printf("  %s:\n", name);
+    printf("    total:  %zu ops\n", s.total_ops);
+    printf("    rate:   %.0f ops/s\n", s.ops_per_sec);
+    printf("    time:   %.2f ms\n", s.duration_ms);
+}
 
-    reset_samples();
-    for (int i = 0; i < measure; ++i) {
-        auto t0 = std::chrono::high_resolution_clock::now();
-        logger.info("msg {}", i);
-        auto t1 = std::chrono::high_resolution_clock::now();
-        add_sample(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count());
-    }
-    auto info_stats = analyze();
-
-    reset_samples();
+double measure_fmt_format(int iterations) {
     char buf[256];
-    for (int i = 0; i < measure; ++i) {
-        auto t0 = std::chrono::high_resolution_clock::now();
-        fmt::format_to_n(buf, sizeof(buf) - 1, "msg {}", i);
-        auto t1 = std::chrono::high_resolution_clock::now();
-        add_sample(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count());
-    }
-    auto fmt_stats = analyze();
+    std::vector<double> samples;
+    samples.reserve(iterations);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    for (int i = 0; i < iterations; ++i) {
+        auto t0 = std::chrono::high_resolution_clock::now();
+        fmt::format_to_n(buf, sizeof(buf) - 1, "msg {} {}", i, i * 2);
+        auto t1 = std::chrono::high_resolution_clock::now();
+        samples.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count());
+    }
+
+    LatencyStats s = calculate_stats(samples);
+    printf("  fmt::format: avg=%.1f ns, p99=%.1f ns\n", s.avg_ns, s.p99_ns);
+    return s.avg_ns;
+}
+
+double measure_ringbuffer_enqueue_only(int iterations) {
+    tiny_logger::RingBuffer rb(BUFFER_SIZE);
+    tiny_logger::LogEvent event(tiny_logger::LogLevel::Info, 0, 0, "test", 4);
+
+    for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
+        rb.enqueue(std::move(event));
+    }
+
+    std::vector<double> samples;
+    samples.reserve(iterations);
+
+    for (int i = 0; i < iterations; ++i) {
+        auto t0 = std::chrono::high_resolution_clock::now();
+        rb.enqueue(std::move(event));
+        auto t1 = std::chrono::high_resolution_clock::now();
+        samples.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count());
+    }
+
+    LatencyStats s = calculate_stats(samples);
+    printf("  RingBuffer::enqueue: avg=%.1f ns, p99=%.1f ns\n", s.avg_ns, s.p99_ns);
+    return s.avg_ns;
+}
+
+void test_latency_with_null_printer() {
+    printf("\n========== 延迟测试 (NullPrinter) ==========\n");
+    printf("测量：fmt::format + RingBuffer::enqueue（主线程开销）\n\n");
+
+    tiny_logger::register_null_printer();
+    tiny_logger::PrinterConfig null_config;
+    null_config.type = tiny_logger::PrinterType::Null;
+    null_config.min_level = tiny_logger::LogLevel::Debug;
+
+    tiny_logger::LoggerConfig config;
+    config.buffer_size = BUFFER_SIZE;
+    config.overflow_policy = tiny_logger::OverflowPolicy::Block;
+    config.printers.push_back(null_config);
+
+    tiny_logger::Logger logger;
+    if (logger.init(config) != tiny_logger::ErrorCode::None) {
+        printf("  初始化失败\n");
+        return;
+    }
+
+    for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
+        logger.info("warmup {} {}", i, i);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    std::vector<double> samples;
+    samples.reserve(MEASURE_ITERATIONS);
+
+    for (int i = 0; i < MEASURE_ITERATIONS; ++i) {
+        auto t0 = std::chrono::high_resolution_clock::now();
+        logger.info("msg {} {}", i, i * 2);
+        auto t1 = std::chrono::high_resolution_clock::now();
+        samples.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count());
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     logger.shutdown();
 
-    return {info_stats, fmt_stats, logger.dropped_count()};
+    LatencyStats s = calculate_stats(samples);
+    print_latency_stats("logger.info() 端到端延迟", s);
 }
 
-void print(const char* name, const TimingStats& s) {
-    printf("  %s:\n", name);
-    printf("    avg:  %8.1f ns\n", s.avg_ns);
-    printf("    p50:  %8.1f ns\n", s.p50_ns);
-    printf("    p99:  %8.1f ns\n", s.p99_ns);
-    printf("    min:  %8.1f ns\n", s.min_ns);
-    printf("    max:  %8.1f ns\n", s.max_ns);
+void test_throughput() {
+    printf("\n========== 吞吐量测试 ==========\n");
+
+    tiny_logger::register_null_printer();
+    tiny_logger::PrinterConfig null_config;
+    null_config.type = tiny_logger::PrinterType::Null;
+    null_config.min_level = tiny_logger::LogLevel::Debug;
+
+    tiny_logger::LoggerConfig config;
+    config.buffer_size = 1024;
+    config.overflow_policy = tiny_logger::OverflowPolicy::Block;
+    config.printers.push_back(null_config);
+
+    printf("\n  单线程吞吐量：\n");
+    {
+        tiny_logger::Logger logger;
+        if (logger.init(config) != tiny_logger::ErrorCode::None) {
+            printf("  初始化失败\n");
+            return;
+        }
+
+        for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
+            logger.info("warmup {} {}", i, i);
+        }
+
+        auto start = std::chrono::steady_clock::now();
+        size_t count = 0;
+        auto deadline = start + std::chrono::milliseconds(THROUGHPUT_DURATION_MS);
+
+        while (std::chrono::steady_clock::now() < deadline) {
+            logger.info("throughput test {} {}", count, count);
+            ++count;
+        }
+
+        auto end = std::chrono::steady_clock::now();
+        double duration_ms = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0;
+
+        ThroughputStats ts;
+        ts.total_ops = count;
+        ts.duration_ms = duration_ms;
+        ts.ops_per_sec = (count * 1000.0) / duration_ms;
+
+        print_throughput_stats("NullPrinter 单线程", ts);
+        logger.shutdown();
+    }
+
+    printf("\n  多线程吞吐量：\n");
+    for (size_t t = 0; t < sizeof(CONCURRENT_THREADS) / sizeof(CONCURRENT_THREADS[0]); ++t) {
+        int num_threads = CONCURRENT_THREADS[t];
+
+        tiny_logger::Logger logger;
+        if (logger.init(config) != tiny_logger::ErrorCode::None) {
+            printf("  初始化失败\n");
+            return;
+        }
+
+        for (int i = 0; i < WARMUP_ITERATIONS * num_threads; ++i) {
+            logger.info("warmup {} {}", i, i);
+        }
+
+        std::atomic<size_t> total_count{0};
+        std::vector<std::thread> threads;
+
+        auto start = std::chrono::steady_clock::now();
+
+        for (int th = 0; th < num_threads; ++th) {
+            threads.emplace_back([&logger, &total_count, deadline = start + std::chrono::milliseconds(THROUGHPUT_DURATION_MS)] {
+                size_t local_count = 0;
+                while (std::chrono::steady_clock::now() < deadline) {
+                    logger.info("concurrent {} {}", local_count, local_count * 2);
+                    ++local_count;
+                }
+                total_count.fetch_add(local_count, std::memory_order_relaxed);
+            });
+        }
+
+        for (auto& th : threads) {
+            th.join();
+        }
+
+        auto end = std::chrono::steady_clock::now();
+        double duration_ms = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0;
+
+        ThroughputStats ts;
+        ts.total_ops = total_count.load();
+        ts.duration_ms = duration_ms;
+        ts.ops_per_sec = (ts.total_ops * 1000.0) / duration_ms;
+
+        printf("  %d 线程: ", num_threads);
+        printf("%.0f ops/s (%zu total)\n", ts.ops_per_sec, ts.total_ops);
+
+        logger.shutdown();
+    }
 }
+
+void test_ringbuffer_alone() {
+    printf("\n========== RingBuffer 微基准测试 ==========\n");
+
+    measure_fmt_format(MEASURE_ITERATIONS);
+    printf("\n");
+    measure_ringbuffer_enqueue_only(MEASURE_ITERATIONS);
+}
+
+} // anonymous namespace
 
 int main() {
-    printf("===== TinyLogger 各环节耗时精准统计 =====\n");
-    printf("测试：单线程 warmed-up，无 buffer 溢出\n\n");
+    printf("========================================\n");
+    printf("  TinyLogger 性能测试\n");
+    printf("========================================\n");
+    printf("\n配置:\n");
+    printf("  warmup:   %d iterations\n", WARMUP_ITERATIONS);
+    printf("  measure:  %d iterations\n", MEASURE_ITERATIONS);
+    printf("  buffer:   %zu slots\n", BUFFER_SIZE);
+    printf("  throughput duration: %d ms\n", THROUGHPUT_DURATION_MS);
 
-    const int WARMUP = 500;
-    const int MEASURE = 5000;
+    test_ringbuffer_alone();
+    test_latency_with_null_printer();
+    test_throughput();
 
-    printf("\n【测试1】ConsolePrinter (含 I/O)\n");
-    {
-        TinyLogger::Logger logger;
-
-        TinyLogger::PrinterConfig console_config;
-        console_config.type = TinyLogger::PrinterType::Console;
-        console_config.min_level = TinyLogger::LogLevel::Debug;
-
-        TinyLogger::LoggerConfig config;
-        config.overflow_policy = TinyLogger::OverflowPolicy::Block;
-        config.printers.push_back(console_config);
-
-        if (logger.init(config) != TinyLogger::ErrorCode::None) {
-            printf("  初始化失败\n");
-            return 1;
-        } else {
-            auto r = run_test(logger, WARMUP, MEASURE);
-            printf("  丢弃: %zu\n", r.dropped);
-            print("logger.info() 返回", r.info_return);
-            print("fmt::format 单独", r.fmt_standalone);
-        }
-    }
-
-    printf("【测试2】NullPrinter (无 I/O)\n");
-    {
-        TinyLogger::register_null_printer();
-
-        TinyLogger::PrinterConfig null_config;
-        null_config.type = TinyLogger::PrinterType::Null;
-        null_config.min_level = TinyLogger::LogLevel::Debug;
-
-        TinyLogger::Logger logger;
-        TinyLogger::LoggerConfig config;
-        config.overflow_policy = TinyLogger::OverflowPolicy::Block;
-        config.printers.push_back(null_config);
-
-        if (logger.init(config) != TinyLogger::ErrorCode::None) {
-            printf("  初始化失败\n");
-            return 1;
-        } else {
-            auto r = run_test(logger, WARMUP, MEASURE);
-            printf("  丢弃: %zu\n", r.dropped);
-            print("logger.info() 返回", r.info_return);
-            print("fmt::format 单独", r.fmt_standalone);
-        }
-    }
-
-    printf("\n===== 环节分解 =====\n");
+    printf("\n========== 环节分解 (实测) ==========\n");
     printf(R"(
-调用 logger.info("msg {} {}", a, b) 时的执行流程：
+logger.info() 执行流程与开销：
 
-  [主线程]
-  1. fmt::format    格式化日志消息 (~50-200 ns)
-  2. RingBuffer::enqueue  无锁入队 (~50-100 ns)
+  [主线程 - 同步等待部分]
+  1. fmt::format       格式化消息字符串
+  2. RingBuffer::enqueue  无锁入队 (CAS 操作)
 
-  [后台消费线程 - 异步]
-  3. Distributor::dequeue  无锁出队
-  4. Printer::write       再次格式化 + 拼接时间戳
-  5. fwrite               写入 stdout
+  [后台线程 - 异步消费部分]
+  3. RingBuffer::dequeue  无锁出队
+  4. Printer::write       最终格式化 (追加时间戳等)
+  5. fwrite               写入输出
 
 关键点：
-  - 主线程只执行步骤 1-2，步骤 3-5 由后台线程异步执行
-  - logger.info() 返回时间 = 步骤 1-2 的主线程开销
-  - fmt::format 单独测量 = 步骤 1 的纯格式化开销
-  - Printer::write + fwrite 由后台线程执行，不影响主线程延迟
+  - 步骤 1-2 在主线程测量，得到端到端延迟
+  - 步骤 3-5 由后台线程执行，不阻塞主线程
+  - 延迟测试使用 NullPrinter 排除 I/O 干扰
+  - 吞吐量测试评估极限处理能力
 )");
-
     return 0;
 }

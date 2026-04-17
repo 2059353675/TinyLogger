@@ -10,8 +10,8 @@
 #include <thread>
 #include <vector>
 
-using namespace TinyLogger;
-using namespace TinyLogger::test;
+using namespace tiny_logger;
+using namespace tiny_logger::test;
 
 // ==================== Logger 初始化和销毁测试 ====================
 

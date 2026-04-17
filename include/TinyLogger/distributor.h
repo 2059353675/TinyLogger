@@ -5,7 +5,7 @@
 #include "types.h"
 #include <thread>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 static constexpr size_t LOG_LEVEL_COUNT = 5;
 
@@ -37,4 +37,4 @@ private:
     std::thread worker_;
 };
 
-} // namespace TinyLogger
+} // namespace tiny_logger

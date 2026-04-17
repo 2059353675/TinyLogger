@@ -3,8 +3,8 @@
 #include <TinyLogger/printer_file.h>
 #include <TinyLogger/types.h>
 
-using namespace TinyLogger;
-using namespace TinyLogger::test;
+using namespace tiny_logger;
+using namespace tiny_logger::test;
 
 // ==================== ConsolePrinter 测试 ====================
 
@@ -15,7 +15,9 @@ bool test_console_printer_init() {
         config.min_level = LogLevel::Debug;
         ConsolePrinter printer(config);
         return true;
-    } catch (...) { return false; }
+    } catch (...) {
+        return false;
+    }
 }
 
 bool test_console_printer_write() {
@@ -30,7 +32,9 @@ bool test_console_printer_write() {
         printer.write(event);
         printer.flush();
         return true;
-    } catch (...) { return false; }
+    } catch (...) {
+        return false;
+    }
 }
 
 bool test_console_printer_write_multiline() {
@@ -45,7 +49,9 @@ bool test_console_printer_write_multiline() {
         printer.write(event);
         printer.flush();
         return true;
-    } catch (...) { return false; }
+    } catch (...) {
+        return false;
+    }
 }
 
 // ==================== FilePrinter 测试 ====================
@@ -60,7 +66,9 @@ bool test_file_printer_init() {
         config.raw["path"] = test_file.path();
         FilePrinter printer(config);
         return true;
-    } catch (...) { return false; }
+    } catch (...) {
+        return false;
+    }
 }
 
 bool test_file_printer_write() {
@@ -286,7 +294,9 @@ bool test_file_printer_invalid_path() {
         printer.flush();
 
         return true;
-    } catch (...) { return false; }
+    } catch (...) {
+        return false;
+    }
 }
 
 bool test_file_printer_empty_message() {

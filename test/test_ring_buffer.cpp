@@ -1,9 +1,9 @@
+#include "test_common.h"
 #include <TinyLogger/ring_buffer.h>
 #include <TinyLogger/types.h>
-#include "test_common.h"
 
-using namespace TinyLogger;
-using namespace TinyLogger::test;
+using namespace tiny_logger;
+using namespace tiny_logger::test;
 
 // ==================== 基础测试 ====================
 
@@ -31,8 +31,7 @@ bool test_single_enqueue_dequeue() {
         return false;
     }
 
-    return dequeued.level == LogLevel::Info && 
-           std::strncmp(dequeued.buffer, "Hello, World!", dequeued.length) == 0;
+    return dequeued.level == LogLevel::Info && std::strncmp(dequeued.buffer, "Hello, World!", dequeued.length) == 0;
 }
 
 bool test_empty_buffer_dequeue() {

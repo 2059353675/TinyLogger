@@ -3,7 +3,7 @@
 #include "TinyLogger/printer.h"
 #include <cstdio>
 
-namespace TinyLogger {
+namespace tiny_logger {
 
 class ConsolePrinter : public Printer
 {
@@ -17,4 +17,4 @@ public:
 
 void register_console_printer();
 
-} // namespace TinyLogger
+} // namespace tiny_logger
