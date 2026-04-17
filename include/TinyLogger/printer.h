@@ -3,6 +3,7 @@
 #include "types.h"
 #include <functional>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 
 namespace tiny_logger {
@@ -52,7 +53,7 @@ class Printer
 public:
     virtual ~Printer() = default;
 
-    virtual void write(const LogEvent& event) = 0;
+    virtual void write(const std::string& formatted, const LogEvent& event) = 0;
     virtual void flush() = 0;
 
     bool should_log(LogLevel lvl) const {

@@ -2,7 +2,7 @@
  * TinyLogger 性能测试 - 精确测量各环节开销
  *
  * 测试内容：
- *   1. 延迟测试：分别测量 fmt::format、RingBuffer::enqueue、logger.info() 全流程
+ *   1. 延迟测试：分别测量 tuple构造、RingBuffer::enqueue、logger.info() 全流程
  *   2. 吞吐量测试：固定时间窗口内的日志处理能力
  *   3. 并发测试：多线程同时写入 RingBuffer
  *
@@ -100,20 +100,23 @@ void print_throughput_stats(const char* name, const ThroughputStats& s) {
     printf("    time:   %.2f ms\n", s.duration_ms);
 }
 
-double measure_fmt_format(int iterations) {
-    char buf[256];
+double measure_tuple_construct_and_storage(int iterations) {
     std::vector<double> samples;
     samples.reserve(iterations);
 
+    using Tuple = std::tuple<int, int>;
+    alignas(128) char storage[128];
+
     for (int i = 0; i < iterations; ++i) {
         auto t0 = std::chrono::high_resolution_clock::now();
-        fmt::format_to_n(buf, sizeof(buf) - 1, "msg {} {}", i, i * 2);
+        new (storage) Tuple(i, i * 2);
         auto t1 = std::chrono::high_resolution_clock::now();
         samples.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count());
+        reinterpret_cast<Tuple*>(storage)->~Tuple();
     }
 
     LatencyStats s = calculate_stats(samples);
-    printf("  fmt::format: avg=%.1f ns, p99=%.1f ns\n", s.avg_ns, s.p99_ns);
+    printf("  tuple construct + storage: avg=%.1f ns, p99=%.1f ns\n", s.avg_ns, s.p99_ns);
     return s.avg_ns;
 }
 
@@ -280,7 +283,7 @@ void test_throughput() {
 void test_ringbuffer_alone() {
     printf("\n========== RingBuffer 微基准测试 ==========\n");
 
-    measure_fmt_format(MEASURE_ITERATIONS);
+    measure_tuple_construct_and_storage(MEASURE_ITERATIONS);
     printf("\n");
     measure_ringbuffer_enqueue_only(MEASURE_ITERATIONS);
 }
@@ -306,19 +309,22 @@ int main() {
 logger.info() 执行流程与开销：
 
   [主线程 - 同步等待部分]
-  1. fmt::format          初次格式化消息字符串
-  2. RingBuffer::enqueue  无锁入队 (CAS 操作)
+  1. tuple 构造         将参数打包到 128B storage 中 (placement new)
+  2. format_fn/destroy_fn 设置回调函数指针
+  3. RingBuffer::enqueue 无锁入队 (CAS 操作)
 
   [后台线程 - 异步消费部分]
-  3. RingBuffer::dequeue  无锁出队
-  4. Printer::write       最终格式化 (追加时间戳、日志级别、线程ID等)
-  5. fwrite               写入输出
+  4. RingBuffer::dequeue 无锁出队
+  5. event.format_fn    调用回调函数，通过 std::apply + fmt::format 解包 tuple
+  6. Printer::write    写入已格式化字符串 (追加时间戳、级别、线程ID等)
+  7. event.destroy     调用回调函数，析构 storage 中的 tuple
 
 关键点：
-  - 步骤 1-2 在主线程测量，得到端到端延迟
-  - 步骤 3-5 由后台线程执行，不阻塞主线程
+  - 步骤 1-3 在主线程测量，得到端到端延迟
+  - 步骤 4-7 由后台线程执行，不阻塞主线程
   - 延迟测试使用 NullPrinter 排除 I/O 干扰
   - 吞吐量测试评估极限处理能力
+  - 格式化在 Printer 线程中延迟执行，实现零拷贝日志
 )");
     return 0;
 }

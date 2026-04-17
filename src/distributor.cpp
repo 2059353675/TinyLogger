@@ -54,33 +54,35 @@ void Distributor::run() {
     while (running_) {
         size_t count;
 
-        // 量取数据
         for (count = 0; count < BATCH_SIZE; ++count) {
             if (!ring_buffer_.dequeue(batch[count])) {
                 break;
             }
         }
 
-        // 无数据则让出线程
         if (count == 0) {
             std::this_thread::yield();
             continue;
         }
 
-        // 分发到 printers
         for (size_t i = 0; i < count; ++i) {
-            const LogEvent& event = batch[i];
+            LogEvent& event = batch[i];
             if (!should_log(event.level))
                 continue;
+
+            std::string formatted = event.format();
+
             for (auto& p : printers_) {
                 if (!p->should_log(event.level))
                     continue;
                 try {
-                    p->write(event);
+                    p->write(formatted, event);
                 } catch (const std::exception&) {
                     p->increment_error_count();
                 }
             }
+
+            event.destroy();
         }
     }
 
@@ -93,15 +95,17 @@ void Distributor::drain_remaining() {
     while (ring_buffer_.dequeue(event)) {
         if (!should_log(event.level))
             continue;
+        std::string formatted = event.format();
         for (auto& p : printers_) {
             if (!p->should_log(event.level))
                 continue;
             try {
-                p->write(event);
+                p->write(formatted, event);
             } catch (const std::exception&) {
                 p->increment_error_count();
             }
         }
+        event.destroy();
     }
 
     flush_all();

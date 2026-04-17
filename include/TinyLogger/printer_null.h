@@ -10,7 +10,7 @@ class NullPrinter : public Printer
 public:
     explicit NullPrinter(const PrinterConfig& config);
 
-    void write(const LogEvent& event) override;
+    void write(const std::string& formatted, const LogEvent& event) override;
 
     void flush() override;
 };

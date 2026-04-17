@@ -6,11 +6,10 @@ ConsolePrinter::ConsolePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
 }
 
-void ConsolePrinter::write(const LogEvent& event) {
+void ConsolePrinter::write(const std::string& formatted, const LogEvent& event) {
     std::string ts = format_timestamp(event.timestamp);
 
-    std::string line = fmt::format(
-        "[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level), std::string_view(event.buffer, event.length));
+    std::string line = fmt::format("[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level), formatted);
 
     std::fwrite(line.data(), 1, line.size(), stdout);
 

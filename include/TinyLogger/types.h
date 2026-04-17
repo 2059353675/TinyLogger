@@ -6,10 +6,13 @@
 #include <cstring>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <thread>
+#include <tuple>
+#include <vector>
 
 namespace tiny_logger {
 
@@ -17,6 +20,7 @@ using json = nlohmann::json;
 
 const size_t LOG_COUNT = 256;
 const size_t LOG_MSG_SIZE = 512;
+const size_t LOG_ARGS_STORAGE_SIZE = 128;
 
 /* 日志级别 */
 enum class LogLevel : uint8_t {
@@ -47,23 +51,64 @@ struct LogEvent {
     uint64_t timestamp;
     uint64_t thread_id;
 
-    char buffer[LOG_MSG_SIZE];
-    uint16_t length;
+    std::string fmt_str;
+    std::array<char, LOG_ARGS_STORAGE_SIZE> storage;
+
+    using FormatFn = std::string (*)(const LogEvent&);
+    using DestroyFn = void (*)(LogEvent&);
+
+    FormatFn format_fn{nullptr};
+    DestroyFn destroy_fn{nullptr};
+
+    char preformatted[LOG_MSG_SIZE];
+    uint16_t length{0};
 
     LogEvent() = default;
-    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, const char* msg, size_t len)
+
+    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, std::string fmt, fmt::format_args a)
         : level(lvl),
           timestamp(ts),
           thread_id(tid),
-          length(len) {
-        if (len < sizeof(buffer)) {
-            std::memcpy(buffer, msg, len);
-            buffer[len] = '\0';
-        } else if (len > 0) {
-            std::memcpy(buffer, msg, sizeof(buffer) - 1);
-            buffer[sizeof(buffer) - 1] = '\0';
-            length = sizeof(buffer) - 1;
+          fmt_str(std::move(fmt)),
+          length(0) {
+    }
+
+    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, const char* preformatted_msg, size_t len)
+        : level(lvl),
+          timestamp(ts),
+          thread_id(tid),
+          length(static_cast<uint16_t>(len)) {
+        size_t copy_len = std::min(len, (size_t)(LOG_MSG_SIZE - 1));
+        std::memcpy(preformatted, preformatted_msg, copy_len);
+        preformatted[copy_len] = '\0';
+    }
+
+    void destroy() {
+        if (destroy_fn) {
+            destroy_fn(*this);
         }
+    }
+
+    std::string format() const {
+        if (format_fn) {
+            return format_fn(*this);
+        }
+        return std::string(preformatted, length);
+    }
+
+    template <typename T>
+    T* storage_as() {
+        return std::launder(reinterpret_cast<T*>(storage.data()));
+    }
+
+    template <typename T>
+    const T* storage_as() const {
+        return std::launder(reinterpret_cast<const T*>(storage.data()));
+    }
+
+    template <typename T>
+    bool has_storage() const {
+        return storage_as<T>() != nullptr;
     }
 };
 

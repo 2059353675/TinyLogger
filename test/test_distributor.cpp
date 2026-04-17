@@ -17,7 +17,7 @@ public:
         min_level_ = LogLevel::Debug;
     }
 
-    void write(const LogEvent& event) override {
+    void write(const std::string& formatted, const LogEvent& event) override {
         if (!should_log(event.level))
             return;
         if (should_throw_) {
@@ -25,6 +25,7 @@ public:
         }
         std::lock_guard<std::mutex> lock(mutex_);
         events_.push_back(event);
+        formatted_messages_.push_back(formatted);
         write_count_.fetch_add(1);
     }
 
@@ -38,6 +39,10 @@ public:
 
     const std::vector<LogEvent>& get_events() const {
         return events_;
+    }
+
+    const std::vector<std::string>& get_formatted_messages() const {
+        return formatted_messages_;
     }
 
     bool is_flushed() const {
@@ -55,6 +60,7 @@ public:
     void reset() {
         std::lock_guard<std::mutex> lock(mutex_);
         events_.clear();
+        formatted_messages_.clear();
         write_count_.store(0);
         flushed_ = false;
         error_count_.store(0);
@@ -64,6 +70,7 @@ public:
 private:
     std::mutex mutex_;
     std::vector<LogEvent> events_;
+    std::vector<std::string> formatted_messages_;
     std::atomic<size_t> write_count_;
     bool flushed_ = false;
     bool should_throw_;

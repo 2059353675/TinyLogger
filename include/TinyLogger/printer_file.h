@@ -19,7 +19,7 @@ public:
     FilePrinter(FilePrinter&&) = default;
     FilePrinter& operator=(FilePrinter&&) = default;
 
-    void write(const LogEvent& event) override;
+    void write(const std::string& formatted, const LogEvent& event) override;
 
     void flush() override;
 

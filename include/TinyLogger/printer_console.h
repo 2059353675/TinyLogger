@@ -10,7 +10,7 @@ class ConsolePrinter : public Printer
 public:
     explicit ConsolePrinter(const PrinterConfig& config);
 
-    void write(const LogEvent& event) override;
+    void write(const std::string& formatted, const LogEvent& event) override;
 
     void flush() override;
 };

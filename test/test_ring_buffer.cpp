@@ -31,7 +31,7 @@ bool test_single_enqueue_dequeue() {
         return false;
     }
 
-    return dequeued.level == LogLevel::Info && std::strncmp(dequeued.buffer, "Hello, World!", dequeued.length) == 0;
+    return dequeued.level == LogLevel::Info && std::strncmp(dequeued.preformatted, "Hello, World!", dequeued.length) == 0;
 }
 
 bool test_empty_buffer_dequeue() {
@@ -80,7 +80,7 @@ bool test_fifo_ordering() {
             return false;
         }
 
-        if (std::strncmp(event.buffer, messages[i], event.length) != 0) {
+        if (std::strncmp(event.preformatted, messages[i], event.length) != 0) {
             return false;
         }
     }

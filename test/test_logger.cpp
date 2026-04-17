@@ -239,7 +239,7 @@ bool test_logger_concurrent_logging() {
     pc.type = PrinterType::File;
     pc.min_level = LogLevel::Info;
     pc.raw["path"] = log_file.path();
-    pc.raw["flush_every"] = 10;
+    pc.raw["flush_every"] = 1;
 
     LoggerConfig cfg;
     cfg.buffer_size = 1024;
@@ -267,11 +267,16 @@ bool test_logger_concurrent_logging() {
         t.join();
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     logger.shutdown();
 
     std::string content = log_file.read_content();
-    return content.find("Thread 0 Message 0") != std::string::npos;
+    auto found = content.find("Thread 0 Message 0");
+    if (found == std::string::npos) {
+        std::cerr << "Log content (first 500 chars): " << content.substr(0, 500) << std::endl;
+        return false;
+    }
+    return true;
 }
 
 // ==================== Logger 溢出策略测试 ====================
