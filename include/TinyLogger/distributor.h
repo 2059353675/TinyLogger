@@ -19,6 +19,10 @@ public:
     void start();
     void stop();
     void add_printer(std::unique_ptr<Printer> p);
+    bool set_min_level(PrinterType type, LogLevel level);
+    LogLevel min_level() const {
+        return global_min_level_;
+    }
     bool should_log(LogLevel lvl) const {
         return static_cast<uint8_t>(lvl) >= static_cast<uint8_t>(global_min_level_);
     }

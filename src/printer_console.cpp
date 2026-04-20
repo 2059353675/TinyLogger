@@ -4,6 +4,7 @@ namespace tiny_logger {
 
 ConsolePrinter::ConsolePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
+    type_ = PrinterType::Console;
 }
 
 void ConsolePrinter::write(const std::string& formatted, const LogEvent& event) {

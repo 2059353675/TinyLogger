@@ -73,9 +73,16 @@ public:
     LogLevel min_level() const {
         return min_level_;
     }
+    PrinterType type() const {
+        return type_;
+    }
+    void set_min_level(LogLevel lvl) {
+        min_level_ = lvl;
+    }
 
 protected:
     LogLevel min_level_;
+    PrinterType type_;
     std::atomic<size_t> error_count_{0};
 };
 

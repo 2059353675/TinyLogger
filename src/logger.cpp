@@ -62,6 +62,39 @@ void Logger::shutdown() {
     }
 }
 
+void Logger::set_min_level(LogLevel lvl) {
+    if (distributor_) {
+        distributor_->set_min_level(lvl);
+    }
+}
+
+void Logger::set_overflow_policy(OverflowPolicy policy) {
+    if (config_) {
+        config_->overflow_policy = policy;
+    }
+}
+
+bool Logger::set_printer_min_level(PrinterType type, LogLevel level) {
+    if (distributor_) {
+        return distributor_->set_printer_min_level(type, level);
+    }
+    return false;
+}
+
+LogLevel Logger::get_min_level() const {
+    if (distributor_) {
+        return distributor_->min_level();
+    }
+    return LogLevel::Info;
+}
+
+OverflowPolicy Logger::get_overflow_policy() const {
+    if (config_) {
+        return config_->overflow_policy;
+    }
+    return OverflowPolicy::Discard;
+}
+
 void Logger::handle_overflow() {
     if (!config_) {
         return;

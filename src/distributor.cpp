@@ -46,6 +46,19 @@ void Distributor::add_printer(std::unique_ptr<Printer> p) {
     printers_.emplace_back(std::move(p));
 }
 
+bool Distributor::set_min_level(PrinterType type, LogLevel level) {
+    for (auto& p : printers_) {
+        if (p->type() == type) {
+            p->set_min_level(level);
+            if (static_cast<uint8_t>(level) < static_cast<uint8_t>(min_level)) {
+                min_level = level;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 void Distributor::run() {
     constexpr size_t BATCH_SIZE = 64;
 

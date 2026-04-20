@@ -412,16 +412,13 @@ g++ ... -L/usr/lib -lfmt
 
 ## 示例程序
 
-查看 `examples/` 目录获取完整示例：
+构建项目后，示例程序位于 `build/example`：
 
 ```bash
-cd examples
-make
-./example
+./build/example
 ```
 
 ---
 
 **更多信息请参考：**
 - [开发者文档](DEVELOPER.md) - 构建系统、测试、贡献指南
-- [GitHub 仓库](<repository-url>) - 源码、问题反馈

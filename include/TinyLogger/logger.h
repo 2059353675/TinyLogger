@@ -74,11 +74,20 @@ public:
         return dropped_.load(std::memory_order_relaxed);
     }
 
+    void set_min_level(LogLevel lvl);
+    void set_overflow_policy(OverflowPolicy policy);
+    bool set_printer_min_level(PrinterType type, LogLevel level);
+
+    LogLevel min_level() const;
+
 private:
     template <typename... Args>
     void log(LogLevel lvl, const char* fmt, Args&&... args);
 
     void handle_overflow();
+
+    LogLevel get_min_level() const;
+    OverflowPolicy get_overflow_policy() const;
 
 private:
     std::optional<LoggerConfig> config_;

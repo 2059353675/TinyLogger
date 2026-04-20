@@ -4,6 +4,7 @@ namespace tiny_logger {
 
 FilePrinter::FilePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
+    type_ = PrinterType::File;
 
     const auto& j = config.raw;
 

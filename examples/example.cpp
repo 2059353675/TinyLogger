@@ -17,18 +17,18 @@
 
 int main() {
     // 方式一（推荐）：程序化配置 - 类型安全，无需外部文件依赖
-    PrinterConfig console_cfg;
-    console_cfg.type = PrinterType::Console;
-    console_cfg.min_level = LogLevel::Debug;
+    tiny_logger::PrinterConfig console_cfg;
+    console_cfg.type = tiny_logger::PrinterType::Console;
+    console_cfg.min_level = tiny_logger::LogLevel::Debug;
 
-    LoggerConfig config;
+    tiny_logger::LoggerConfig config;
     config.buffer_size = 256;
-    config.overflow_policy = OverflowPolicy::Discard;
+    config.overflow_policy = tiny_logger::OverflowPolicy::Discard;
     config.printers.push_back(console_cfg);
 
-    Logger logger;
+    tiny_logger::Logger logger;
     auto err = logger.init(config);
-    if (err != ErrorCode::None) {
+    if (err != tiny_logger::ErrorCode::None) {
         std::cerr << "初始化失败，错误码：" << static_cast<int>(err) << std::endl;
         return 1;
     }
