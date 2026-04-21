@@ -242,29 +242,6 @@ logger.init();  // 使用默认配置
 logger.info("Hello");
 ```
 
-#### 从文件初始化（备选）
-
-```cpp
-ErrorCode init(const std::string& config_path);
-
-从 JSON 配置文件初始化 Logger。
-
-**参数：**
-- `config_path`：配置文件路径
-
-**返回：**
-- `true`：初始化成功
-- `false`：初始化失败（文件不存在或格式错误）
-
-**示例：**
-```cpp
-TinyLogger::Logger logger;
-if (!logger.init("config.json")) {
-    std::cerr << "无法加载配置文件" << std::endl;
-    return 1;
-}
-```
-
 #### `void shutdown()`
 
 关闭 Logger，停止分发器并刷新所有 Printer。
@@ -376,14 +353,6 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 ---
 
 ## 常见问题
-
-### Q: 配置文件找不到怎么办？
-
-确保配置文件路径正确，或使用绝对路径：
-
-```cpp
-logger.init("/absolute/path/to/config.json");
-```
 
 ### Q: 日志没有写入文件？
 

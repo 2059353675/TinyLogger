@@ -47,7 +47,6 @@ public:
     }
 
     ErrorCode init();
-    ErrorCode init(const std::string& path);
     ErrorCode init(const LoggerConfig& config);
 
     void shutdown();

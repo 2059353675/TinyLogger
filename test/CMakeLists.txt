@@ -14,10 +14,6 @@
 add_executable(test_ring_buffer test_ring_buffer.cpp)
 target_link_libraries(test_ring_buffer PRIVATE TinyLogger::tinylogger)
 
-# Config 测试
-add_executable(test_config test_config.cpp)
-target_link_libraries(test_config PRIVATE TinyLogger::tinylogger)
-
 # Printer 测试
 add_executable(test_printer test_printer.cpp)
 target_link_libraries(test_printer PRIVATE TinyLogger::tinylogger)
@@ -33,7 +29,6 @@ target_link_libraries(test_logger PRIVATE TinyLogger::tinylogger)
 # ==================== 测试配置 ====================
 
 add_test(NAME RingBufferTest COMMAND test_ring_buffer)
-add_test(NAME ConfigTest COMMAND test_config)
 add_test(NAME PrinterTest COMMAND test_printer)
 add_test(NAME DistributorTest COMMAND test_distributor)
 add_test(NAME LoggerIntegrationTest COMMAND test_logger)
@@ -41,6 +36,6 @@ add_test(NAME LoggerIntegrationTest COMMAND test_logger)
 # 自定义目标：运行所有测试
 add_custom_target(run_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_ring_buffer test_config test_printer test_distributor test_logger
+    DEPENDS test_ring_buffer test_printer test_distributor test_logger
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )

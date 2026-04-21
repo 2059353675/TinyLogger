@@ -142,8 +142,4 @@ struct LoggerConfig {
     }
 };
 
-static std::optional<LogLevel> string_to_level(std::string s);
-static std::optional<PrinterType> string_to_printer_type(std::string s);
-static std::optional<OverflowPolicy> string_to_overflow(std::string s);
-
 } // namespace tiny_logger

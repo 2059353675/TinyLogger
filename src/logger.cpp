@@ -26,15 +26,6 @@ ErrorCode Logger::init() {
     return init(default_cfg);
 }
 
-ErrorCode Logger::init(const std::string& path) {
-    ErrorCode err;
-    auto cfg = load_config(path, err);
-    if (!cfg) {
-        return err;
-    }
-    return init(*cfg);
-}
-
 ErrorCode Logger::init(const LoggerConfig& config) {
     config_ = config;
 

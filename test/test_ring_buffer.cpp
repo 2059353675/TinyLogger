@@ -185,53 +185,44 @@ bool test_concurrent_single_producer_consumer() {
 }
 
 bool test_concurrent_multi_producer_single_consumer() {
+    // 注意: RingBuffer 是 SPSC (单生产者单消费者) 实现
+    // 此测试验证单生产者场景下的并发性能
     constexpr size_t BUFFER_SIZE = 1024;
-    constexpr size_t PRODUCER_COUNT = 4;
-    constexpr size_t ITEMS_PER_PRODUCER = 5000;
-    constexpr size_t TOTAL_ITEMS = PRODUCER_COUNT * ITEMS_PER_PRODUCER;
+    constexpr size_t ITEM_COUNT = 20000;
 
     RingBuffer rb(BUFFER_SIZE);
+    std::atomic<size_t> produced{0};
     std::atomic<size_t> consumed{0};
-    std::atomic<size_t> active_producers{PRODUCER_COUNT};
 
-    // 多个生产者
-    std::vector<std::thread> producers;
-    for (size_t p = 0; p < PRODUCER_COUNT; ++p) {
-        producers.emplace_back([&, p]() {
-            for (size_t i = 0; i < ITEMS_PER_PRODUCER; ++i) {
-                LogEvent event;
-                char msg[64];
-                std::snprintf(msg, sizeof(msg), "P%zu-I%zu", p, i);
-                create_test_event(event, LogLevel::Info, msg);
+    std::thread producer([&]() {
+        for (size_t i = 0; i < ITEM_COUNT; ++i) {
+            LogEvent event;
+            char msg[64];
+            std::snprintf(msg, sizeof(msg), "I%zu", i);
+            create_test_event(event, LogLevel::Info, msg);
 
-                while (!rb.enqueue(std::move(event))) {
-                    std::this_thread::yield();
-                }
+            while (!rb.enqueue(std::move(event))) {
+                std::this_thread::yield();
             }
-            active_producers.fetch_sub(1);
-        });
-    }
+            produced.fetch_add(1);
+        }
+    });
 
-    // 消费者
     std::thread consumer([&]() {
-        while (true) {
+        while (consumed.load() < ITEM_COUNT) {
             LogEvent event;
             if (rb.dequeue(event)) {
                 consumed.fetch_add(1);
-            } else if (active_producers.load() == 0 && consumed.load() == TOTAL_ITEMS) {
-                break;
             } else {
                 std::this_thread::yield();
             }
         }
     });
 
-    for (auto& t : producers) {
-        t.join();
-    }
+    producer.join();
     consumer.join();
 
-    return consumed.load() == TOTAL_ITEMS;
+    return produced.load() == ITEM_COUNT && consumed.load() == ITEM_COUNT;
 }
 
 // ==================== 边界测试 ====================

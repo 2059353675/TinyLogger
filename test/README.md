@@ -6,13 +6,7 @@
 
 ```
 test/
-├── configs/                  # 测试用配置文件
-│   ├── test_console.json    # Console printer 配置
-│   ├── test_file.json       # File printer 配置
-│   ├── test_multi.json      # 多 printer 配置
-│   └── test_overflow.json   # 溢出策略配置
 ├── test_ring_buffer.cpp     # RingBuffer 单元测试
-├── test_config.cpp          # Config 配置解析测试
 ├── test_printer.cpp         # Printer (Console/File) 测试
 ├── test_distributor.cpp     # Distributor 测试
 ├── test_logger.cpp          # Logger 集成测试
@@ -23,7 +17,7 @@ test/
 
 ## 测试覆盖范围
 
-### 1. RingBuffer 测试 (test_ring_buffer.cpp)
+### 1. RingBuffer 测试 (test_ring_buffer.cpp) - 11 个测试
 
 **基础测试：**
 - 缓冲区创建
@@ -44,29 +38,7 @@ test/
 - 2 的幂次容量验证
 - 缓冲区循环覆盖（wraparound）
 
-### 2. Config 测试 (test_config.cpp)
-
-**基础测试：**
-- 最小有效配置
-- 完整配置（所有选项）
-
-**错误处理测试：**
-- 文件不存在
-- 无效 JSON 语法
-- 缺少 printers 数组
-- 无效 printer type
-- 无效 overflow policy
-- 无效 log level
-- 非 2 的幂 buffer size
-- File printer 缺少 path
-
-**边界情况测试：**
-- 大小写不敏感解析
-- 可选字段默认值
-- 空 printers 数组
-- 多个相同 type 的 printers
-
-### 3. Printer 测试 (test_printer.cpp)
+### 2. Printer 测试 (test_printer.cpp) - 13 个测试
 
 **ConsolePrinter 测试：**
 - 初始化
@@ -89,7 +61,7 @@ test/
 - 无效路径
 - 空消息
 
-### 4. Distributor 测试 (test_distributor.cpp)
+### 3. Distributor 测试 (test_distributor.cpp) - 13 个测试
 
 **基础测试：**
 - 创建 Distributor
@@ -115,11 +87,10 @@ test/
 **批量处理测试：**
 - 批量事件处理
 
-### 5. Logger 集成测试 (test_logger.cpp)
+### 4. Logger 集成测试 (test_logger.cpp) - 14 个测试
 
 **初始化测试：**
-- 有效配置初始化
-- 无效配置处理
+- 程序化配置初始化
 - File printer 初始化
 
 **日志记录测试：**
@@ -140,6 +111,8 @@ test/
 
 **生命周期测试：**
 - 启动/停止周期
+
+## 总计：51 个测试
 
 ## 运行测试
 
@@ -173,7 +146,6 @@ cmake --build . -j$(nproc)
 
 # 运行单个测试
 ./test_ring_buffer
-./test_config
 ./test_printer
 ./test_distributor
 ./test_logger
@@ -201,6 +173,6 @@ ctest --output-on-failure
 
 - 每个测试函数以 `test_` 开头
 - 测试输出格式：`[TEST] 测试名称... PASSED/FAILED`
-- 使用工具函数创建临时配置文件
+- 使用工具函数创建临时日志文件
 - 测试结束后清理临时文件
 - 并发测试使用适当的睡眠和等待机制

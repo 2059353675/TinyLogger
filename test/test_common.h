@@ -3,7 +3,7 @@
  *
  * 提供所有测试共享的工具函数和类：
  * - create_test_event: 创建测试用 LogEvent
- * - TempConfigFile: RAII 风格的临时配置文件管理
+ * - TempLogFile: RAII 风格的临时日志文件管理
  * - run_test_suite: 统一的测试运行框架
  */
 
@@ -69,70 +69,6 @@ inline bool create_test_event(LogEvent& event, LogLevel level, const char* msg) 
 }
 
 // ==================== RAII 临时文件管理 ====================
-
-/**
- * RAII 风格的临时配置文件管理器
- *
- * 用法：
- *   TempConfigFile config("test.json", json_content);
- *   auto result = load_config(config.path(), error);
- *   // 析构时自动删除临时文件
- */
-class TempConfigFile
-{
-public:
-    /**
-     * 创建临时配置文件
-     *
-     * @param filename 文件名（会添加前缀 test_temp_）
-     * @param content 文件内容
-     */
-    TempConfigFile(const std::string& filename, const std::string& content) : path_("test_temp_" + filename) {
-        std::ofstream ofs(path_);
-        if (ofs.is_open()) {
-            ofs << content;
-            ofs.close();
-        }
-    }
-
-    ~TempConfigFile() {
-        cleanup();
-    }
-
-    // 禁止拷贝
-    TempConfigFile(const TempConfigFile&) = delete;
-    TempConfigFile& operator=(const TempConfigFile&) = delete;
-
-    // 允许移动
-    TempConfigFile(TempConfigFile&& other) noexcept : path_(std::move(other.path_)) {
-        other.path_.clear();
-    }
-
-    TempConfigFile& operator=(TempConfigFile&& other) noexcept {
-        if (this != &other) {
-            cleanup();
-            path_ = std::move(other.path_);
-            other.path_.clear();
-        }
-        return *this;
-    }
-
-    const std::string& path() const {
-        return path_;
-    }
-    bool valid() const {
-        return !path_.empty();
-    }
-
-private:
-    void cleanup() {
-        if (!path_.empty()) {
-            std::remove(path_.c_str());
-        }
-    }
-
-    std::string path_;
-};
 
 /**
  * RAII 风格的临时日志文件管理器

@@ -58,34 +58,6 @@ static LoggerConfig create_multi_printer_config(const std::string& file_path) {
 
 // ==================== Logger 初始化测试 ====================
 
-bool test_logger_init_valid_config() {
-    std::string json = R"({
-        "buffer_size": 256,
-        "overflow_policy": "Discard",
-        "printers": [
-            {
-                "type": "Console",
-                "level": "Debug"
-            }
-        ]
-    })";
-
-    TempConfigFile config("init.json", json);
-
-    Logger logger;
-    if (logger.init(config.path()) != ErrorCode::None) {
-        return false;
-    }
-
-    logger.shutdown();
-    return true;
-}
-
-bool test_logger_init_invalid_config() {
-    Logger logger;
-    return logger.init("nonexistent.json") == ErrorCode::FileNotFound;
-}
-
 bool test_logger_init_programmatic() {
     Logger logger;
     auto cfg = create_console_config();
@@ -362,12 +334,6 @@ bool test_logger_start_stop_cycle() {
 
 // ==================== 错误处理测试 ====================
 
-bool test_logger_init_file_not_found() {
-    Logger logger;
-    auto err = logger.init("nonexistent.json");
-    return err == ErrorCode::FileNotFound;
-}
-
 bool test_logger_dropped_count() {
     TempLogFile log_file("dropped.log");
 
@@ -415,8 +381,6 @@ bool test_logger_init_success_no_error() {
 int main() {
     TestResult result;
 
-    run_test("Logger init with valid config", test_logger_init_valid_config, result);
-    run_test("Logger init with invalid config", test_logger_init_invalid_config, result);
     run_test("Logger init with programmatic config", test_logger_init_programmatic, result);
     run_test("Logger init with file printer", test_logger_init_file_printer, result);
 
@@ -436,7 +400,6 @@ int main() {
 
     run_test("Logger start/stop cycle", test_logger_start_stop_cycle, result);
 
-    run_test("Logger init file not found", test_logger_init_file_not_found, result);
     run_test("Logger dropped count", test_logger_dropped_count, result);
     run_test("Logger init success returns no error", test_logger_init_success_no_error, result);
 
