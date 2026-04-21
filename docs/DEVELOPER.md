@@ -63,6 +63,109 @@ TinyLogger/
 
 ---
 
+## 架构设计
+
+### 核心组件
+
+```mermaid
+flowchart TD
+    classDef appLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef coreLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef outLayer fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+    classDef note fill:#f5f5f5,stroke:#9e9e9e,stroke-dasharray: 5 5,font-size:12px;
+
+    subgraph App ["🖥️ 应用层"]
+        direction TB
+        User["User Thread(s)<br/>支持多线程"]:::appLayer
+    end
+
+    subgraph Core ["⚙️ 日志核心层"]
+        direction TB
+        Logger["Logger 接口"]:::coreLayer
+        Ring["RingBuffer(s)<br/>基于 Disruptor 消息队列架构的<br/>SPSC 无锁环形缓冲区<br/>（每个线程独立拥有）"]:::coreLayer
+        Dist["Distributor 事件分发"]:::coreLayer
+    end
+
+    subgraph Out ["📤 输出层"]
+        direction TB
+        Printer["Printer(s)<br/>Console / File 等"]:::outLayer
+    end
+
+    User -->|写入 | Logger
+    Logger -->|生产 | Ring
+    Ring -->|消费 | Dist
+    Dist -->|渲染输出 | Printer
+
+```
+
+### 数据流
+
+1. 用户调用 `logger.fatal("严重错误：系统崩溃，错误码：{}", errorcode);` 
+2. Logger 将日志信息封装成 `LogEvent`，写入 `RingBuffer`
+3. `Distributor` 线程从 `RingBuffer` 读取事件
+4. `Distributor` 根据级别过滤，分发给匹配的 `Printer`
+5. `Printer` 格式化日志信息，并写入目标（控制台/文件），如
+    - `[2026-03-21 07:19:25.339158][8343213073192788484][Fatal] 严重错误：系统崩溃，错误码：57005`
+
+时序图如下：
+```mermaid
+sequenceDiagram
+    participant App as 应用线程
+    participant Logger as Logger
+    participant Ring as SPSC RingBuffer
+    participant Dist as Distributor
+    participant P1 as Printer 1
+    participant P2 as Printer 2
+    participant P3 as Printer 3
+
+    Note over App, Ring: 🟢 日志生产阶段
+    App->>Logger: info("num = {}", num);
+    activate Logger
+    Logger->>Logger: 封装 LogEvent
+    Logger->>Ring: write(event)
+    activate Ring
+    Ring-->>Logger: 写入成功 (无锁)
+    deactivate Ring
+    Logger-->>App: 立即返回 (不阻塞 IO)
+    deactivate Logger
+
+    Note over Dist, P3: 🔵 日志消费阶段
+    loop 持续监听
+        Dist->>Ring: read(event)
+        activate Ring
+        Ring-->>Dist: 获取事件
+        deactivate Ring
+        
+        Dist->>Dist: 过滤日志级别
+        alt 输出方式 1
+            Dist->>P1: print(event)
+            activate P1
+            P1-->>Dist: 输出到控制台
+            deactivate P1
+        end
+        alt 输出方式 2
+            Dist->>P2: print(event)
+            activate P2
+            P2-->>Dist: 写入文件 (app.log)
+            deactivate P2
+        end
+        alt 输出方式 3
+            Dist->>P3: print(event)
+            activate P3
+            P3-->>Dist: 写入文件 (errors.log)
+            deactivate P3
+        end
+    end
+```
+
+### 关键特性
+
+- **异步日志：** 应用线程不阻塞（提交日志仅需约 30 纳秒），日志输出由 Distributor 线程分发给 Printers 处理
+- **无锁缓冲区：** RingBuffer 为单生产者单消费者（SPSC）队列，无需锁，提供了良好的高并发性能
+- **RAII 资源管理：** 所有资源（文件、线程）在析构时自动清理
+
+---
+
 ## 构建系统
 
 ### CMake 配置
@@ -342,58 +445,11 @@ print_test_summary("Suite Name", result);
 
 ---
 
-## 架构设计
-
-### 核心组件
-
-```
-┌─────────────┐
-│   Logger    │  ← 应用进程调用接口
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ RingBuffer  │  ← 无锁环形缓冲区，原理参考 Disruptor 消息队列
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Distributor │  ← 事件分发（多线程）
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Printers   │  ← 输出（Console/File等）
-└─────────────┘
-```
-
-### 数据流
-
-1. 用户调用 `logger.info("a+b={}", a+b);` 
-2. Logger 封装信息，写入缓存
-    - 初步格式化消息，如 `"a+b=2"`
-    - 将时间戳、线程ID、格式化消息等封装成 `LogEvent`
-    - 接着无锁且原子性地写入 `RingBuffer`
-3. `Distributor` 线程从 `RingBuffer` 读取事件
-4. `Distributor` 根据级别过滤，分发给匹配的 `Printer`
-5. `Printer` 再次格式化，并写入目标（控制台/文件），如
-    - `[2026-03-21 07:19:25.339158][8343213073192788484][Fatal] 严重错误：系统崩溃，错误码：57005`
-
-### 关键设计决策
-
-- **异步日志：** 应用线程不阻塞，日志输出由 Distributor 线程处理
-- **无锁缓冲区：** RingBuffer 使用原子操作，支持多生产者单消费者
-- **RAII 资源管理：** 所有资源（文件、线程）在析构时自动清理
-
----
-
 ## 未来计划
 
 字母越前，重要性越高，即 A 最优先，以此类推。
 
-### 延迟格式化（B）
-
-将格式化工作由 Logger + Printer，完全交付给 Printer，进一步减轻应用进程负担。但这个改动动作较大且实现较困难，要谨慎设计。
+### 更好的配置方式（B）
 
 ### 增加串口打印（C）
 

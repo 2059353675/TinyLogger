@@ -130,9 +130,9 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ---
 
-## 程序化配置（推荐）
+## 配置方法
 
-使用 `LoggerConfig` 结构体进行程序化配置：
+使用 `LoggerConfig` 结构体进行配置：
 
 ```cpp
 PrinterConfig console_cfg;
@@ -178,7 +178,7 @@ logger.init(config);
 
 ### Logger 类
 
-#### 程序化配置（推荐）
+#### 初始化
 
 ```cpp
 ErrorCode init(const LoggerConfig& config);
@@ -253,7 +253,7 @@ void fatal(fmt::format_string<T...> fmt, T&&... args);
 
 从低到高排列：
 
-| 级别 | 说明 | 适用场景 |
+| 级别 | 说明 | 适用场景（建议） |
 |------|------|----------|
 | `Debug` | 调试信息 | 开发阶段详细追踪 |
 | `Info` | 一般信息 | 正常运行状态记录 |
@@ -274,6 +274,8 @@ logger.info("多个值：{}, {}, {}", a, b, c);
 ```
 
 详细语法参考：[fmt 文档](https://fmt.dev/latest/syntax.html)
+
+注意：日志参数必须是可拷贝的小型 POD 类型（如整数、浮点、C 字符串 `const char*` 等），且总大小不超过固定存储（默认 128B），避免传入临时对象或大对象，如 `std::string`。
 
 ---
 

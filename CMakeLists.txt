@@ -73,10 +73,6 @@ if(TINYLOGGER_BUILD_EXAMPLES)
     add_executable(speed_test examples/speed_test.cpp)
     target_link_libraries(speed_test PRIVATE tinylogger)
     
-    file(COPY examples/logger_config.json
-         DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-    file(COPY examples/logger_config.json
-         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/examples)
 endif()
 
 # ==================== 测试 ====================
