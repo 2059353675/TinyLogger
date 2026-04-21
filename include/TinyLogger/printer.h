@@ -15,7 +15,7 @@ struct CachedTime {
 
 inline thread_local CachedTime cache;
 
-inline std::string format_timestamp(uint64_t ts_us) {
+inline void format_timestamp(uint64_t ts_us, fmt::memory_buffer& buf) {
     time_t sec = ts_us / 1000000;
     if (sec != cache.last_sec) {
         cache.last_sec = sec;
@@ -26,11 +26,8 @@ inline std::string format_timestamp(uint64_t ts_us) {
         std::strftime(cache.buf, sizeof(cache.buf), "%Y-%m-%d %H:%M:%S", &tm);
     }
 
-    char out[64];
     uint32_t us = ts_us % 1000000;
-    int len = std::snprintf(out, sizeof(out), "%s.%06u", cache.buf, us);
-
-    return std::string(out, len);
+    fmt::format_to(buf, "{}.{:06}", cache.buf, us);
 }
 
 inline const char* level_to_string(LogLevel level) {
@@ -48,12 +45,19 @@ inline const char* level_to_string(LogLevel level) {
     }
 }
 
-/**
- * @brief 格式化日志事件为标准字符串
- * @param event 日志事件
- * @return 格式化后的字符串
- */
-inline std::string format_log_line(LogEvent& event);
+inline void format_log_line(LogEvent& event, fmt::memory_buffer& out) {
+    fmt::format_to(out, "[");
+
+    format_timestamp(event.timestamp, out);
+
+    fmt::format_to(out, "][{}][{}] ", event.thread_id, level_to_string(event.level));
+
+    if (event.vtable && event.vtable->format_fn) {
+        event.vtable->format_fn(event, out);
+    } else if (event.fmt) {
+        fmt::format_to(out, "{}", event.fmt);
+    }
+}
 
 class Printer
 {

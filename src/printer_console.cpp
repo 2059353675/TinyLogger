@@ -3,31 +3,18 @@
 
 namespace tiny_logger {
 
-std::string format_log_line(LogEvent& event) {
-    fmt::memory_buffer buf;
-
-    if (event.vtable && event.vtable->format_fn) {
-        event.vtable->format_fn(event, buf);
-    } else if (event.fmt) {
-        fmt::format_to(buf, "{}", event.fmt);
-    }
-
-    std::string ts = format_timestamp(event.timestamp);
-    return fmt::format(
-        "[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level), std::string_view(buf.data(), buf.size()));
-}
-
 ConsolePrinter::ConsolePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
     type_ = PrinterType::Console;
 }
 
 void ConsolePrinter::write(LogEvent& event) {
-    std::string line = format_log_line(event);
+    fmt::memory_buffer buf;
+    format_log_line(event, buf);
 
-    std::fwrite(line.data(), 1, line.size(), stdout);
+    std::fwrite(buf.data(), 1, buf.size(), stdout);
 
-    if (line.empty() || line.back() != '\n') {
+    if (buf.size() == 0 || buf.data()[buf.size() - 1] != '\n') {
         std::fwrite("\n", 1, 1, stdout);
     }
 }

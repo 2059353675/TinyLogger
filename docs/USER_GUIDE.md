@@ -9,7 +9,7 @@
   - [构建与安装](#构建与安装)
   - [基本使用](#基本使用)
 - [配置方式](#配置方式)
-  - [JSON 配置文件](#json-配置文件)
+  - [程序化配置](#程序化配置推荐)
   - [配置项说明](#配置项说明)
 - [API 参考](#api-参考)
   - [Logger 类](#logger-类)
@@ -130,58 +130,47 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ---
 
-## 配置方式
+## 程序化配置（推荐）
 
-### JSON 配置文件
+使用 `LoggerConfig` 结构体进行程序化配置：
 
-TinyLogger 使用 JSON 文件配置日志行为，注意大小写敏感：
+```cpp
+PrinterConfig console_cfg;
+console_cfg.type = PrinterType::Console;
+console_cfg.min_level = LogLevel::Debug;
 
-```json
-{
-    "buffer_size": 512,
-    "overflow_policy": "Discard",
-    "printers": [
-        {
-            "type": "Console",
-            "level": "Debug"
-        },
-        {
-            "type": "File",
-            "level": "Info",
-            "path": "app.log",
-            "max_size": 1048576,
-            "flush_every": 64
-        }
-    ]
-}
+LoggerConfig config;
+config.buffer_size = 256;
+config.overflow_policy = OverflowPolicy::Discard;
+config.printers.push_back(console_cfg);
+
+Logger logger;
+logger.init(config);
 ```
 
 ### 配置项说明
 
-#### 全局配置
+| 配置项 | 类型 | 说明 |
+|--------|------|------|
+| `buffer_size` | 整数 | 环形缓冲区大小（槽位数），必须是 2 的幂次 |
+| `overflow_policy` | 枚举 | 溢出策略：`Discard`（丢弃）或 `Block`（阻塞） |
 
-| 配置项 | 类型 | 必需 | 说明 |
-|--------|------|------|------|
-| `buffer_size` | 整数 | 是 | 环形缓冲区大小（槽位数），必须是 2 的幂次 |
-| `overflow_policy` | 字符串 | 是 | 溢出策略：`Discard`（丢弃）或 `Block`（阻塞） |
-| `printers` | 数组 | 是 | Printer 配置列表 |
+### Console Printer 配置
 
-#### Console Printer
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `type` | 枚举 | - | 固定值 `PrinterType::Console` |
+| `min_level` | 枚举 | `LogLevel::Info` | 最低日志级别 |
 
-| 配置项 | 类型 | 必需 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `type` | 字符串 | 是 | - | 固定值 `"Console"` |
-| `level` | 字符串 | 否 | `"Info"` | 最低日志级别 |
+### File Printer 配置
 
-#### File Printer
-
-| 配置项 | 类型 | 必需 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `type` | 字符串 | 是 | - | 固定值 `"File"` |
-| `level` | 字符串 | 否 | `"Info"` | 最低日志级别 |
-| `path` | 字符串 | 是 | - | 日志文件路径 |
-| `max_size` | 整数 | 否 | `0`（不滚动） | 文件最大字节数，超出后滚动 |
-| `flush_every` | 整数 | 否 | `64` | 每 N 次写入后 flush |
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `type` | 枚举 | - | 固定值 `PrinterType::File` |
+| `min_level` | 枚举 | `LogLevel::Info` | 最低日志级别 |
+| `file_path` | 字符串 | - | 日志文件路径 |
+| `max_size` | 整数 | `0`（不滚动） | 文件最大字节数，超出后滚动 |
+| `flush_every` | 整数 | `64` | 每 N 次写入后 flush |
 
 ---
 
@@ -294,27 +283,32 @@ logger.info("多个值：{}, {}, {}", a, b, c);
 
 可以同时输出到多个目标：
 
-```json
-{
-    "buffer_size": 512,
-    "overflow_policy": "Discard",
-    "printers": [
-        {
-            "type": "Console",
-            "level": "Debug"
-        },
-        {
-            "type": "File",
-            "level": "Info",
-            "path": "app.log"
-        },
-        {
-            "type": "File",
-            "level": "Error",
-            "path": "errors.log"
-        }
-    ]
-}
+```cpp
+using namespace tiny_logger;
+
+PrinterConfig console_cfg;
+console_cfg.type = PrinterType::Console;
+console_cfg.min_level = LogLevel::Debug;
+
+PrinterConfig file_cfg;
+file_cfg.type = PrinterType::File;
+file_cfg.min_level = LogLevel::Info;
+file_cfg.file_path = "app.log";
+
+PrinterConfig error_cfg;
+error_cfg.type = PrinterType::File;
+error_cfg.min_level = LogLevel::Error;
+error_cfg.file_path = "errors.log";
+
+LoggerConfig config;
+config.buffer_size = 512;
+config.overflow_policy = OverflowPolicy::Discard;
+config.printers.push_back(console_cfg);
+config.printers.push_back(file_cfg);
+config.printers.push_back(error_cfg);
+
+Logger logger;
+logger.init(config);
 ```
 
 此配置会：
@@ -326,17 +320,12 @@ logger.info("多个值：{}, {}, {}", a, b, c);
 
 当日志文件达到 `max_size` 时，会自动滚动为 `.1`、`.2` 等备份：
 
-```json
-{
-    "printers": [
-        {
-            "type": "File",
-            "path": "app.log",
-            "max_size": 10485760,  // 10 MB
-            "flush_every": 64
-        }
-    ]
-}
+```cpp
+PrinterConfig file_cfg;
+file_cfg.type = PrinterType::File;
+file_cfg.file_path = "app.log";
+file_cfg.max_size = 10485760;  // 10 MB
+file_cfg.flush_every = 64;
 ```
 
 ---
@@ -357,15 +346,18 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 ### Q: 日志没有写入文件？
 
 检查：
-1. File Printer 的 `path` 是否有写权限
-2. `level` 设置是否正确（可能被过滤）
+1. File Printer 的 `file_path` 是否有写权限
+2. `min_level` 设置是否正确（可能被过滤）
 3. 是否调用了 `shutdown()` 或等待自动 flush
 
 ### Q: 如何更改溢出策略？
 
-在配置文件中修改 `overflow_policy`：
-- `"Discard"`：缓冲区满时丢弃新日志（默认，性能更好）
-- `"Block"`：缓冲区满时阻塞等待（保证不丢日志）
+在代码中修改溢出策略：
+```cpp
+config.overflow_policy = OverflowPolicy::Discard;  // 丢弃新日志（默认，性能更好）
+// 或
+config.overflow_policy = OverflowPolicy::Block;  // 阻塞等待（保证不丢日志）
+```
 
 ### Q: 编译时找不到 fmt 库？
 

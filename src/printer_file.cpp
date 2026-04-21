@@ -35,12 +35,13 @@ void FilePrinter::write(LogEvent& event) {
     if (!file_)
         return;
 
-    std::string line = format_log_line(event);
+    fmt::memory_buffer buf;
+    format_log_line(event, buf);
 
-    size_t written = std::fwrite(line.data(), 1, line.size(), file_);
+    size_t written = std::fwrite(buf.data(), 1, buf.size(), file_);
     current_size_ += written;
 
-    if (line.empty() || line.back() != '\n') {
+    if (buf.size() == 0 || buf.data()[buf.size() - 1] != '\n') {
         std::fwrite("\n", 1, 1, file_);
         current_size_ += 1;
     }
