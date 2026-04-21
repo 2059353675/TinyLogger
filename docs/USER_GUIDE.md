@@ -74,31 +74,21 @@ sudo make install
 
 ### 基本使用
 
-推荐使用程序化配置（类型安全，无需外部文件）：
+推荐使用 `LoggerBuilder`（链式配置，类型安全）：
 
 ```cpp
-#include <TinyLogger/logger.h>
+#include <TinyLogger/logger_builder.h>
 
 int main() {
     using namespace tiny_logger;
-    
-    // 方式一（推荐）：程序化配置
-    PrinterConfig console_cfg;
-    console_cfg.type = PrinterType::Console;
-    console_cfg.min_level = LogLevel::Debug;
 
-    LoggerConfig config;
-    config.buffer_size = 256;
-    config.overflow_policy = OverflowPolicy::Discard;
-    config.printers.push_back(console_cfg);
+    // 方式一（推荐）：Builder 链式配置
+    auto logger = LoggerBuilder()
+        .set_buffer_size(256)
+        .set_overflow_policy(OverflowPolicy::Discard)
+        .add_console_printer(LogLevel::Debug)
+        .build();
 
-    Logger logger;
-    if (logger.init(config) != ErrorCode::None) {
-        std::cerr << "初始化失败" << std::endl;
-        return 1;
-    }
-
-    // 记录日志
     logger.info("应用程序启动");
     logger.debug("调试信息：{}", 42);
     logger.error("错误：{}", "详细信息");
@@ -107,15 +97,13 @@ int main() {
 }
 ```
 
-或使用默认配置（最简单的初始化方式）：
+或使用默认配置（最简方式）：
 
 ```cpp
-#include <TinyLogger/logger.h>
+#include <TinyLogger/logger_builder.h>
 
 int main() {
-    tiny_logger::Logger logger;
-    logger.init();  // 使用默认配置：Console + Info级别
-    
+    auto logger = tiny_logger::create_default_logger();
     logger.info("应用程序启动");
     return 0;
 }
@@ -132,28 +120,27 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ## 配置方法
 
-使用 `LoggerConfig` 结构体进行配置：
+使用 `LoggerBuilder` 进行链式配置（推荐）：
 
 ```cpp
-PrinterConfig console_cfg;
-console_cfg.type = PrinterType::Console;
-console_cfg.min_level = LogLevel::Debug;
+using namespace tiny_logger;
 
-LoggerConfig config;
-config.buffer_size = 256;
-config.overflow_policy = OverflowPolicy::Discard;
-config.printers.push_back(console_cfg);
-
-Logger logger;
-logger.init(config);
+auto logger = LoggerBuilder()
+    .set_buffer_size(256)
+    .set_overflow_policy(OverflowPolicy::Discard)
+    .add_console_printer(LogLevel::Debug)
+    .add_file_printer("app.log", LogLevel::Info)
+    .build();
 ```
 
 ### 配置项说明
 
 | 配置项 | 类型 | 说明 |
 |--------|------|------|
-| `buffer_size` | 整数 | 环形缓冲区大小（槽位数），必须是 2 的幂次 |
-| `overflow_policy` | 枚举 | 溢出策略：`Discard`（丢弃）或 `Block`（阻塞） |
+| `set_buffer_size(size)` | 函数 | 环形缓冲区大小（槽位数），必须是 2 的幂次（默认 256） |
+| `set_overflow_policy(policy)` | 函数 | 溢出策略：`Discard`（丢弃）或 `Block`（阻塞） |
+| `add_console_printer(level)` | 函数 | 添加控制台输出，参数为最小日志级别 |
+| `add_file_printer(path, level)` | 函数 | 添加文件输出，参数为文件路径和最小日志级别 |
 
 ### Console Printer 配置
 
@@ -176,13 +163,65 @@ logger.init(config);
 
 ## API 参考
 
-### Logger 类
-
-#### 初始化
+### Builder API
 
 ```cpp
-ErrorCode init(const LoggerConfig& config);
+#include <TinyLogger/logger_builder.h>
 ```
+
+#### 创建 Logger
+
+```cpp
+LoggerBuilder()
+    .set_buffer_size(256)
+    .set_overflow_policy(OverflowPolicy::Discard)
+    .add_console_printer(LogLevel::Debug)
+    .add_file_printer("app.log", LogLevel::Info)
+    .build();
+```
+
+**方法说明：**
+
+| 方法 | 参数 | 默认值 | 说明 |
+|------|------|--------|------|
+| `set_buffer_size(size)` | size_t | 256 | 环形缓冲区大小 |
+| `set_overflow_policy(policy)` | OverflowPolicy | Discard | 溢出策略 |
+| `add_console_printer(level)` | LogLevel | Info | 添加控制台，设定最小级别 |
+| `add_file_printer(path, level)` | string, LogLevel | Debug | 添加文件输出 |
+
+#### 默认配置
+
+```cpp
+create_default_logger();
+```
+
+使用默认配置创建 Logger：Console Printer + Info 级别 + Discard 溢出策略。
+
+**示例：**
+```cpp
+auto logger = create_default_logger();
+logger.info("Hello");
+```
+
+#### 共享指针模式
+
+```cpp
+std::unique_ptr<Logger> build_shared();
+```
+
+**示例：**
+```cpp
+auto logger = LoggerBuilder()
+    .add_console_printer()
+    .build_shared();
+```
+
+#### 关闭 Logger
+
+Logger 在析构时会自动调用 `shutdown()`，也可手动显式关闭：
+
+```cpp
+logger.shutdown();
 
 使用 `LoggerConfig` 结构体初始化 Logger。
 
@@ -283,44 +322,26 @@ logger.info("多个值：{}, {}, {}", a, b, c);
 
 ### 多 Printer 配置
 
-可以同时输出到多个目标：
+可以使用 Builder 同时配置多个输出目标：
 
 ```cpp
 using namespace tiny_logger;
 
-PrinterConfig console_cfg;
-console_cfg.type = PrinterType::Console;
-console_cfg.min_level = LogLevel::Debug;
-
-PrinterConfig file_cfg;
-file_cfg.type = PrinterType::File;
-file_cfg.min_level = LogLevel::Info;
-file_cfg.file_path = "app.log";
-
-PrinterConfig error_cfg;
-error_cfg.type = PrinterType::File;
-error_cfg.min_level = LogLevel::Error;
-error_cfg.file_path = "errors.log";
-
-LoggerConfig config;
-config.buffer_size = 512;
-config.overflow_policy = OverflowPolicy::Discard;
-config.printers.push_back(console_cfg);
-config.printers.push_back(file_cfg);
-config.printers.push_back(error_cfg);
-
-Logger logger;
-logger.init(config);
+auto logger = LoggerBuilder()
+    .set_buffer_size(512)
+    .set_overflow_policy(OverflowPolicy::Discard)
+    .add_console_printer(LogLevel::Debug)    // 控制台：Debug+
+    .add_file_printer("app.log", LogLevel::Info)   // 文件：Info+
+    .build();
 ```
 
 此配置会：
 - 在控制台输出所有 Debug+ 日志
 - 在 `app.log` 记录 Info+ 日志
-- 在 `errors.log` 仅记录 Error+ 日志
 
 ### 文件日志滚动
 
-当日志文件达到 `max_size` 时，会自动滚动为 `.1`、`.2` 等备份：
+Builder 支持文件日志配置（详细参数暂未在 Builder 中暴露，可直接使用 LoggerConfig）：
 
 ```cpp
 PrinterConfig file_cfg;
@@ -328,6 +349,13 @@ file_cfg.type = PrinterType::File;
 file_cfg.file_path = "app.log";
 file_cfg.max_size = 10485760;  // 10 MB
 file_cfg.flush_every = 64;
+
+LoggerConfig config;
+config.buffer_size = 256;
+config.printers.push_back(file_cfg);
+
+Logger logger;
+logger.init(config);
 ```
 
 ---
@@ -354,11 +382,15 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 
 ### Q: 如何更改溢出策略？
 
-在代码中修改溢出策略：
+使用 Builder 设置：
+
 ```cpp
-config.overflow_policy = OverflowPolicy::Discard;  // 丢弃新日志（默认，性能更好）
-// 或
-config.overflow_policy = OverflowPolicy::Block;  // 阻塞等待（保证不丢日志）
+auto logger = LoggerBuilder()
+    .set_overflow_policy(OverflowPolicy::Discard)  // 丢弃新日志（默认，性能更好）
+    // 或
+    .set_overflow_policy(OverflowPolicy::Block)   // 阻塞等待（保证不丢日志）
+    .add_console_printer()
+    .build();
 ```
 
 ### Q: 编译时找不到 fmt 库？

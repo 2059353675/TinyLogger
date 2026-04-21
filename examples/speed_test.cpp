@@ -10,7 +10,7 @@
  *   mkdir build && cd build && cmake .. && make
  */
 
-#include <TinyLogger/logger.h>
+#include <TinyLogger/logger_builder.h>
 #include <TinyLogger/printer_null.h>
 #include <TinyLogger/ring_buffer.h>
 #include <atomic>
@@ -152,20 +152,12 @@ void test_latency_with_null_printer() {
     printf("测量：fmt::format + RingBuffer::enqueue（主线程开销）\n\n");
 
     tiny_logger::register_null_printer();
-    tiny_logger::PrinterConfig null_config;
-    null_config.type = tiny_logger::PrinterType::Null;
-    null_config.min_level = tiny_logger::LogLevel::Debug;
 
-    tiny_logger::LoggerConfig config;
-    config.buffer_size = BUFFER_SIZE;
-    config.overflow_policy = tiny_logger::OverflowPolicy::Block;
-    config.printers.push_back(null_config);
-
-    tiny_logger::Logger logger;
-    if (logger.init(config) != tiny_logger::ErrorCode::None) {
-        printf("  初始化失败\n");
-        return;
-    }
+    auto logger = tiny_logger::LoggerBuilder()
+                      .set_buffer_size(BUFFER_SIZE)
+                      .set_overflow_policy(tiny_logger::OverflowPolicy::Block)
+                      .add_printer(tiny_logger::PrinterType::Null, tiny_logger::LogLevel::Debug)
+                      .build();
 
     for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
         logger.info("warmup {} {}", i, i);
@@ -193,22 +185,14 @@ void test_throughput() {
     printf("\n========== 吞吐量测试（Null Printer） ==========\n");
 
     tiny_logger::register_null_printer();
-    tiny_logger::PrinterConfig null_config;
-    null_config.type = tiny_logger::PrinterType::Null;
-    null_config.min_level = tiny_logger::LogLevel::Debug;
-
-    tiny_logger::LoggerConfig config;
-    config.buffer_size = 1024;
-    config.overflow_policy = tiny_logger::OverflowPolicy::Block;
-    config.printers.push_back(null_config);
 
     printf("\n  单线程吞吐量：\n");
     {
-        tiny_logger::Logger logger;
-        if (logger.init(config) != tiny_logger::ErrorCode::None) {
-            printf("  初始化失败\n");
-            return;
-        }
+        auto logger = tiny_logger::LoggerBuilder()
+                          .set_buffer_size(1024)
+                          .set_overflow_policy(tiny_logger::OverflowPolicy::Block)
+                          .add_printer(tiny_logger::PrinterType::Null, tiny_logger::LogLevel::Debug)
+                          .build();
 
         for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
             logger.info("warmup {} {}", i, i);
@@ -239,11 +223,11 @@ void test_throughput() {
     for (size_t t = 0; t < sizeof(CONCURRENT_THREADS) / sizeof(CONCURRENT_THREADS[0]); ++t) {
         int num_threads = CONCURRENT_THREADS[t];
 
-        tiny_logger::Logger logger;
-        if (logger.init(config) != tiny_logger::ErrorCode::None) {
-            printf("  初始化失败\n");
-            return;
-        }
+        auto logger = tiny_logger::LoggerBuilder()
+                          .set_buffer_size(1024)
+                          .set_overflow_policy(tiny_logger::OverflowPolicy::Block)
+                          .add_printer(tiny_logger::PrinterType::Null, tiny_logger::LogLevel::Debug)
+                          .build();
 
         for (int i = 0; i < WARMUP_ITERATIONS * num_threads; ++i) {
             logger.info("warmup {} {}", i, i);
