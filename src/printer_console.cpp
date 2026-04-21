@@ -1,16 +1,29 @@
 #include "TinyLogger/printer_console.h"
+#include <fmt/format.h>
 
 namespace tiny_logger {
+
+std::string format_log_line(LogEvent& event) {
+    fmt::memory_buffer buf;
+
+    if (event.vtable && event.vtable->format_fn) {
+        event.vtable->format_fn(event, buf);
+    } else if (event.fmt) {
+        fmt::format_to(buf, "{}", event.fmt);
+    }
+
+    std::string ts = format_timestamp(event.timestamp);
+    return fmt::format(
+        "[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level), std::string_view(buf.data(), buf.size()));
+}
 
 ConsolePrinter::ConsolePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
     type_ = PrinterType::Console;
 }
 
-void ConsolePrinter::write(const std::string& formatted, const LogEvent& event) {
-    std::string ts = format_timestamp(event.timestamp);
-
-    std::string line = fmt::format("[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level), formatted);
+void ConsolePrinter::write(LogEvent& event) {
+    std::string line = format_log_line(event);
 
     std::fwrite(line.data(), 1, line.size(), stdout);
 

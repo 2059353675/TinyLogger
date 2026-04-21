@@ -31,13 +31,11 @@ FilePrinter::~FilePrinter() {
     }
 }
 
-void FilePrinter::write(const std::string& formatted, const LogEvent& event) {
+void FilePrinter::write(LogEvent& event) {
     if (!file_)
         return;
 
-    std::string ts = format_timestamp(event.timestamp);
-
-    std::string line = fmt::format("[{}][{}][{}] {}", ts, event.thread_id, level_to_string(event.level), formatted);
+    std::string line = format_log_line(event);
 
     size_t written = std::fwrite(line.data(), 1, line.size(), file_);
     current_size_ += written;

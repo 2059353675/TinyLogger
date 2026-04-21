@@ -27,6 +27,7 @@ set(TINYLOGGER_SOURCES
     src/ring_buffer.cpp
     src/config.cpp
     src/distributor.cpp
+    src/queue_registry.cpp
     src/printer_console.cpp
     src/printer_file.cpp
     src/printer_null.cpp

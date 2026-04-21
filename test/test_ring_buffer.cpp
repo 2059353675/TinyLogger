@@ -31,7 +31,7 @@ bool test_single_enqueue_dequeue() {
         return false;
     }
 
-    return dequeued.level == LogLevel::Info && std::strncmp(dequeued.preformatted, "Hello, World!", dequeued.length) == 0;
+    return dequeued.level == LogLevel::Info && std::strcmp(dequeued.fmt, "Hello, World!") == 0;
 }
 
 bool test_empty_buffer_dequeue() {
@@ -80,7 +80,7 @@ bool test_fifo_ordering() {
             return false;
         }
 
-        if (std::strncmp(event.preformatted, messages[i], event.length) != 0) {
+        if (std::strcmp(event.fmt, messages[i]) != 0) {
             return false;
         }
     }
@@ -134,7 +134,7 @@ bool test_large_message() {
         return false;
     }
 
-    return dequeued.length == LOG_MSG_SIZE - 2;
+    return std::strlen(dequeued.fmt) == LOG_MSG_SIZE - 2;
 }
 
 // ==================== 并发测试 ====================

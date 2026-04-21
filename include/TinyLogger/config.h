@@ -28,4 +28,13 @@ enum class ErrorCode {
  */
 std::optional<LoggerConfig> load_config(const std::string& path, ErrorCode& error);
 
+std::optional<LogLevel> string_to_level(std::string s);
+std::optional<PrinterType> string_to_printer_type(std::string s);
+std::optional<OverflowPolicy> string_to_overflow(std::string s);
+
+void parse_buffer_config(const json& j, LoggerConfig& config, ErrorCode& error);
+void parse_overflow_policy(const json& j, LoggerConfig& config, ErrorCode& error);
+void parse_printers(const json& j, LoggerConfig& config, ErrorCode& error);
+PrinterConfig parse_printer_config(const json& pj, ErrorCode& error);
+
 } // namespace tiny_logger

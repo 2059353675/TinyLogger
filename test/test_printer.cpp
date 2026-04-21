@@ -27,10 +27,9 @@ bool test_console_printer_write() {
     ConsolePrinter printer(config);
 
     LogEvent event = create_test_event(LogLevel::Info, "Test message");
-    std::string formatted = std::string(event.preformatted, event.length);
 
     try {
-        printer.write(formatted, event);
+        printer.write(event);
         printer.flush();
         return true;
     } catch (...) {
@@ -45,10 +44,9 @@ bool test_console_printer_write_multiline() {
     ConsolePrinter printer(config);
 
     LogEvent event = create_test_event(LogLevel::Debug, "Line 1\nLine 2\nLine 3");
-    std::string formatted = std::string(event.preformatted, event.length);
 
     try {
-        printer.write(formatted, event);
+        printer.write(event);
         printer.flush();
         return true;
     } catch (...) {
@@ -85,8 +83,7 @@ bool test_file_printer_write() {
         printer.set_flush_every(1); // 立即 flush
 
         LogEvent event = create_test_event(LogLevel::Info, "Hello, File!");
-        std::string formatted = std::string(event.preformatted, event.length);
-        printer.write(formatted, event);
+        printer.write(event);
         printer.flush();
     }
 
@@ -109,8 +106,7 @@ bool test_file_printer_multiple_writes() {
             char msg[64];
             std::snprintf(msg, sizeof(msg), "Message %d", i);
             LogEvent event = create_test_event(LogLevel::Info, msg);
-            std::string formatted = std::string(event.preformatted, event.length);
-            printer.write(formatted, event);
+            printer.write(event);
         }
         printer.flush();
     }
@@ -141,8 +137,7 @@ bool test_file_printer_flush() {
         printer.set_flush_every(1000); // 很大的值，不会自动 flush
 
         LogEvent event = create_test_event(LogLevel::Info, "Flush test");
-        std::string formatted = std::string(event.preformatted, event.length);
-        printer.write(formatted, event);
+        printer.write(event);
 
         // 手动 flush
         printer.flush();
@@ -169,8 +164,7 @@ bool test_file_printer_rotation() {
         // 写入足够多的数据触发滚动
         for (int i = 0; i < 20; ++i) {
             LogEvent event = create_test_event(LogLevel::Info, "Rotation test message ");
-            std::string formatted = std::string(event.preformatted, event.length);
-            printer.write(formatted, event);
+            printer.write(event);
         }
         printer.flush();
     }
@@ -198,8 +192,7 @@ bool test_file_printer_append_mode() {
         printer.set_flush_every(1);
 
         LogEvent event = create_test_event(LogLevel::Info, "First");
-        std::string formatted = std::string(event.preformatted, event.length);
-        printer.write(formatted, event);
+        printer.write(event);
         printer.flush();
     }
 
@@ -213,8 +206,7 @@ bool test_file_printer_append_mode() {
         printer.set_flush_every(1);
 
         LogEvent event = create_test_event(LogLevel::Info, "Second");
-        std::string formatted = std::string(event.preformatted, event.length);
-        printer.write(formatted, event);
+        printer.write(event);
         printer.flush();
     }
 
@@ -298,8 +290,7 @@ bool test_file_printer_invalid_path() {
 
         // 应该 fallback 到 stderr，不崩溃
         LogEvent event = create_test_event(LogLevel::Error, "Test");
-        std::string formatted = std::string(event.preformatted, event.length);
-        printer.write(formatted, event);
+        printer.write(event);
         printer.flush();
 
         return true;
@@ -320,8 +311,7 @@ bool test_file_printer_empty_message() {
         printer.set_flush_every(1);
 
         LogEvent event = create_test_event(LogLevel::Info, "");
-        std::string formatted = std::string(event.preformatted, event.length);
-        printer.write(formatted, event);
+        printer.write(event);
         printer.flush();
     }
 

@@ -1,14 +1,13 @@
 #include "test_common.h"
 #include <TinyLogger/distributor.h>
 #include <TinyLogger/printer.h>
+#include <TinyLogger/queue_registry.h>
 #include <TinyLogger/ring_buffer.h>
 #include <TinyLogger/types.h>
 #include <mutex>
 
 using namespace tiny_logger;
 using namespace tiny_logger::test;
-
-// ==================== 测试用 Mock Printer ====================
 
 class MockPrinter : public Printer
 {
@@ -17,15 +16,14 @@ public:
         min_level_ = LogLevel::Debug;
     }
 
-    void write(const std::string& formatted, const LogEvent& event) override {
+    void write(LogEvent& event) override {
         if (!should_log(event.level))
             return;
         if (should_throw_) {
             throw std::runtime_error("Mock printer error");
         }
         std::lock_guard<std::mutex> lock(mutex_);
-        events_.push_back(event);
-        formatted_messages_.push_back(formatted);
+        events_.push_back(std::move(event));
         write_count_.fetch_add(1);
     }
 
@@ -39,10 +37,6 @@ public:
 
     const std::vector<LogEvent>& get_events() const {
         return events_;
-    }
-
-    const std::vector<std::string>& get_formatted_messages() const {
-        return formatted_messages_;
     }
 
     bool is_flushed() const {
@@ -60,7 +54,6 @@ public:
     void reset() {
         std::lock_guard<std::mutex> lock(mutex_);
         events_.clear();
-        formatted_messages_.clear();
         write_count_.store(0);
         flushed_ = false;
         error_count_.store(0);
@@ -70,18 +63,17 @@ public:
 private:
     std::mutex mutex_;
     std::vector<LogEvent> events_;
-    std::vector<std::string> formatted_messages_;
     std::atomic<size_t> write_count_;
     bool flushed_ = false;
     bool should_throw_;
 };
 
-// ==================== Distributor 基础测试 ====================
-
 bool test_distributor_creation() {
     try {
+        QueueRegistry registry;
         RingBuffer rb(256);
-        Distributor distributor(rb);
+        registry.register_queue(&rb);
+        Distributor distributor(registry);
         return true;
     } catch (...) {
         return false;
@@ -89,8 +81,10 @@ bool test_distributor_creation() {
 }
 
 bool test_distributor_start_stop() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    Distributor distributor(rb);
+    registry.register_queue(&rb);
+    Distributor distributor(registry);
 
     distributor.start();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -100,8 +94,10 @@ bool test_distributor_start_stop() {
 }
 
 bool test_distributor_add_printer() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    Distributor distributor(rb);
+    registry.register_queue(&rb);
+    Distributor distributor(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     distributor.add_printer(std::move(printer));
@@ -113,11 +109,11 @@ bool test_distributor_add_printer() {
     return true;
 }
 
-// ==================== Distributor 分发测试 ====================
-
 bool test_distributor_single_event() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -140,8 +136,10 @@ bool test_distributor_single_event() {
 }
 
 bool test_distributor_multiple_events() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -165,8 +163,10 @@ bool test_distributor_multiple_events() {
 }
 
 bool test_distributor_multiple_printers() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer1 = std::make_unique<MockPrinter>();
     printer1->set_min_level(LogLevel::Debug);
@@ -189,11 +189,11 @@ bool test_distributor_multiple_printers() {
     return printer1_ptr->get_write_count() == 1 && printer2_ptr->get_write_count() == 1;
 }
 
-// ==================== Distributor 级别过滤测试 ====================
-
 bool test_distributor_level_filtering() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Error);
@@ -218,11 +218,11 @@ bool test_distributor_level_filtering() {
     return printer_ptr->get_write_count() == 2;
 }
 
-// ==================== Distributor 并发测试 ====================
-
 bool test_distributor_concurrent_enqueue() {
+    QueueRegistry registry;
     RingBuffer rb(1024);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -260,11 +260,11 @@ bool test_distributor_concurrent_enqueue() {
     return printer_ptr->get_write_count() == static_cast<size_t>(expected);
 }
 
-// ==================== Distributor 生命周期测试 ====================
-
 bool test_distributor_drain_on_stop() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -284,8 +284,10 @@ bool test_distributor_drain_on_stop() {
 }
 
 bool test_distributor_flush_on_stop() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -304,8 +306,10 @@ bool test_distributor_flush_on_stop() {
 }
 
 bool test_distributor_double_start_stop() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    Distributor distributor(rb);
+    registry.register_queue(&rb);
+    Distributor distributor(registry);
 
     distributor.start();
     distributor.start();
@@ -318,11 +322,11 @@ bool test_distributor_double_start_stop() {
     return true;
 }
 
-// ==================== Distributor 批量处理测试 ====================
-
 bool test_distributor_batch_processing() {
+    QueueRegistry registry;
     RingBuffer rb(1024);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -345,11 +349,11 @@ bool test_distributor_batch_processing() {
     return printer_ptr->get_write_count() == static_cast<size_t>(EVENT_COUNT);
 }
 
-// ==================== Distributor 异常处理测试 ====================
-
 bool test_distributor_printer_exception_handling() {
+    QueueRegistry registry;
     RingBuffer rb(256);
-    auto distributor = std::make_unique<Distributor>(rb);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -369,8 +373,6 @@ bool test_distributor_printer_exception_handling() {
 
     return printer_ptr->error_count() > 0;
 }
-
-// ==================== 主函数 ====================
 
 int main() {
     std::cout << "========================================" << std::endl;

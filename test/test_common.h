@@ -38,8 +38,13 @@ inline LogEvent create_test_event(LogLevel level, const char* msg) {
     uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     uint64_t tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
 
-    size_t len = std::strlen(msg);
-    return LogEvent(level, ts, tid, msg, len);
+    LogEvent event;
+    event.level = level;
+    event.timestamp = ts;
+    event.thread_id = tid;
+    event.fmt = msg;
+    event.vtable = nullptr;
+    return event;
 }
 
 /**
@@ -55,12 +60,11 @@ inline bool create_test_event(LogEvent& event, LogLevel level, const char* msg) 
     uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     uint64_t tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
 
-    size_t len = std::strlen(msg);
-    if (len >= LOG_MSG_SIZE) {
-        return false;
-    }
-
-    event = LogEvent(level, ts, tid, msg, len);
+    event.level = level;
+    event.timestamp = ts;
+    event.thread_id = tid;
+    event.fmt = msg;
+    event.vtable = nullptr;
     return true;
 }
 

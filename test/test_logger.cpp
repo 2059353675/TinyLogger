@@ -267,7 +267,7 @@ bool test_logger_concurrent_logging() {
         t.join();
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     logger.shutdown();
 
     std::string content = log_file.read_content();

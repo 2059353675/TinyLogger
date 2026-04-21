@@ -6,7 +6,7 @@ NullPrinter::NullPrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
 }
 
-void NullPrinter::write(const std::string& formatted, const LogEvent& event) {
+void NullPrinter::write(LogEvent& event) {
 }
 
 void NullPrinter::flush() {

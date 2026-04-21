@@ -4,10 +4,12 @@
 #include "TinyLogger/distributor.h"
 #include "TinyLogger/printer_console.h"
 #include "TinyLogger/printer_file.h"
+#include "TinyLogger/queue_registry.h"
 #include "TinyLogger/ring_buffer.h"
 #include "TinyLogger/types.h"
 #include <atomic>
 #include <cstdio>
+#include <fmt/format.h>
 #include <memory>
 #include <new>
 #include <tuple>
@@ -50,6 +52,14 @@ public:
 
     void shutdown();
 
+    size_t dropped_count() const {
+        return dropped_.load(std::memory_order_relaxed);
+    }
+
+    void set_overflow_policy(OverflowPolicy policy);
+    bool set_printer_min_level(PrinterType type, LogLevel level);
+
+public:
     template <typename... Args>
     void info(const char* fmt, Args&&... args) {
         log(LogLevel::Info, fmt, std::forward<Args>(args)...);
@@ -70,43 +80,41 @@ public:
         log(LogLevel::Fatal, fmt, std::forward<Args>(args)...);
     }
 
-    size_t dropped_count() const {
-        return dropped_.load(std::memory_order_relaxed);
-    }
-
-    void set_min_level(LogLevel lvl);
-    void set_overflow_policy(OverflowPolicy policy);
-    bool set_printer_min_level(PrinterType type, LogLevel level);
-
-    LogLevel min_level() const;
-
 private:
     template <typename... Args>
     void log(LogLevel lvl, const char* fmt, Args&&... args);
 
     void handle_overflow();
 
-    LogLevel get_min_level() const;
     OverflowPolicy get_overflow_policy() const;
+
+    RingBuffer* get_queue();
+    RingBuffer* create_and_register_queue();
+
+    template <typename... Args>
+    LogEvent build_event(LogLevel lvl, const char* fmt, Args&&... args);
 
 private:
     std::optional<LoggerConfig> config_;
 
-    std::unique_ptr<RingBuffer> ring_buffer_;
+    std::vector<std::unique_ptr<RingBuffer>> owned_queues_;
+    QueueRegistry registry_;
+
     std::unique_ptr<Distributor> distributor_;
 
     std::atomic<uint64_t> dropped_{0};
+
+    uint64_t instance_id_{0};
+    static std::atomic<uint64_t> next_instance_id_;
 };
 
-namespace detail {
+template <typename... Args>
+using DecayedTuple = std::tuple<std::decay_t<Args>...>;
 
 template <typename Tuple>
 constexpr size_t tuple_size_bytes() {
     return sizeof(Tuple);
 }
-
-template <typename... Args>
-using DecayedTuple = std::tuple<std::decay_t<Args>...>;
 
 template <typename... Args>
 constexpr bool fits_in_storage() {
@@ -115,19 +123,15 @@ constexpr bool fits_in_storage() {
     return tuple_size > 0 && tuple_size <= LOG_ARGS_STORAGE_SIZE;
 }
 
-template <typename Tuple, size_t... Is>
-std::string format_impl(const char* fmt_str, const Tuple& args, std::index_sequence<Is...>) {
-    return fmt::format(fmt_str, std::get<Is>(args)...);
-}
-
 template <typename... Args>
-std::string format_log_event(const LogEvent& event) {
+void format_log_event(const LogEvent& event, fmt::memory_buffer& out) {
     using Tuple = DecayedTuple<Args...>;
     auto* tuple_ptr = event.storage_as<Tuple>();
+
     if constexpr (sizeof...(Args) == 0) {
-        return fmt::format("{}", event.fmt_str);
+        fmt::format_to(out, "{}", event.fmt);
     } else {
-        return format_impl(event.fmt_str.c_str(), *tuple_ptr, std::index_sequence_for<Args...>{});
+        std::apply([&](const auto&... unpacked) { fmt::format_to(out, event.fmt, unpacked...); }, *tuple_ptr);
     }
 }
 
@@ -140,14 +144,22 @@ void destroy_log_event(LogEvent& event) {
     }
 }
 
-} // namespace detail
-
 template <typename... Args>
-void Logger::log(LogLevel lvl, const char* fmt, Args&&... args) {
-    static_assert(detail::fits_in_storage<Args...>(),
-                  "Log arguments size exceeds storage capacity (128 bytes). "
-                  "Reduce argument size or use fewer arguments.");
+const VTable* get_vtable() {
+    static const VTable vtable{format_log_event<Args...>, destroy_log_event<Args...>};
+    return &vtable;
+}
 
+/**
+ * @brief 创建日志事件对象
+ * @tparam Args 可变模板参数
+ * @param lvl 日志级别
+ * @param fmt 格式化字符串
+ * @param args 可变参数
+ * @return 构建好的 LogEvent 对象
+ */
+template <typename... Args>
+LogEvent Logger::build_event(LogLevel lvl, const char* fmt, Args&&... args) {
     auto now = std::chrono::steady_clock::now().time_since_epoch();
     uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     auto tid = fast_thread_id();
@@ -156,16 +168,25 @@ void Logger::log(LogLevel lvl, const char* fmt, Args&&... args) {
     e.level = lvl;
     e.timestamp = ts;
     e.thread_id = tid;
-    e.fmt_str = fmt;
-    e.length = 0;
+    e.fmt = fmt;
 
-    using Tuple = detail::DecayedTuple<Args...>;
+    using Tuple = DecayedTuple<Args...>;
     new (e.storage.data()) Tuple(std::forward<Args>(args)...);
 
-    e.format_fn = detail::format_log_event<Args...>;
-    e.destroy_fn = detail::destroy_log_event<Args...>;
+    e.vtable = get_vtable<Args...>();
+    return e;
+}
 
-    if (!ring_buffer_->enqueue(std::move(e))) {
+template <typename... Args>
+void Logger::log(LogLevel lvl, const char* fmt, Args&&... args) {
+    static_assert(fits_in_storage<Args...>(),
+                  "Log arguments size exceeds storage capacity (128 bytes). "
+                  "Reduce argument size or use fewer arguments.");
+
+    auto e = build_event(lvl, fmt, std::forward<Args>(args)...);
+
+    auto* q = get_queue();
+    if (!q->enqueue(std::move(e))) {
         e.destroy();
         handle_overflow();
     }

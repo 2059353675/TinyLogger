@@ -48,12 +48,19 @@ inline const char* level_to_string(LogLevel level) {
     }
 }
 
+/**
+ * @brief 格式化日志事件为标准字符串
+ * @param event 日志事件
+ * @return 格式化后的字符串
+ */
+inline std::string format_log_line(LogEvent& event);
+
 class Printer
 {
 public:
     virtual ~Printer() = default;
 
-    virtual void write(const std::string& formatted, const LogEvent& event) = 0;
+    virtual void write(LogEvent& event) = 0;
     virtual void flush() = 0;
 
     bool should_log(LogLevel lvl) const {

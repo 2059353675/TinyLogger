@@ -45,55 +45,61 @@ enum class PrinterType {
     Null
 };
 
+/* 日志事件格式化 VTable（类型擦除） */
+struct LogEvent;
+
+using FormatFn = void (*)(const LogEvent&, fmt::memory_buffer&);
+using DestroyFn = void (*)(LogEvent&);
+
+struct VTable {
+    FormatFn format_fn;
+    DestroyFn destroy_fn;
+};
+
 /* 日志事件 */
 struct LogEvent {
     LogLevel level;
     uint64_t timestamp;
     uint64_t thread_id;
 
-    std::string fmt_str;
-    std::array<char, LOG_ARGS_STORAGE_SIZE> storage;
+    const char* fmt;
+    alignas(std::max_align_t) std::array<char, LOG_ARGS_STORAGE_SIZE> storage;
 
-    using FormatFn = std::string (*)(const LogEvent&);
-    using DestroyFn = void (*)(LogEvent&);
-
-    FormatFn format_fn{nullptr};
-    DestroyFn destroy_fn{nullptr};
-
-    char preformatted[LOG_MSG_SIZE];
-    uint16_t length{0};
+    const VTable* vtable{nullptr};
 
     LogEvent() = default;
 
-    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, std::string fmt, fmt::format_args a)
-        : level(lvl),
-          timestamp(ts),
-          thread_id(tid),
-          fmt_str(std::move(fmt)),
-          length(0) {
+    LogEvent(const LogEvent&) = delete;
+    LogEvent& operator=(const LogEvent&) = delete;
+
+    LogEvent(LogEvent&& other) noexcept {
+        *this = std::move(other);
     }
 
-    LogEvent(LogLevel lvl, uint64_t ts, uint64_t tid, const char* preformatted_msg, size_t len)
-        : level(lvl),
-          timestamp(ts),
-          thread_id(tid),
-          length(static_cast<uint16_t>(len)) {
-        size_t copy_len = std::min(len, (size_t)(LOG_MSG_SIZE - 1));
-        std::memcpy(preformatted, preformatted_msg, copy_len);
-        preformatted[copy_len] = '\0';
+    LogEvent& operator=(LogEvent&& other) noexcept {
+        if (this != &other) {
+            level = other.level;
+            timestamp = other.timestamp;
+            thread_id = other.thread_id;
+            fmt = other.fmt;
+
+            std::memcpy(storage.data(), other.storage.data(), LOG_ARGS_STORAGE_SIZE);
+
+            vtable = other.vtable;
+            other.vtable = nullptr;
+        }
+        return *this;
+    }
+
+    ~LogEvent() {
+        destroy();
     }
 
     void destroy() {
-        if (destroy_fn) {
-            destroy_fn(*this);
+        if (vtable && vtable->destroy_fn) {
+            vtable->destroy_fn(*this);
+            vtable = nullptr;
         }
-    }
-
-    std::string format() const {
-        if (format_fn) {
-            return format_fn(*this);
-        }
-        return std::string(preformatted, length);
     }
 
     template <typename T>
@@ -136,36 +142,8 @@ struct LoggerConfig {
     }
 };
 
-static std::optional<LogLevel> string_to_level(std::string s) {
-    if (s == "Debug")
-        return LogLevel::Debug;
-    if (s == "Info")
-        return LogLevel::Info;
-    if (s == "Error")
-        return LogLevel::Error;
-    if (s == "Fatal")
-        return LogLevel::Fatal;
-    return std::nullopt;
-}
-
-static std::optional<PrinterType> string_to_printer_type(std::string s) {
-    if (s == "Console")
-        return PrinterType::Console;
-    if (s == "File")
-        return PrinterType::File;
-    if (s == "Null")
-        return PrinterType::Null;
-    return std::nullopt;
-}
-
-static std::optional<OverflowPolicy> string_to_overflow(std::string s) {
-    if (s == "Discard")
-        return OverflowPolicy::Discard;
-    if (s == "Block")
-        return OverflowPolicy::Block;
-    if (s == "DropOldest")
-        return OverflowPolicy::DropOldest;
-    return std::nullopt;
-}
+static std::optional<LogLevel> string_to_level(std::string s);
+static std::optional<PrinterType> string_to_printer_type(std::string s);
+static std::optional<OverflowPolicy> string_to_overflow(std::string s);
 
 } // namespace tiny_logger

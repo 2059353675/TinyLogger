@@ -24,8 +24,8 @@ private:
 
     Slot* buffer_;
 
-    std::atomic<size_t> write_pos_{0}; // 写指针
-    size_t read_pos_{0};               // 读指针
+    size_t write_pos_{0}; // 写指针
+    size_t read_pos_{0};  // 读指针
 
     std::atomic<uint64_t> dropped_count_{0}; // 丢弃计数
 };

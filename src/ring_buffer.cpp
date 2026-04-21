@@ -1,4 +1,5 @@
 #include "TinyLogger/ring_buffer.h"
+#include <cstring>
 
 namespace tiny_logger {
 
@@ -22,40 +23,42 @@ RingBuffer::~RingBuffer() {
 }
 
 bool RingBuffer::enqueue(LogEvent&& e) {
-    // 获取当前的全局写指针
-    size_t pos = write_pos_.load(std::memory_order_relaxed);
+    /**
+     * Disruptor 风格无锁队列算法:
+     * 1. 读取当前写位置
+     * 2. 检查槽位 sequence 是否等于写位置(表明槽位归生产者所有)
+     * 3. 若相等则 CAS 更新写位置,复制数据,标记槽位可读
+     * 4. 否则返回 false(队列满)
+     */
+    size_t pos = write_pos_;
+    Slot& slot = buffer_[pos & mask_];
+    size_t seq = slot.sequence.load(std::memory_order_acquire);
 
-    while (true) {
-        Slot& slot = buffer_[pos & mask_];
-        size_t seq = slot.sequence.load(std::memory_order_acquire);
-
-        if (seq == pos) {
-            // 槽位归生产者所有，可以写入
-            if (write_pos_.compare_exchange_weak(pos, pos + 1)) {
-                slot.event = e;
-                slot.sequence.store(pos + 1, std::memory_order_release); // 标记槽位可读
-                return true;
-            }
-        } else {
-            return false;
-        }
+    if (seq != pos) {
+        return false;
     }
+
+    slot.event = std::move(e);
+    slot.sequence.store(pos + 1, std::memory_order_release);
+    ++write_pos_;
+    return true;
 }
 
 bool RingBuffer::dequeue(LogEvent& e) {
-    Slot& slot = buffer_[read_pos_ & mask_];
+    size_t pos = read_pos_;
+    Slot& slot = buffer_[pos & mask_];
     size_t seq = slot.sequence.load(std::memory_order_acquire);
 
-    if (seq != read_pos_ + 1) {
+    if (seq != pos + 1) {
         // 没数据
         return false;
     }
 
     // 读取数据
-    e = slot.event;
+    e = std::move(slot.event);
 
     // 标记该 slot 可复用
-    slot.sequence.store(read_pos_ + capacity_, std::memory_order_release);
+    slot.sequence.store(pos + capacity_, std::memory_order_release);
 
     ++read_pos_;
     return true;

@@ -122,7 +122,11 @@ double measure_tuple_construct_and_storage(int iterations) {
 
 double measure_ringbuffer_enqueue_only(int iterations) {
     tiny_logger::RingBuffer rb(BUFFER_SIZE);
-    tiny_logger::LogEvent event(tiny_logger::LogLevel::Info, 0, 0, "test", 4);
+    tiny_logger::LogEvent event;
+    event.level = tiny_logger::LogLevel::Info;
+    event.timestamp = 0;
+    event.thread_id = 0;
+    event.fmt = "test";
 
     for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
         rb.enqueue(std::move(event));
@@ -186,7 +190,7 @@ void test_latency_with_null_printer() {
 }
 
 void test_throughput() {
-    printf("\n========== 吞吐量测试（Console） ==========\n");
+    printf("\n========== 吞吐量测试（Null Printer） ==========\n");
 
     tiny_logger::register_null_printer();
     tiny_logger::PrinterConfig null_config;
@@ -311,7 +315,7 @@ logger.info() 执行流程与开销：
   [主线程 - 同步等待部分]
   1. tuple 构造         将参数打包到 128B storage 中 (placement new)
   2. format_fn/destroy_fn 设置回调函数指针
-  3. RingBuffer::enqueue 无锁入队 (CAS 操作)
+  3. RingBuffer::enqueue 无锁入队
 
   [后台线程 - 异步消费部分]
   4. RingBuffer::dequeue 无锁出队

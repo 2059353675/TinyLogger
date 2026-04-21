@@ -10,7 +10,9 @@ bool registered = [] {
 }();
 } // namespace
 
-Logger::Logger() {
+std::atomic<uint64_t> Logger::next_instance_id_{1};
+
+Logger::Logger() : instance_id_(next_instance_id_.fetch_add(1)) {
 }
 
 ErrorCode Logger::init() {
@@ -36,12 +38,7 @@ ErrorCode Logger::init(const std::string& path) {
 ErrorCode Logger::init(const LoggerConfig& config) {
     config_ = config;
 
-    ring_buffer_ = std::make_unique<RingBuffer>(config_->buffer_size);
-    if (!ring_buffer_) {
-        return ErrorCode::BufferAllocFailed;
-    }
-
-    distributor_ = std::make_unique<Distributor>(*ring_buffer_);
+    distributor_ = std::make_unique<Distributor>(registry_);
 
     for (const auto& pc : config_->printers) {
         auto printer = PrinterRegistry::instance().create(pc);
@@ -51,7 +48,10 @@ ErrorCode Logger::init(const LoggerConfig& config) {
         distributor_->add_printer(std::move(printer));
     }
 
+    (void)get_queue();
+
     distributor_->start();
+
     return ErrorCode::None;
 }
 
@@ -59,12 +59,6 @@ void Logger::shutdown() {
     if (distributor_) {
         distributor_->stop();
         distributor_.reset();
-    }
-}
-
-void Logger::set_min_level(LogLevel lvl) {
-    if (distributor_) {
-        distributor_->set_min_level(lvl);
     }
 }
 
@@ -79,13 +73,6 @@ bool Logger::set_printer_min_level(PrinterType type, LogLevel level) {
         return distributor_->set_printer_min_level(type, level);
     }
     return false;
-}
-
-LogLevel Logger::get_min_level() const {
-    if (distributor_) {
-        return distributor_->min_level();
-    }
-    return LogLevel::Info;
 }
 
 OverflowPolicy Logger::get_overflow_policy() const {
@@ -109,6 +96,24 @@ void Logger::handle_overflow() {
         default:
             break;
     }
+}
+
+RingBuffer* Logger::get_queue() {
+    thread_local RingBuffer* queue = nullptr;
+    thread_local uint64_t owner_id = 0;
+    if (queue == nullptr || owner_id != instance_id_) {
+        queue = create_and_register_queue();
+        owner_id = instance_id_;
+    }
+    return queue;
+}
+
+RingBuffer* Logger::create_and_register_queue() {
+    auto q = std::make_unique<RingBuffer>(config_->buffer_size);
+    RingBuffer* ptr = q.get();
+    owned_queues_.push_back(std::move(q));
+    registry_.register_queue(ptr);
+    return ptr;
 }
 
 } // namespace tiny_logger
