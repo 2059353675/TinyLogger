@@ -1,4 +1,5 @@
 #include "TinyLogger/logger.h"
+#include "TinyLogger/logger_error.h"
 
 namespace tiny_logger {
 
@@ -15,7 +16,7 @@ std::atomic<uint64_t> Logger::next_instance_id_{1};
 Logger::Logger() : instance_id_(next_instance_id_.fetch_add(1)) {
 }
 
-ErrorCode Logger::init() {
+void Logger::init() {
     PrinterConfig console_cfg;
     console_cfg.type = PrinterType::Console;
     console_cfg.min_level = LogLevel::Info;
@@ -23,10 +24,14 @@ ErrorCode Logger::init() {
     LoggerConfig default_cfg;
     default_cfg.printers.emplace_back(console_cfg);
 
-    return init(default_cfg);
+    init(default_cfg);
 }
 
-ErrorCode Logger::init(const LoggerConfig& config) {
+void Logger::init(const LoggerConfig& config) {
+    if (config.buffer_size == 0) {
+        throw make_invalid_buffer_size_error(config.buffer_size);
+    }
+
     config_ = config;
 
     distributor_ = std::make_unique<Distributor>(registry_);
@@ -34,7 +39,7 @@ ErrorCode Logger::init(const LoggerConfig& config) {
     for (const auto& pc : config_->printers) {
         auto printer = PrinterRegistry::instance().create(pc);
         if (!printer) {
-            return ErrorCode::PrinterCreateFailed;
+            throw make_printer_create_error(pc);
         }
         distributor_->add_printer(std::move(printer));
     }
@@ -42,8 +47,6 @@ ErrorCode Logger::init(const LoggerConfig& config) {
     (void)get_queue();
 
     distributor_->start();
-
-    return ErrorCode::None;
 }
 
 void Logger::shutdown() {

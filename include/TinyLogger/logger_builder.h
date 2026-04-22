@@ -47,7 +47,7 @@ public:
     }
 
     /**
-     * @brief 添加控制台打印机
+     * @brief 添加控制台打印器
      * @param min_level 最小日志级别（默认 Info）
      * @return 引用自身，支持链式调用
      */
@@ -60,7 +60,7 @@ public:
     }
 
     /**
-     * @brief 添加文件打印机
+     * @brief 添加文件打印器
      * @param path 日志文件路径
      * @param min_level 最小日志级别（默认 Debug）
      * @return 引用自身，支持链式调用
@@ -75,8 +75,8 @@ public:
     }
 
     /**
-     * @brief 添加通用打印机
-     * @param type 打印机类型
+     * @brief 添加通用打印器
+     * @param type 打印器类型
      * @param min_level 最小日志级别（默认 Debug）
      * @return 引用自身，支持链式调用
      */
@@ -92,26 +92,24 @@ public:
      * @brief 构建 Logger 实例
      * @return 初始化完成的 Logger 右值引用
      * @note 调用后 Builder 不应再被使用
+     * @throw std::invalid_argument 参数校验失败
+     * @throw std::runtime_error 打印器创建失败
      */
     Logger build() {
         Logger logger;
-        auto err = logger.init(config_);
-        if (err != ErrorCode::None) {
-            throw std::runtime_error("Logger build failed: " + std::to_string(static_cast<int>(err)));
-        }
+        logger.init(config_);
         return logger;
     }
 
     /**
      * @brief 构建共享指针 Logger 实例
      * @return 共享指针
+     * @throw std::invalid_argument 参数校验失败
+     * @throw std::runtime_error 打印器创建失败
      */
     std::unique_ptr<Logger> build_shared() {
         auto logger = std::make_unique<Logger>();
-        auto err = logger->init(config_);
-        if (err != ErrorCode::None) {
-            throw std::runtime_error("Logger build failed: " + std::to_string(static_cast<int>(err)));
-        }
+        logger->init(config_);
         return logger;
     }
 

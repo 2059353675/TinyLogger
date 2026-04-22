@@ -61,9 +61,7 @@ static LoggerConfig create_multi_printer_config(const std::string& file_path) {
 bool test_logger_init_programmatic() {
     Logger logger;
     auto cfg = create_console_config();
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
     logger.shutdown();
     return true;
 }
@@ -73,9 +71,7 @@ bool test_logger_init_file_printer() {
 
     Logger logger;
     auto cfg = create_file_config(log_file.path());
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.shutdown();
     return true;
@@ -88,9 +84,7 @@ bool test_logger_info() {
 
     Logger logger;
     auto cfg = create_file_config(log_file.path(), LogLevel::Info);
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.info("Test info message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -105,9 +99,7 @@ bool test_logger_debug() {
 
     Logger logger;
     auto cfg = create_file_config(log_file.path(), LogLevel::Debug);
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.debug("Test debug message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -122,9 +114,7 @@ bool test_logger_error() {
 
     Logger logger;
     auto cfg = create_file_config(log_file.path(), LogLevel::Error);
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.error("Test error message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -139,9 +129,7 @@ bool test_logger_fatal() {
 
     Logger logger;
     auto cfg = create_file_config(log_file.path(), LogLevel::Fatal);
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.fatal("Test fatal message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -156,9 +144,7 @@ bool test_logger_formatted_output() {
 
     Logger logger;
     auto cfg = create_file_config(log_file.path(), LogLevel::Info);
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     int value = 42;
     const char* str = "test";
@@ -177,9 +163,7 @@ bool test_logger_level_filtering() {
 
     Logger logger;
     auto cfg = create_file_config(log_file.path(), LogLevel::Error);
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.debug("Debug message");
     logger.info("Info message");
@@ -219,9 +203,7 @@ bool test_logger_concurrent_logging() {
     cfg.printers.push_back(pc);
 
     Logger logger;
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     constexpr int THREAD_COUNT = 4;
     constexpr int MSGS_PER_THREAD = 100;
@@ -268,9 +250,7 @@ bool test_logger_overflow_discard() {
     cfg.printers.push_back(pc);
 
     Logger logger;
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     for (int i = 0; i < 1000; ++i) {
         logger.info("Overflow test message {}", i);
@@ -290,9 +270,7 @@ bool test_logger_multiple_printers() {
 
     Logger logger;
     auto cfg = create_multi_printer_config(log_file.path());
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.info("Multi-printer test");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -311,9 +289,7 @@ bool test_logger_start_stop_cycle() {
 
     for (int i = 0; i < 3; ++i) {
         Logger logger;
-        if (logger.init(cfg) != ErrorCode::None) {
-            return false;
-        }
+        logger.init(cfg);
 
         logger.info("Cycle {}", i);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -349,9 +325,7 @@ bool test_logger_dropped_count() {
     cfg.printers.push_back(pc);
 
     Logger logger;
-    if (logger.init(cfg) != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     for (int i = 0; i < 1000; ++i) {
         logger.info("Overflow test message {}", i);
@@ -366,10 +340,7 @@ bool test_logger_dropped_count() {
 bool test_logger_init_success_no_error() {
     Logger logger;
     auto cfg = create_console_config(LogLevel::Info);
-    auto err = logger.init(cfg);
-    if (err != ErrorCode::None) {
-        return false;
-    }
+    logger.init(cfg);
 
     logger.shutdown();
 

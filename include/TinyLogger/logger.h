@@ -46,8 +46,8 @@ public:
         shutdown();
     }
 
-    ErrorCode init();
-    ErrorCode init(const LoggerConfig& config);
+    void init();
+    void init(const LoggerConfig& config);
 
     void shutdown();
 
