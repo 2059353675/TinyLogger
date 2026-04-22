@@ -258,7 +258,7 @@ auto logger = tiny_logger::create_default_logger();
 
 使用預設配置：Console Printer + Info 級別 + Discard 溢位策略。
 
-**注意：** Logger 不可拷貝，請使用 `build_shared()` 建立 `std::unique_ptr<Logger>`。
+**注意：** Logger 不可拷貝，請使用 `build_shared()` 建立 `LoggerRef`（基於 shared_ptr）。
 
 ---
 

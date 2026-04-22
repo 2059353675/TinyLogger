@@ -82,7 +82,6 @@ sudo make install
 int main() {
     using namespace tiny_logger;
 
-    // 方式一（推荐）：Builder 链式配置
     auto logger = LoggerBuilder()
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
@@ -166,38 +165,14 @@ auto logger = LoggerBuilder()
 ### Builder API
 
 ```cpp
-#include <TinyLogger/logger_builder.h>
-
-int main() {
-    using namespace tiny_logger;
-
-    // 方式一（推荐）：Builder 链式配置
-    auto logger = LoggerBuilder()
-        .set_buffer_size(256)
-        .set_overflow_policy(OverflowPolicy::Discard)
-        .add_console_printer(LogLevel::Debug)
-        .build_shared();
-
-    logger.info("应用程序启动");
-    logger.debug("调试信息：{}", 42);
-    logger.error("错误：{}", "详细信息");
-
-    return 0;
-}
-```
-
-#### 创建 Logger
-
-```cpp
-LoggerBuilder()
+auto logger = LoggerBuilder()
     .set_buffer_size(256)
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)
-    .add_file_printer("app.log", LogLevel::Info)
     .build_shared();
 ```
 
-**方法说明：**
+#### 方法说明
 
 | 方法 | 参数 | 默认值 | 说明 |
 |------|------|--------|------|
@@ -222,11 +197,7 @@ logger.info("Hello");
 
 #### LoggerRef
 
-`LoggerRef` 是 Logger 的包装类，支持：
-
-- **点操作符**：`logger.info()`、`logger.debug()`、`logger.error()`、`logger.fatal()`
-- **拷贝语义**：可拷贝，共享底层 Logger
-- **完整访问**：通过 `get()`、`operator*`、`operator->` 访问底层 Logger
+`LoggerRef` 是 Logger 的包装类，支持**拷贝语义**
 
 **示例：**
 ```cpp
@@ -243,45 +214,6 @@ Logger 在析构时会自动调用 `shutdown()`，也可手动显式关闭：
 
 ```cpp
 logger.shutdown();
-```
-
-使用 `LoggerConfig` 结构体初始化 Logger。
-
-**参数：**
-- `config`：LoggerConfig 结构体，包含 buffer_size、overflow_policy、printers 等
-
-**返回：**
-- `ErrorCode::None`：初始化成功
-- 其他：初始化失败
-
-**示例：**
-```cpp
-using namespace tiny_logger;
-
-PrinterConfig pc;
-pc.type = PrinterType::Console;
-pc.min_level = LogLevel::Debug;
-
-LoggerConfig cfg;
-cfg.buffer_size = 256;
-cfg.overflow_policy = OverflowPolicy::Discard;
-cfg.printers.push_back(pc);
-
-auto logger = std::make_unique<Logger>();
-if (logger->init(cfg) != ErrorCode::None) {
-    std::cerr << "初始化失败" << std::endl;
-    return 1;
-}
-logger->info("Hello");
-```
-
-#### 日志记录方法
-
-```cpp
-void debug(fmt::format_string<T...> fmt, T&&... args);
-void info(fmt::format_string<T...> fmt, T&&... args);
-void error(fmt::format_string<T...> fmt, T&&... args);
-void fatal(fmt::format_string<T...> fmt, T&&... args);
 ```
 
 ### 日志级别

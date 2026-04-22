@@ -260,7 +260,7 @@ auto logger = tiny_logger::create_default_logger();
 
 Uses default configuration: Console Printer + Info level + Discard overflow policy.
 
-**Note:** Logger is non-copyable. Use `build_shared()` to create a `std::unique_ptr<Logger>`.
+**Note:** Logger is non-copyable. Use `build_shared()` to create a `LoggerRef` (shared_ptr based).
 
 ---
 
