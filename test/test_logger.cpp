@@ -34,27 +34,16 @@ static LoggerRef create_file_logger(const std::string& path, LogLevel level = Lo
     return LoggerBuilder().set_config(cfg).build_shared();
 }
 
-static LoggerRef create_multi_printer_logger(const std::string& file_path) {
-    return LoggerBuilder()
-        .set_buffer_size(256)
-        .set_overflow_policy(OverflowPolicy::Discard)
-        .add_console_printer(LogLevel::Info)
-        .add_file_printer(file_path, LogLevel::Info)
-        .build_shared();
-}
-
 // ==================== Logger 初始化测试 ====================
 
 bool test_logger_init_programmatic() {
     auto logger = create_console_logger();
-    logger.shutdown();
     return true;
 }
 
 bool test_logger_init_file_printer() {
     TempLogFile log_file("output.log");
     auto logger = create_file_logger(log_file.path());
-    logger.shutdown();
     return true;
 }
 
@@ -65,7 +54,6 @@ bool test_logger_info() {
     auto logger = create_file_logger(log_file.path(), LogLevel::Info);
     logger.info("Test info message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    logger.shutdown();
     std::string content = log_file.read_content();
     return content.find("Test info message") != std::string::npos;
 }
@@ -75,7 +63,6 @@ bool test_logger_debug() {
     auto logger = create_file_logger(log_file.path(), LogLevel::Debug);
     logger.debug("Test debug message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    logger.shutdown();
     std::string content = log_file.read_content();
     return content.find("Test debug message") != std::string::npos;
 }
@@ -85,7 +72,6 @@ bool test_logger_error() {
     auto logger = create_file_logger(log_file.path(), LogLevel::Error);
     logger.error("Test error message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    logger.shutdown();
     std::string content = log_file.read_content();
     return content.find("Test error message") != std::string::npos;
 }
@@ -95,7 +81,6 @@ bool test_logger_fatal() {
     auto logger = create_file_logger(log_file.path(), LogLevel::Fatal);
     logger.fatal("Test fatal message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    logger.shutdown();
     std::string content = log_file.read_content();
     return content.find("Test fatal message") != std::string::npos;
 }
@@ -107,7 +92,6 @@ bool test_logger_formatted_output() {
     const char* str = "test";
     logger.info("Value: {}, String: {}", value, str);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    logger.shutdown();
     std::string content = log_file.read_content();
     return content.find("Value: 42") != std::string::npos && content.find("String: test") != std::string::npos;
 }
@@ -124,7 +108,6 @@ bool test_logger_level_filtering() {
     logger.fatal("Fatal message");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    logger.shutdown();
 
     std::string content = log_file.read_content();
 
@@ -167,7 +150,6 @@ bool test_logger_concurrent_logging() {
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    logger.shutdown();
 
     std::string content = log_file.read_content();
     auto found = content.find("Thread 0 Message 0");
@@ -183,18 +165,19 @@ bool test_logger_concurrent_logging() {
 bool test_logger_overflow_discard() {
     TempLogFile log_file("overflow.log");
 
-    auto logger = LoggerBuilder()
-                      .set_buffer_size(16)
-                      .set_overflow_policy(OverflowPolicy::Discard)
-                      .add_file_printer(log_file.path(), LogLevel::Info)
-                      .build_shared();
+    {
+        auto logger = LoggerBuilder()
+                          .set_buffer_size(16)
+                          .set_overflow_policy(OverflowPolicy::Discard)
+                          .add_file_printer(log_file.path(), LogLevel::Info)
+                          .build_shared();
 
-    for (int i = 0; i < 1000; ++i) {
-        logger.info("Overflow test message {}", i);
+        for (int i = 0; i < 1000; ++i) {
+            logger.info("Overflow test message {}", i);
+        }
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    logger.shutdown();
 
     std::string content = log_file.read_content();
     return !content.empty();
@@ -204,11 +187,17 @@ bool test_logger_overflow_discard() {
 
 bool test_logger_multiple_printers() {
     TempLogFile log_file("multi_printer.log");
-    auto logger = create_multi_printer_logger(log_file.path());
+    {
+        auto logger = LoggerBuilder()
+                          .set_buffer_size(256)
+                          .set_overflow_policy(OverflowPolicy::Discard)
+                          .add_console_printer(LogLevel::Info)
+                          .add_file_printer(log_file.path(), LogLevel::Info)
+                          .build_shared();
 
-    logger.info("Multi-printer test");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    logger.shutdown();
+        logger.info("Multi-printer test");
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     std::string content = log_file.read_content();
     return content.find("Multi-printer test") != std::string::npos;
@@ -223,7 +212,6 @@ bool test_logger_start_stop_cycle() {
         auto logger = create_file_logger(log_file.path(), LogLevel::Info);
         logger.info("Cycle {}", i);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        logger.shutdown();
     }
 
     std::string content = log_file.read_content();
@@ -254,14 +242,12 @@ bool test_logger_dropped_count() {
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    logger.shutdown();
 
     return logger.dropped_count() > 0;
 }
 
 bool test_logger_init_success_no_error() {
     auto logger = create_console_logger(LogLevel::Info);
-    logger.shutdown();
     return true;
 }
 

@@ -13,7 +13,7 @@ namespace tiny_logger {
 class LoggerRef
 {
 public:
-    explicit LoggerRef(std::shared_ptr<Logger> logger) : logger_(std::move(logger)) {
+    explicit LoggerRef(std::shared_ptr<Logger> logger) : ptr_(holder_.get()), holder_(std::move(logger)) {
     }
 
     LoggerRef(const LoggerRef&) = default;
@@ -24,48 +24,43 @@ public:
 
     template <typename... Args>
     void info(const char* fmt, Args&&... args) {
-        logger_->log(LogLevel::Info, fmt, std::forward<Args>(args)...);
+        if (ptr_) {
+            ptr_->log(LogLevel::Info, fmt, std::forward<Args>(args)...);
+        }
     }
 
     template <typename... Args>
     void debug(const char* fmt, Args&&... args) {
-        logger_->log(LogLevel::Debug, fmt, std::forward<Args>(args)...);
+        if (ptr_) {
+            ptr_->log(LogLevel::Debug, fmt, std::forward<Args>(args)...);
+        }
     }
 
     template <typename... Args>
     void error(const char* fmt, Args&&... args) {
-        logger_->log(LogLevel::Error, fmt, std::forward<Args>(args)...);
+        if (ptr_) {
+            ptr_->log(LogLevel::Error, fmt, std::forward<Args>(args)...);
+        }
     }
 
     template <typename... Args>
     void fatal(const char* fmt, Args&&... args) {
-        logger_->log(LogLevel::Fatal, fmt, std::forward<Args>(args)...);
-    }
-
-    void shutdown() {
-        logger_->shutdown();
+        if (ptr_) {
+            ptr_->log(LogLevel::Fatal, fmt, std::forward<Args>(args)...);
+        }
     }
 
     size_t dropped_count() const {
-        return logger_->dropped_count();
+        return ptr_ ? ptr_->dropped_count() : 0;
     }
 
     bool set_printer_min_level(PrinterType type, LogLevel level) {
-        return logger_->set_printer_min_level(type, level);
-    }
-
-    Logger* get() const {
-        return logger_.get();
-    }
-    Logger& operator*() const {
-        return *logger_;
-    }
-    Logger* operator->() const {
-        return logger_.get();
+        return ptr_ ? ptr_->set_printer_min_level(type, level) : false;
     }
 
 private:
-    std::shared_ptr<Logger> logger_;
+    std::shared_ptr<Logger> holder_;
+    Logger* ptr_;
 };
 
 /**

@@ -175,7 +175,6 @@ void test_latency_with_null_printer() {
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    logger.shutdown();
 
     LatencyStats s = calculate_stats(samples);
     print_latency_stats("logger.info() 端到端延迟", s);
@@ -216,7 +215,6 @@ void test_throughput() {
         ts.ops_per_sec = (count * 1000.0) / duration_ms;
 
         print_throughput_stats("NullPrinter 单线程", ts);
-        logger.shutdown();
     }
 
     printf("\n  多线程吞吐量：\n");
@@ -263,8 +261,6 @@ void test_throughput() {
 
         printf("  %d 线程: ", num_threads);
         printf("%.0f ops/s (%zu total)\n", ts.ops_per_sec, ts.total_ops);
-
-        logger.shutdown();
     }
 }
 

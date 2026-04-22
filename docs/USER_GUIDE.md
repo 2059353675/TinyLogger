@@ -210,11 +210,7 @@ logger2.info("Message from logger2");  // 同一 Logger
 
 #### 关闭 Logger
 
-Logger 在析构时会自动调用 `shutdown()`，也可手动显式关闭：
-
-```cpp
-logger.shutdown();
-```
+Logger 在析构时会自动调用 `shutdown()`。
 
 ### 日志级别
 

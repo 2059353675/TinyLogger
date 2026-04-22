@@ -58,7 +58,7 @@ void Distributor::recalculate_min_level() {
     global_min_level_ = min_level;
 }
 
-bool Distributor::set_min_level(PrinterType type, LogLevel level) {
+bool Distributor::set_printer_min_level(PrinterType type, LogLevel level) {
     for (auto& p : printers_) {
         if (p->type() == type) {
             p->set_min_level(level);
@@ -67,10 +67,6 @@ bool Distributor::set_min_level(PrinterType type, LogLevel level) {
         }
     }
     return false;
-}
-
-bool Distributor::set_printer_min_level(PrinterType type, LogLevel level) {
-    return set_min_level(type, level);
 }
 
 void Distributor::run() {

@@ -21,7 +21,6 @@ public:
     void start();
     void stop();
     void add_printer(std::unique_ptr<Printer> p);
-    bool set_min_level(PrinterType type, LogLevel level);
     bool set_printer_min_level(PrinterType type, LogLevel level);
     LogLevel min_level() const {
         return global_min_level_;

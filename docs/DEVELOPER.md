@@ -380,7 +380,6 @@ RAII 风格，提供内容读取：
     Logger logger;
     logger.init(create_file_config(log.path()));
     logger.info("Test");
-    logger.shutdown();
     
     // 读取内容验证
     std::string content = log.read_content();
