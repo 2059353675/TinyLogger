@@ -14,7 +14,6 @@ option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
 # ==================== 查找依赖 ====================
 
 find_package(fmt REQUIRED)
-find_package(nlohmann_json REQUIRED)
 
 # ==================== 库定义 ====================
 
@@ -44,7 +43,6 @@ target_include_directories(tinylogger
 target_link_libraries(tinylogger
     PUBLIC
         fmt::fmt
-        nlohmann_json::nlohmann_json
 )
 
 # 设置库属性

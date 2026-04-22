@@ -6,20 +6,12 @@ FilePrinter::FilePrinter(const PrinterConfig& config) {
     min_level_ = config.min_level;
     type_ = PrinterType::File;
 
-    const auto& j = config.raw;
-
-    if (!j.contains("path")) {
+    if (config.file_path.empty()) {
         throw std::runtime_error("FilePrinter requires 'path'");
     }
-    file_path_ = j["path"].get<std::string>();
-
-    if (j.contains("max_size")) {
-        max_size_ = j["max_size"].get<size_t>();
-    }
-
-    if (j.contains("flush_every")) {
-        flush_every_ = j["flush_every"].get<size_t>();
-    }
+    file_path_ = config.file_path;
+    max_size_ = config.max_size;
+    flush_every_ = config.flush_every;
 
     open_file();
 }

@@ -28,8 +28,8 @@ static LoggerConfig create_file_config(const std::string& path, LogLevel level =
     PrinterConfig pc;
     pc.type = PrinterType::File;
     pc.min_level = level;
-    pc.raw["path"] = path;
-    pc.raw["flush_every"] = flush_every;
+    pc.file_path = path;
+    pc.flush_every = flush_every;
     LoggerConfig cfg;
     cfg.buffer_size = 256;
     cfg.overflow_policy = OverflowPolicy::Discard;
@@ -45,8 +45,8 @@ static LoggerConfig create_multi_printer_config(const std::string& file_path) {
     PrinterConfig file_pc;
     file_pc.type = PrinterType::File;
     file_pc.min_level = LogLevel::Info;
-    file_pc.raw["path"] = file_path;
-    file_pc.raw["flush_every"] = 1;
+    file_pc.file_path = file_path;
+    file_pc.flush_every = 1;
 
     LoggerConfig cfg;
     cfg.buffer_size = 256;
@@ -210,8 +210,8 @@ bool test_logger_concurrent_logging() {
     PrinterConfig pc;
     pc.type = PrinterType::File;
     pc.min_level = LogLevel::Info;
-    pc.raw["path"] = log_file.path();
-    pc.raw["flush_every"] = 1;
+    pc.file_path = log_file.path();
+    pc.flush_every = 1;
 
     LoggerConfig cfg;
     cfg.buffer_size = 1024;
@@ -259,8 +259,8 @@ bool test_logger_overflow_discard() {
     PrinterConfig pc;
     pc.type = PrinterType::File;
     pc.min_level = LogLevel::Info;
-    pc.raw["path"] = log_file.path();
-    pc.raw["flush_every"] = 100;
+    pc.file_path = log_file.path();
+    pc.flush_every = 100;
 
     LoggerConfig cfg;
     cfg.buffer_size = 16;
@@ -340,8 +340,8 @@ bool test_logger_dropped_count() {
     PrinterConfig pc;
     pc.type = PrinterType::File;
     pc.min_level = LogLevel::Info;
-    pc.raw["path"] = log_file.path();
-    pc.raw["flush_every"] = 100;
+    pc.file_path = log_file.path();
+    pc.flush_every = 100;
 
     LoggerConfig cfg;
     cfg.buffer_size = 16;

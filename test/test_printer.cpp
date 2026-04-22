@@ -63,7 +63,7 @@ bool test_file_printer_init() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         return true;
     } catch (...) {
@@ -78,7 +78,7 @@ bool test_file_printer_write() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         printer.set_flush_every(1); // 立即 flush
 
@@ -98,7 +98,7 @@ bool test_file_printer_multiple_writes() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         printer.set_flush_every(1);
 
@@ -132,7 +132,7 @@ bool test_file_printer_flush() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         printer.set_flush_every(1000); // 很大的值，不会自动 flush
 
@@ -156,7 +156,7 @@ bool test_file_printer_rotation() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         printer.set_flush_every(1);
         printer.set_max_size(100); // 很小的值触发滚动
@@ -187,7 +187,7 @@ bool test_file_printer_append_mode() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         printer.set_flush_every(1);
 
@@ -201,7 +201,7 @@ bool test_file_printer_append_mode() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         printer.set_flush_every(1);
 
@@ -285,7 +285,7 @@ bool test_file_printer_invalid_path() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = invalid_path;
+        config.file_path = invalid_path;
         FilePrinter printer(config);
 
         // 应该 fallback 到 stderr，不崩溃
@@ -306,7 +306,7 @@ bool test_file_printer_empty_message() {
         PrinterConfig config;
         config.type = PrinterType::File;
         config.min_level = LogLevel::Debug;
-        config.raw["path"] = test_file.path();
+        config.file_path = test_file.path();
         FilePrinter printer(config);
         printer.set_flush_every(1);
 

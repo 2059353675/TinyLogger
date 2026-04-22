@@ -69,8 +69,7 @@ public:
         PrinterConfig pc;
         pc.type = PrinterType::File;
         pc.min_level = min_level;
-        pc.raw = json::object();
-        pc.raw["path"] = path;
+        pc.file_path = path;
         config_.printers.push_back(std::move(pc));
         return *this;
     }

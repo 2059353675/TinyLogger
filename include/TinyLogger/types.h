@@ -7,7 +7,6 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <thread>
@@ -15,8 +14,6 @@
 #include <vector>
 
 namespace tiny_logger {
-
-using json = nlohmann::json;
 
 const size_t LOG_COUNT = 256;
 const size_t LOG_MSG_SIZE = 512;
@@ -129,7 +126,10 @@ struct PrinterConfig {
     PrinterType type;
     LogLevel min_level{LogLevel::Info};
 
-    json raw; // 存储 printer 独有字段
+    // FilePrinter 专用字段
+    std::string file_path;
+    size_t max_size{0};     // 0 表示不滚动
+    size_t flush_every{64}; // 默认每 64 条 flush
 };
 
 /* 日志器配置 */
