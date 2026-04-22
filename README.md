@@ -60,7 +60,7 @@ int main() {
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
         .add_console_printer(LogLevel::Debug)
-        .build();
+        .build_shared();
 
     logger.info("Application started");
     logger.debug("Debug info: {}", 42);
@@ -76,6 +76,8 @@ Compile:
 g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
     -L/path/to/TinyLogger/build -lTinyLogger -lfmt
 ```
+
+**Note:** `LoggerRef` supports copy and dot operator (`.info()`, `.debug()`, etc.) for cleaner API.
 
 ---
 
@@ -231,7 +233,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)        // Console output
     .add_file_printer("app.log", LogLevel::Info)  // File output
-    .build();
+    .build_shared();
 ```
 
 ### Configuration Options
@@ -257,6 +259,8 @@ auto logger = tiny_logger::create_default_logger();
 ```
 
 Uses default configuration: Console Printer + Info level + Discard overflow policy.
+
+**Note:** Logger is non-copyable. Use `build_shared()` to create a `std::unique_ptr<Logger>`.
 
 ---
 
@@ -301,11 +305,14 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 TinyLogger/
 ├── include/TinyLogger/      # Header files
 │   ├── logger.h
+│   ├── logger_builder.h
+│   ├── logger_factory.h     # Factory functions
 │   ├── ring_buffer.h
 │   ├── types.h
 │   └── ...
 ├── src/                    # Implementation files
 │   ├── logger.cpp
+│   ├── logger_factory.cpp   # Factory functions implementation
 │   ├── ring_buffer.cpp
 │   ├── distributor.cpp
 │   └── ...

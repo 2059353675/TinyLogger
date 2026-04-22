@@ -10,7 +10,7 @@ namespace tiny_logger {
 class RingBuffer
 {
 public:
-    explicit RingBuffer(size_t capacity);
+    explicit RingBuffer(size_t capacity, OverflowPolicy policy);
     ~RingBuffer();
 
 public:
@@ -19,8 +19,8 @@ public:
 
 private:
     const size_t capacity_;
-    const size_t mask_; // capacity_ - 1，用于快速取模
-    const OverflowPolicy overflow_policy_ = OverflowPolicy::Discard;
+    const size_t mask_;
+    const OverflowPolicy overflow_policy_;
 
     Slot* buffer_;
 

@@ -13,6 +13,10 @@ public:
 
     std::vector<RingBuffer*> snapshot() const;
 
+    const std::vector<RingBuffer*>& unsafe_view() const {
+        return queues_;
+    }
+
 private:
     mutable std::mutex mutex_;
     std::vector<RingBuffer*> queues_;

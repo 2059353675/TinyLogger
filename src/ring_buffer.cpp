@@ -3,9 +3,10 @@
 
 namespace tiny_logger {
 
-RingBuffer::RingBuffer(size_t capacity)
+RingBuffer::RingBuffer(size_t capacity, OverflowPolicy policy)
     : capacity_(capacity),
       mask_(capacity_ - 1),
+      overflow_policy_(policy),
       buffer_(static_cast<Slot*>(operator new[](sizeof(Slot) * capacity_))),
       write_pos_(0),
       read_pos_(0) {

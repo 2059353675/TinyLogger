@@ -28,15 +28,20 @@ void Logger::init() {
 }
 
 void Logger::init(const LoggerConfig& config) {
+    if (distributor_) {
+        throw std::logic_error("Logger already initialized");
+    }
+
     if (config.buffer_size == 0) {
         throw make_invalid_buffer_size_error(config.buffer_size);
     }
 
-    config_ = config;
+    buffer_size_ = config.buffer_size;
+    overflow_policy_ = config.overflow_policy;
 
     distributor_ = std::make_unique<Distributor>(registry_);
 
-    for (const auto& pc : config_->printers) {
+    for (const auto& pc : config.printers) {
         auto printer = PrinterRegistry::instance().create(pc);
         if (!printer) {
             throw make_printer_create_error(pc);
@@ -45,6 +50,8 @@ void Logger::init(const LoggerConfig& config) {
     }
 
     (void)get_queue();
+
+    std::atomic_thread_fence(std::memory_order_release);
 
     distributor_->start();
 }
@@ -56,12 +63,6 @@ void Logger::shutdown() {
     }
 }
 
-void Logger::set_overflow_policy(OverflowPolicy policy) {
-    if (config_) {
-        config_->overflow_policy = policy;
-    }
-}
-
 bool Logger::set_printer_min_level(PrinterType type, LogLevel level) {
     if (distributor_) {
         return distributor_->set_printer_min_level(type, level);
@@ -69,18 +70,8 @@ bool Logger::set_printer_min_level(PrinterType type, LogLevel level) {
     return false;
 }
 
-OverflowPolicy Logger::get_overflow_policy() const {
-    if (config_) {
-        return config_->overflow_policy;
-    }
-    return OverflowPolicy::Discard;
-}
-
 void Logger::handle_overflow() {
-    if (!config_) {
-        return;
-    }
-    switch (config_->overflow_policy) {
+    switch (overflow_policy_) {
         case OverflowPolicy::Discard:
             dropped_.fetch_add(1, std::memory_order_relaxed);
             break;
@@ -103,7 +94,7 @@ RingBuffer* Logger::get_queue() {
 }
 
 RingBuffer* Logger::create_and_register_queue() {
-    auto q = std::make_unique<RingBuffer>(config_->buffer_size);
+    auto q = std::make_unique<RingBuffer>(buffer_size_, overflow_policy_);
     RingBuffer* ptr = q.get();
     owned_queues_.push_back(std::move(q));
     registry_.register_queue(ptr);

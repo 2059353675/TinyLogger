@@ -121,7 +121,7 @@ double measure_tuple_construct_and_storage(int iterations) {
 }
 
 double measure_ringbuffer_enqueue_only(int iterations) {
-    tiny_logger::RingBuffer rb(BUFFER_SIZE);
+    tiny_logger::RingBuffer rb(BUFFER_SIZE, tiny_logger::OverflowPolicy::Discard);
     tiny_logger::LogEvent event;
     event.level = tiny_logger::LogLevel::Info;
     event.timestamp = 0;
@@ -157,7 +157,7 @@ void test_latency_with_null_printer() {
                       .set_buffer_size(BUFFER_SIZE)
                       .set_overflow_policy(tiny_logger::OverflowPolicy::Block)
                       .add_printer(tiny_logger::PrinterType::Null, tiny_logger::LogLevel::Debug)
-                      .build();
+                      .build_shared();
 
     for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
         logger.info("warmup {} {}", i, i);
@@ -192,7 +192,7 @@ void test_throughput() {
                           .set_buffer_size(1024)
                           .set_overflow_policy(tiny_logger::OverflowPolicy::Block)
                           .add_printer(tiny_logger::PrinterType::Null, tiny_logger::LogLevel::Debug)
-                          .build();
+                          .build_shared();
 
         for (int i = 0; i < WARMUP_ITERATIONS; ++i) {
             logger.info("warmup {} {}", i, i);
@@ -227,7 +227,7 @@ void test_throughput() {
                           .set_buffer_size(1024)
                           .set_overflow_policy(tiny_logger::OverflowPolicy::Block)
                           .add_printer(tiny_logger::PrinterType::Null, tiny_logger::LogLevel::Debug)
-                          .build();
+                          .build_shared();
 
         for (int i = 0; i < WARMUP_ITERATIONS * num_threads; ++i) {
             logger.info("warmup {} {}", i, i);

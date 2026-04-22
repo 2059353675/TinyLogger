@@ -10,6 +10,64 @@
 
 namespace tiny_logger {
 
+class LoggerRef
+{
+public:
+    explicit LoggerRef(std::shared_ptr<Logger> logger) : logger_(std::move(logger)) {
+    }
+
+    LoggerRef(const LoggerRef&) = default;
+    LoggerRef& operator=(const LoggerRef&) = default;
+
+    LoggerRef(LoggerRef&&) noexcept = default;
+    LoggerRef& operator=(LoggerRef&&) noexcept = default;
+
+    template <typename... Args>
+    void info(const char* fmt, Args&&... args) {
+        logger_->log(LogLevel::Info, fmt, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void debug(const char* fmt, Args&&... args) {
+        logger_->log(LogLevel::Debug, fmt, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void error(const char* fmt, Args&&... args) {
+        logger_->log(LogLevel::Error, fmt, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void fatal(const char* fmt, Args&&... args) {
+        logger_->log(LogLevel::Fatal, fmt, std::forward<Args>(args)...);
+    }
+
+    void shutdown() {
+        logger_->shutdown();
+    }
+
+    size_t dropped_count() const {
+        return logger_->dropped_count();
+    }
+
+    bool set_printer_min_level(PrinterType type, LogLevel level) {
+        return logger_->set_printer_min_level(type, level);
+    }
+
+    Logger* get() const {
+        return logger_.get();
+    }
+    Logger& operator*() const {
+        return *logger_;
+    }
+    Logger* operator->() const {
+        return logger_.get();
+    }
+
+private:
+    std::shared_ptr<Logger> logger_;
+};
+
 /**
  * @brief 日志器构建器
  * @details 提供链式配置接口，用于构建 Logger 实例
@@ -17,7 +75,7 @@ namespace tiny_logger {
 class LoggerBuilder
 {
 public:
-    LoggerBuilder();
+    LoggerBuilder() = default;
     ~LoggerBuilder() = default;
 
     LoggerBuilder(const LoggerBuilder&) = delete;
@@ -31,33 +89,21 @@ public:
      * @param size 环形缓冲区大小（默认 256）
      * @return 引用自身，支持链式调用
      */
-    LoggerBuilder& set_buffer_size(size_t size) {
-        config_.buffer_size = size;
-        return *this;
-    }
+    LoggerBuilder& set_buffer_size(size_t size);
 
     /**
      * @brief 设置溢出策略
      * @param policy 溢出策略（默认 Discard）
      * @return 引用自身，支持链式调用
      */
-    LoggerBuilder& set_overflow_policy(OverflowPolicy policy) {
-        config_.overflow_policy = policy;
-        return *this;
-    }
+    LoggerBuilder& set_overflow_policy(OverflowPolicy policy);
 
     /**
      * @brief 添加控制台打印器
      * @param min_level 最小日志级别（默认 Info）
      * @return 引用自身，支持链式调用
      */
-    LoggerBuilder& add_console_printer(LogLevel min_level = LogLevel::Info) {
-        PrinterConfig pc;
-        pc.type = PrinterType::Console;
-        pc.min_level = min_level;
-        config_.printers.push_back(std::move(pc));
-        return *this;
-    }
+    LoggerBuilder& add_console_printer(LogLevel min_level = LogLevel::Info);
 
     /**
      * @brief 添加文件打印器
@@ -65,14 +111,7 @@ public:
      * @param min_level 最小日志级别（默认 Debug）
      * @return 引用自身，支持链式调用
      */
-    LoggerBuilder& add_file_printer(const std::string& path, LogLevel min_level = LogLevel::Debug) {
-        PrinterConfig pc;
-        pc.type = PrinterType::File;
-        pc.min_level = min_level;
-        pc.file_path = path;
-        config_.printers.push_back(std::move(pc));
-        return *this;
-    }
+    LoggerBuilder& add_file_printer(const std::string& path, LogLevel min_level = LogLevel::Debug);
 
     /**
      * @brief 添加通用打印器
@@ -80,56 +119,28 @@ public:
      * @param min_level 最小日志级别（默认 Debug）
      * @return 引用自身，支持链式调用
      */
-    LoggerBuilder& add_printer(PrinterType type, LogLevel min_level = LogLevel::Debug) {
-        PrinterConfig pc;
-        pc.type = type;
-        pc.min_level = min_level;
-        config_.printers.push_back(std::move(pc));
-        return *this;
-    }
+    LoggerBuilder& add_printer(PrinterType type, LogLevel min_level = LogLevel::Debug);
 
     /**
-     * @brief 构建 Logger 实例
-     * @return 初始化完成的 Logger 右值引用
-     * @note 调用后 Builder 不应再被使用
+     * @brief 构建 LoggerRef 实例
+     * @return LoggerRef 包装类
      * @throw std::invalid_argument 参数校验失败
      * @throw std::runtime_error 打印器创建失败
      */
-    Logger build() {
-        Logger logger;
-        logger.init(config_);
-        return logger;
-    }
-
-    /**
-     * @brief 构建共享指针 Logger 实例
-     * @return 共享指针
-     * @throw std::invalid_argument 参数校验失败
-     * @throw std::runtime_error 打印器创建失败
-     */
-    std::unique_ptr<Logger> build_shared() {
-        auto logger = std::make_unique<Logger>();
-        logger->init(config_);
-        return logger;
-    }
+    LoggerRef build_shared();
 
     /**
      * @brief 获取内部配置（用于检查或进一步修改）
      * @return 配置引用
      */
-    const LoggerConfig& config() const noexcept {
-        return config_;
-    }
+    const LoggerConfig& config() const noexcept;
 
     /**
      * @brief LoggerConfig 转换入口
      * @param cfg 已构建的配置对象
      * @return 构建器引用自身
      */
-    LoggerBuilder& set_config(const LoggerConfig& cfg) {
-        config_ = cfg;
-        return *this;
-    }
+    LoggerBuilder& set_config(const LoggerConfig& cfg);
 
 private:
     LoggerConfig config_;
@@ -137,10 +148,10 @@ private:
 
 /**
  * @brief 创建默认配置的 Logger
- * @return 带有默认控制台输出的 Logger
+ * @return LoggerRef 包装类
  */
-inline Logger create_default_logger() {
-    return LoggerBuilder().add_console_printer().build();
+inline LoggerRef create_default_logger() {
+    return LoggerBuilder().add_console_printer().build_shared();
 }
 
 } // namespace tiny_logger

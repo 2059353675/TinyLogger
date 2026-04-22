@@ -71,7 +71,7 @@ private:
 bool test_distributor_creation() {
     try {
         QueueRegistry registry;
-        RingBuffer rb(256);
+        RingBuffer rb(256, OverflowPolicy::Discard);
         registry.register_queue(&rb);
         Distributor distributor(registry);
         return true;
@@ -82,7 +82,7 @@ bool test_distributor_creation() {
 
 bool test_distributor_start_stop() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     Distributor distributor(registry);
 
@@ -95,7 +95,7 @@ bool test_distributor_start_stop() {
 
 bool test_distributor_add_printer() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     Distributor distributor(registry);
 
@@ -111,7 +111,7 @@ bool test_distributor_add_printer() {
 
 bool test_distributor_single_event() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -137,7 +137,7 @@ bool test_distributor_single_event() {
 
 bool test_distributor_multiple_events() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -164,7 +164,7 @@ bool test_distributor_multiple_events() {
 
 bool test_distributor_multiple_printers() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -191,7 +191,7 @@ bool test_distributor_multiple_printers() {
 
 bool test_distributor_level_filtering() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -220,7 +220,7 @@ bool test_distributor_level_filtering() {
 
 bool test_distributor_concurrent_enqueue() {
     QueueRegistry registry;
-    RingBuffer rb(1024);
+    RingBuffer rb(1024, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -262,7 +262,7 @@ bool test_distributor_concurrent_enqueue() {
 
 bool test_distributor_drain_on_stop() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -285,7 +285,7 @@ bool test_distributor_drain_on_stop() {
 
 bool test_distributor_flush_on_stop() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -307,7 +307,7 @@ bool test_distributor_flush_on_stop() {
 
 bool test_distributor_double_start_stop() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     Distributor distributor(registry);
 
@@ -324,7 +324,7 @@ bool test_distributor_double_start_stop() {
 
 bool test_distributor_batch_processing() {
     QueueRegistry registry;
-    RingBuffer rb(1024);
+    RingBuffer rb(1024, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 
@@ -351,7 +351,7 @@ bool test_distributor_batch_processing() {
 
 bool test_distributor_printer_exception_handling() {
     QueueRegistry registry;
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
     auto distributor = std::make_unique<Distributor>(registry);
 

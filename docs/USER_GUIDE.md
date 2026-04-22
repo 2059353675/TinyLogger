@@ -87,7 +87,7 @@ int main() {
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
         .add_console_printer(LogLevel::Debug)
-        .build();
+        .build_shared();
 
     logger.info("应用程序启动");
     logger.debug("调试信息：{}", 42);
@@ -130,7 +130,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)
     .add_file_printer("app.log", LogLevel::Info)
-    .build();
+    .build_shared();
 ```
 
 ### 配置项说明
@@ -167,6 +167,23 @@ auto logger = LoggerBuilder()
 
 ```cpp
 #include <TinyLogger/logger_builder.h>
+
+int main() {
+    using namespace tiny_logger;
+
+    // 方式一（推荐）：Builder 链式配置
+    auto logger = LoggerBuilder()
+        .set_buffer_size(256)
+        .set_overflow_policy(OverflowPolicy::Discard)
+        .add_console_printer(LogLevel::Debug)
+        .build_shared();
+
+    logger.info("应用程序启动");
+    logger.debug("调试信息：{}", 42);
+    logger.error("错误：{}", "详细信息");
+
+    return 0;
+}
 ```
 
 #### 创建 Logger
@@ -177,7 +194,7 @@ LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)
     .add_file_printer("app.log", LogLevel::Info)
-    .build();
+    .build_shared();
 ```
 
 **方法说明：**
@@ -192,10 +209,10 @@ LoggerBuilder()
 #### 默认配置
 
 ```cpp
-create_default_logger();
+LoggerRef create_default_logger();
 ```
 
-使用默认配置创建 Logger：Console Printer + Info 级别 + Discard 溢出策略。
+使用默认配置创建 LoggerRef：Console Printer + Info 级别 + Discard 溢出策略。
 
 **示例：**
 ```cpp
@@ -203,17 +220,21 @@ auto logger = create_default_logger();
 logger.info("Hello");
 ```
 
-#### 共享指针模式
+#### LoggerRef
 
-```cpp
-std::unique_ptr<Logger> build_shared();
-```
+`LoggerRef` 是 Logger 的包装类，支持：
+
+- **点操作符**：`logger.info()`、`logger.debug()`、`logger.error()`、`logger.fatal()`
+- **拷贝语义**：可拷贝，共享底层 Logger
+- **完整访问**：通过 `get()`、`operator*`、`operator->` 访问底层 Logger
 
 **示例：**
 ```cpp
-auto logger = LoggerBuilder()
-    .add_console_printer()
-    .build_shared();
+auto logger1 = LoggerBuilder().add_console_printer().build_shared();
+auto logger2 = logger1;  // 拷贝，共享同一 Logger
+
+logger1.info("Message from logger1");
+logger2.info("Message from logger2");  // 同一 Logger
 ```
 
 #### 关闭 Logger
@@ -222,6 +243,7 @@ Logger 在析构时会自动调用 `shutdown()`，也可手动显式关闭：
 
 ```cpp
 logger.shutdown();
+```
 
 使用 `LoggerConfig` 结构体初始化 Logger。
 
@@ -245,38 +267,12 @@ cfg.buffer_size = 256;
 cfg.overflow_policy = OverflowPolicy::Discard;
 cfg.printers.push_back(pc);
 
-Logger logger;
-if (logger.init(cfg) != ErrorCode::None) {
+auto logger = std::make_unique<Logger>();
+if (logger->init(cfg) != ErrorCode::None) {
     std::cerr << "初始化失败" << std::endl;
     return 1;
 }
-```
-
-#### 默认配置
-
-```cpp
-ErrorCode init();
-```
-
-使用默认配置初始化：Console Printer + Info 级别 + Discard 溢出策略。
-
-**返回：**
-- `ErrorCode::None`：初始化成功
-
-**示例：**
-```cpp
-Logger logger;
-logger.init();  // 使用默认配置
-logger.info("Hello");
-```
-
-#### `void shutdown()`
-
-关闭 Logger，停止分发器并刷新所有 Printer。
-
-**示例：**
-```cpp
-logger.shutdown(); // 程序结束前调用
+logger->info("Hello");
 ```
 
 #### 日志记录方法
@@ -332,7 +328,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)    // 控制台：Debug+
     .add_file_printer("app.log", LogLevel::Info)   // 文件：Info+
-    .build();
+    .build_shared();
 ```
 
 此配置会：
@@ -354,8 +350,7 @@ LoggerConfig config;
 config.buffer_size = 256;
 config.printers.push_back(file_cfg);
 
-Logger logger;
-logger.init(config);
+auto logger = LoggerBuilder().set_config(config).build_shared();
 ```
 
 ---
@@ -382,7 +377,7 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 
 ### Q: 如何更改溢出策略？
 
-使用 Builder 设置：
+使用 Builder 设置（初始化后不可更改）：
 
 ```cpp
 auto logger = LoggerBuilder()
@@ -390,7 +385,7 @@ auto logger = LoggerBuilder()
     // 或
     .set_overflow_policy(OverflowPolicy::Block)   // 阻塞等待（保证不丢日志）
     .add_console_printer()
-    .build();
+    .build_shared();
 ```
 
 ### Q: 编译时找不到 fmt 库？

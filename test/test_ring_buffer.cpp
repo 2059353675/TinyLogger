@@ -9,7 +9,7 @@ using namespace tiny_logger::test;
 
 bool test_ring_buffer_creation() {
     try {
-        RingBuffer rb(256);
+        RingBuffer rb(256, OverflowPolicy::Discard);
         return true;
     } catch (...) {
         return false;
@@ -17,7 +17,7 @@ bool test_ring_buffer_creation() {
 }
 
 bool test_single_enqueue_dequeue() {
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
 
     LogEvent event;
     create_test_event(event, LogLevel::Info, "Hello, World!");
@@ -35,14 +35,14 @@ bool test_single_enqueue_dequeue() {
 }
 
 bool test_empty_buffer_dequeue() {
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
 
     LogEvent event;
     return !rb.dequeue(event);
 }
 
 bool test_buffer_capacity() {
-    RingBuffer rb(4); // 小容量测试
+    RingBuffer rb(4, OverflowPolicy::Discard); // 小容量测试
 
     // 填充缓冲区
     for (size_t i = 0; i < 4; ++i) {
@@ -63,7 +63,7 @@ bool test_buffer_capacity() {
 }
 
 bool test_fifo_ordering() {
-    RingBuffer rb(16);
+    RingBuffer rb(16, OverflowPolicy::Discard);
 
     const char* messages[] = {"First", "Second", "Third", "Fourth"};
     size_t count = sizeof(messages) / sizeof(messages[0]);
@@ -91,7 +91,7 @@ bool test_fifo_ordering() {
 // ==================== 多级测试 ====================
 
 bool test_multiple_log_levels() {
-    RingBuffer rb(64);
+    RingBuffer rb(64, OverflowPolicy::Discard);
 
     LogLevel levels[] = {LogLevel::Debug, LogLevel::Info, LogLevel::Error, LogLevel::Fatal};
 
@@ -116,7 +116,7 @@ bool test_multiple_log_levels() {
 }
 
 bool test_large_message() {
-    RingBuffer rb(256);
+    RingBuffer rb(256, OverflowPolicy::Discard);
 
     char large_msg[LOG_MSG_SIZE - 1];
     std::memset(large_msg, 'A', sizeof(large_msg) - 1);
@@ -143,7 +143,7 @@ bool test_concurrent_single_producer_consumer() {
     constexpr size_t BUFFER_SIZE = 1024;
     constexpr size_t ITEM_COUNT = 10000;
 
-    RingBuffer rb(BUFFER_SIZE);
+    RingBuffer rb(BUFFER_SIZE, OverflowPolicy::Discard);
     std::atomic<size_t> produced{0};
     std::atomic<size_t> consumed{0};
     std::atomic<bool> producer_done{false};
@@ -190,7 +190,7 @@ bool test_concurrent_multi_producer_single_consumer() {
     constexpr size_t BUFFER_SIZE = 1024;
     constexpr size_t ITEM_COUNT = 20000;
 
-    RingBuffer rb(BUFFER_SIZE);
+    RingBuffer rb(BUFFER_SIZE, OverflowPolicy::Discard);
     std::atomic<size_t> produced{0};
     std::atomic<size_t> consumed{0};
 
@@ -232,7 +232,7 @@ bool test_power_of_two_capacities() {
 
     for (size_t cap : capacities) {
         try {
-            RingBuffer rb(cap);
+            RingBuffer rb(cap, OverflowPolicy::Discard);
 
             // 测试能否填满
             for (size_t i = 0; i < cap; ++i) {
@@ -251,7 +251,7 @@ bool test_power_of_two_capacities() {
 }
 
 bool test_wraparound() {
-    RingBuffer rb(8);
+    RingBuffer rb(8, OverflowPolicy::Discard);
 
     // 填充并消费多次，测试循环
     for (int round = 0; round < 10; ++round) {

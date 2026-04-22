@@ -20,10 +20,10 @@ int main() {
                       .set_buffer_size(256)
                       .set_overflow_policy(tiny_logger::OverflowPolicy::Discard)
                       .add_console_printer(tiny_logger::LogLevel::Debug)
-                      .build();
+                      .build_shared();
 
     logger.info("TinyLogger 初始化完成");
-    logger.debug("这是一条调试信息，编号：{}", 42);
+    logger.debug("这是一条调试信息，编号：{}", 43);
     logger.error("发生了一个错误：{}", "连接超时");
     logger.fatal("严重错误：系统崩溃，错误码：{}", 0xDEAD);
 

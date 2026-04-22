@@ -29,6 +29,8 @@ TinyLogger/
 ├── CMakeLists.txt              # 主 CMake 构建文件
 ├── include/TinyLogger/         # 头文件
 │   ├── logger.h
+│   ├── logger_builder.h
+│   ├── logger_factory.h
 │   ├── ring_buffer.h
 │   ├── config.h
 │   ├── distributor.h
@@ -37,6 +39,7 @@ TinyLogger/
 │   └── ...
 ├── src/                        # 实现文件
 │   ├── logger.cpp
+│   ├── logger_factory.cpp
 │   ├── ring_buffer.cpp
 │   ├── config.cpp
 │   ├── distributor.cpp
@@ -47,14 +50,14 @@ TinyLogger/
 ├── test/                       # 测试套件
 │   ├── CMakeLists.txt          # 测试 CMake 配置
 │   ├── test_common.h          # 测试框架、公共测试工具等
-│   ├── test_ring_buffer.cpp   # RingBuffer 单元测试
-│   ├── test_config.cpp        # Config 单元测试
-│   ├── test_printer.cpp       # Printer 单元测试
-│   ├── test_distributor.cpp  # Distributor 单元测试
-│   └── test_logger.cpp        # Logger 集成测试
+│   ├── test_ring_buffer.cpp
+│   ├── test_config.cpp
+│   ├── test_printer.cpp
+│   ├── test_distributor.cpp
+│   └── test_logger.cpp
 ├── examples/                  # 示例程序
 │   ├── example.cpp
-│   └── ...
+│   └── speed_test.cpp
 ├── docs/                      # 文档
 │   ├── USER_GUIDE.md          # 用户指南
 │   └── DEVELOPER.md          # 开发者文档（本文件）
@@ -163,6 +166,9 @@ sequenceDiagram
 - **异步日志：** 应用线程不阻塞（提交日志仅需约 30 纳秒），日志输出由 Distributor 线程分发给 Printers 处理
 - **无锁缓冲区：** RingBuffer 为单生产者单消费者（SPSC）队列，无需锁，提供了良好的高并发性能
 - **RAII 资源管理：** 所有资源（文件、线程）在析构时自动清理
+- **运行期只读：** Logger 在 init 后进入不可变状态，所有配置（buffer_size、overflow_policy）不可更改
+- **对象不可拷贝：** Logger 禁止拷贝/移动，避免线程 + 队列生命周期问题
+- **LoggerRef 包装类：** 提供 `.` 操作符 API，支持拷贝共享底层 Logger
 
 ---
 

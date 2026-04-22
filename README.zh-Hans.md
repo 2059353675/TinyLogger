@@ -60,7 +60,7 @@ int main() {
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
         .add_console_printer(LogLevel::Debug)
-        .build();
+        .build_shared();
 
     logger.info("应用程序启动");
     logger.debug("调试信息：{}", 42);
@@ -76,6 +76,8 @@ int main() {
 g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
     -L/path/to/TinyLogger/build -lTinyLogger -lfmt
 ```
+
+**注意：** `LoggerRef` 支持拷贝和点操作符（`.info()`、`.debug()` 等），API 更美观。
 
 ---
 
@@ -229,7 +231,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)        // 控制台输出
     .add_file_printer("app.log", LogLevel::Info)  // 文件输出
-    .build();
+    .build_shared();
 ```
 
 ### 配置项说明
@@ -255,6 +257,8 @@ auto logger = tiny_logger::create_default_logger();
 ```
 
 使用默认配置：Console Printer + Info 级别 + Discard 溢出策略。
+
+**注意：** Logger 不可拷贝，请使用 `build_shared()` 创建 `std::unique_ptr<Logger>`。
 
 ---
 
@@ -299,11 +303,14 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 TinyLogger/
 ├── include/TinyLogger/      # 头文件
 │   ├── logger.h
+│   ├── logger_builder.h
+│   ├── logger_factory.h     # 工厂函数
 │   ├── ring_buffer.h
 │   ├── types.h
 │   └── ...
 ├── src/                    # 实现文件
 │   ├── logger.cpp
+│   ├── logger_factory.cpp   # 工厂函数实现
 │   ├── ring_buffer.cpp
 │   ├── distributor.cpp
 │   └── ...

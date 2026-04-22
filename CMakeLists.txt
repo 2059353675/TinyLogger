@@ -23,6 +23,8 @@ set(TINYLOGGER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # 源文件
 set(TINYLOGGER_SOURCES
     src/logger.cpp
+    src/logger_builder.cpp
+    src/logger_factory.cpp
     src/ring_buffer.cpp
     src/distributor.cpp
     src/queue_registry.cpp

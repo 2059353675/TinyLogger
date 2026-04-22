@@ -46,6 +46,12 @@ public:
         shutdown();
     }
 
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+
+    Logger(Logger&&) noexcept = delete;
+    Logger& operator=(Logger&&) noexcept = delete;
+
     void init();
     void init(const LoggerConfig& config);
 
@@ -55,37 +61,13 @@ public:
         return dropped_.load(std::memory_order_relaxed);
     }
 
-    void set_overflow_policy(OverflowPolicy policy);
     bool set_printer_min_level(PrinterType type, LogLevel level);
 
-public:
-    template <typename... Args>
-    void info(const char* fmt, Args&&... args) {
-        log(LogLevel::Info, fmt, std::forward<Args>(args)...);
-    }
-
-    template <typename... Args>
-    void debug(const char* fmt, Args&&... args) {
-        log(LogLevel::Debug, fmt, std::forward<Args>(args)...);
-    }
-
-    template <typename... Args>
-    void error(const char* fmt, Args&&... args) {
-        log(LogLevel::Error, fmt, std::forward<Args>(args)...);
-    }
-
-    template <typename... Args>
-    void fatal(const char* fmt, Args&&... args) {
-        log(LogLevel::Fatal, fmt, std::forward<Args>(args)...);
-    }
-
-private:
     template <typename... Args>
     void log(LogLevel lvl, const char* fmt, Args&&... args);
 
+private:
     void handle_overflow();
-
-    OverflowPolicy get_overflow_policy() const;
 
     RingBuffer* get_queue();
     RingBuffer* create_and_register_queue();
@@ -94,7 +76,8 @@ private:
     LogEvent build_event(LogLevel lvl, const char* fmt, Args&&... args);
 
 private:
-    std::optional<LoggerConfig> config_;
+    size_t buffer_size_{0};
+    OverflowPolicy overflow_policy_;
 
     std::vector<std::unique_ptr<RingBuffer>> owned_queues_;
     QueueRegistry registry_;

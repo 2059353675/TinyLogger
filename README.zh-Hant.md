@@ -60,7 +60,7 @@ int main() {
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
         .add_console_printer(LogLevel::Debug)
-        .build();
+        .build_shared();
 
     logger.info("應用程式啟動");
     logger.debug("除錯資訊：{}", 42);
@@ -76,6 +76,8 @@ int main() {
 g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
     -L/path/to/TinyLogger/build -lTinyLogger -lfmt
 ```
+
+**注意：** `LoggerRef` 支援拷貝和點操作符（`.info()`、`.debug()` 等），API 更美觀。
 
 ---
 
@@ -229,14 +231,14 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)        // 控制台輸出
     .add_file_printer("app.log", LogLevel::Info)  // 檔案輸出
-    .build();
+    .build_shared();
 ```
 
 ### 設定項說明
 
 | 方法 | 參數 | 預設值 | 說明 |
 |------|------|--------|------|
-| `set_buffer_size(size)` | size_t | 256 | 環形緩衝區大小（必須是 2 的���次�� |
+| `set_buffer_size(size)` | size_t | 256 | 環形緩衝區大小（必須是 2 的冪次） |
 | `set_overflow_policy(policy)` | OverflowPolicy | Discard | 溢位策略 |
 | `add_console_printer(level)` | LogLevel | Info | 新增控制台 Printer |
 | `add_file_printer(path, level)` | string, LogLevel | Debug | 新增檔案 Printer |
@@ -255,6 +257,8 @@ auto logger = tiny_logger::create_default_logger();
 ```
 
 使用預設配置：Console Printer + Info 級別 + Discard 溢位策略。
+
+**注意：** Logger 不可拷貝，請使用 `build_shared()` 建立 `std::unique_ptr<Logger>`。
 
 ---
 
@@ -299,11 +303,14 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 TinyLogger/
 ├── include/TinyLogger/      # 標頭檔
 │   ├── logger.h
+│   ├── logger_builder.h
+│   ├── logger_factory.h     # 工廠函式
 │   ├── ring_buffer.h
 │   ├── types.h
 │   └── ...
 ├── src/                    # 實作檔
 │   ├── logger.cpp
+│   ├── logger_factory.cpp   # 工廠函式實作
 │   ├── ring_buffer.cpp
 │   ├── distributor.cpp
 │   └── ...
