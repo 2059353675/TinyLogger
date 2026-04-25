@@ -1,5 +1,5 @@
-#include "TinyLogger/logger.h"
-#include "TinyLogger/logger_error.h"
+#include "tiny_logger/logger.h"
+#include "tiny_logger/logger_error.h"
 
 namespace tiny_logger {
 
@@ -33,7 +33,7 @@ void Logger::init(const LoggerConfig& config) {
     }
 
     if (config.buffer_size == 0) {
-        throw make_invalid_buffer_size_error(config.buffer_size);
+        throw invalid_buffer_size_error(config.buffer_size);
     }
 
     buffer_size_ = config.buffer_size;
@@ -44,7 +44,7 @@ void Logger::init(const LoggerConfig& config) {
     for (const auto& pc : config.printers) {
         auto printer = PrinterRegistry::instance().create(pc);
         if (!printer) {
-            throw make_printer_create_error(pc);
+            throw printer_create_error(pc);
         }
         distributor_->add_printer(std::move(printer));
     }

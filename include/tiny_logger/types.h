@@ -21,11 +21,12 @@ const size_t LOG_ARGS_STORAGE_SIZE = 128;
 
 /* 日志级别 */
 enum class LogLevel : uint8_t {
-    Debug,
+    Debug = 0,
     Info,
+    Warn,
     Error,
     Fatal,
-    Unknown
+    Count
 };
 
 /* 溢出策略 */
@@ -116,7 +117,7 @@ struct LogEvent {
 };
 
 /* 缓冲区的基本单位 */
-struct alignas(64) Slot {
+struct alignas(128) Slot {
     std::atomic<size_t> sequence{0};
     LogEvent event;
 };

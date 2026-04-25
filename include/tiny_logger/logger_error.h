@@ -6,23 +6,23 @@
 
 namespace tiny_logger {
 
-inline std::invalid_argument make_invalid_buffer_size_error(size_t size) {
+inline std::invalid_argument invalid_buffer_size_error(size_t size) {
     return std::invalid_argument("Invalid buffer size: " + std::to_string(size) + " (must be > 0)");
 }
 
-inline std::invalid_argument make_invalid_overflow_policy_error(OverflowPolicy policy) {
+inline std::invalid_argument invalid_overflow_policy_error(OverflowPolicy policy) {
     return std::invalid_argument("Invalid overflow policy: " + std::to_string(static_cast<int>(policy)));
 }
 
-inline std::invalid_argument make_invalid_printer_type_error(PrinterType type) {
+inline std::invalid_argument invalid_printer_type_error(PrinterType type) {
     return std::invalid_argument("Invalid printer type: " + std::to_string(static_cast<int>(type)));
 }
 
-inline std::invalid_argument make_invalid_log_level_error(LogLevel level) {
+inline std::invalid_argument invalid_log_level_error(LogLevel level) {
     return std::invalid_argument("Invalid log level: " + std::to_string(static_cast<int>(level)));
 }
 
-inline std::runtime_error make_printer_create_error(PrinterType type) {
+inline std::runtime_error printer_create_error(PrinterType type) {
     std::string msg = "Failed to create printer";
     switch (type) {
         case PrinterType::Console:
@@ -41,7 +41,7 @@ inline std::runtime_error make_printer_create_error(PrinterType type) {
     return std::runtime_error(msg);
 }
 
-inline std::runtime_error make_printer_create_error(const PrinterConfig& cfg) {
+inline std::runtime_error printer_create_error(const PrinterConfig& cfg) {
     std::string msg = "Failed to create printer";
     switch (cfg.type) {
         case PrinterType::Console:
@@ -64,7 +64,7 @@ inline std::runtime_error make_printer_create_error(const PrinterConfig& cfg) {
     return std::runtime_error(msg);
 }
 
-inline std::runtime_error make_unknown_error(const std::string& context) {
+inline std::runtime_error unknown_error(const std::string& context) {
     return std::runtime_error("Unknown error: " + context);
 }
 

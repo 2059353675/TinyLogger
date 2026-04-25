@@ -1,9 +1,9 @@
 #pragma once
 
-#include "TinyLogger/config.h"
-#include "TinyLogger/logger.h"
-#include "TinyLogger/printer.h"
-#include "TinyLogger/types.h"
+#include "tiny_logger/config.h"
+#include "tiny_logger/logger.h"
+#include "tiny_logger/printer.h"
+#include "tiny_logger/types.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -23,6 +23,13 @@ public:
     LoggerRef& operator=(LoggerRef&&) noexcept = default;
 
     template <typename... Args>
+    void debug(const char* fmt, Args&&... args) {
+        if (ptr_) {
+            ptr_->log(LogLevel::Debug, fmt, std::forward<Args>(args)...);
+        }
+    }
+
+    template <typename... Args>
     void info(const char* fmt, Args&&... args) {
         if (ptr_) {
             ptr_->log(LogLevel::Info, fmt, std::forward<Args>(args)...);
@@ -30,9 +37,9 @@ public:
     }
 
     template <typename... Args>
-    void debug(const char* fmt, Args&&... args) {
+    void warn(const char* fmt, Args&&... args) {
         if (ptr_) {
-            ptr_->log(LogLevel::Debug, fmt, std::forward<Args>(args)...);
+            ptr_->log(LogLevel::Warn, fmt, std::forward<Args>(args)...);
         }
     }
 
@@ -122,7 +129,7 @@ public:
      * @throw std::invalid_argument 参数校验失败
      * @throw std::runtime_error 打印器创建失败
      */
-    LoggerRef build_shared();
+    LoggerRef build();
 
     /**
      * @brief 获取内部配置（用于检查或进一步修改）
@@ -146,7 +153,7 @@ private:
  * @return LoggerRef 包装类
  */
 inline LoggerRef create_default_logger() {
-    return LoggerBuilder().add_console_printer().build_shared();
+    return LoggerBuilder().add_console_printer().build();
 }
 
 } // namespace tiny_logger

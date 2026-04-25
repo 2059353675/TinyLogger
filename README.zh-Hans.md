@@ -60,7 +60,7 @@ int main() {
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
         .add_console_printer(LogLevel::Debug)
-        .build_shared();
+        .build();
 
     logger.info("应用程序启动");
     logger.debug("调试信息：{}", 42);
@@ -231,7 +231,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)        // 控制台输出
     .add_file_printer("app.log", LogLevel::Info)  // 文件输出
-    .build_shared();
+    .build();
 ```
 
 ### 配置项说明
@@ -258,7 +258,7 @@ auto logger = tiny_logger::create_default_logger();
 
 使用默认配置：Console Printer + Info 级别 + Discard 溢出策略。
 
-**注意：** Logger 不可拷贝，请使用 `build_shared()` 创建 `LoggerRef`（基于 shared_ptr）。
+**注意：** Logger 不可拷贝，请使用 `build()` 创建 `LoggerRef`（基于 shared_ptr）。
 
 ---
 

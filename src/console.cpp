@@ -1,4 +1,4 @@
-#include "TinyLogger/printer_console.h"
+#include "tiny_logger/printer/console.h"
 #include <fmt/format.h>
 
 namespace tiny_logger {

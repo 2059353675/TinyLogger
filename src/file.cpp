@@ -1,4 +1,4 @@
-#include "TinyLogger/printer_file.h"
+#include "tiny_logger/printer/file.h"
 
 namespace tiny_logger {
 
@@ -74,14 +74,15 @@ void FilePrinter::open_file() {
 }
 
 void FilePrinter::rotate() {
-    std::fclose(file_);
-
     std::string backup = file_path_ + ".1";
-    if (std::rename(file_path_.c_str(), backup.c_str()) != 0) {
+    if (std::rename(file_path_.c_str(), backup.c_str()) != 0 && errno != ENOENT) {
         std::fprintf(stderr, "[TinyLogger] Failed to rotate log file: %s\n", file_path_.c_str());
     }
 
-    open_file();
+    file_ = std::freopen(file_path_.c_str(), "a", file_);
+    if (!file_) {
+        file_ = stderr;
+    }
     current_size_ = 0;
 }
 

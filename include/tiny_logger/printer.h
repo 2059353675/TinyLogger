@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "tiny_logger/types.h"
 #include <functional>
 #include <mutex>
 #include <string>

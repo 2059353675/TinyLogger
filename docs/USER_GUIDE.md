@@ -86,7 +86,7 @@ int main() {
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
         .add_console_printer(LogLevel::Debug)
-        .build_shared();
+        .build();
 
     logger.info("应用程序启动");
     logger.debug("调试信息：{}", 42);
@@ -129,7 +129,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)
     .add_file_printer("app.log", LogLevel::Info)
-    .build_shared();
+    .build();
 ```
 
 ### 配置项说明
@@ -169,7 +169,7 @@ auto logger = LoggerBuilder()
     .set_buffer_size(256)
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)
-    .build_shared();
+    .build();
 ```
 
 #### 方法说明
@@ -201,7 +201,7 @@ logger.info("Hello");
 
 **示例：**
 ```cpp
-auto logger1 = LoggerBuilder().add_console_printer().build_shared();
+auto logger1 = LoggerBuilder().add_console_printer().build();
 auto logger2 = logger1;  // 拷贝，共享同一 Logger
 
 logger1.info("Message from logger1");
@@ -256,7 +256,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)    // 控制台：Debug+
     .add_file_printer("app.log", LogLevel::Info)   // 文件：Info+
-    .build_shared();
+    .build();
 ```
 
 此配置会：
@@ -278,7 +278,7 @@ LoggerConfig config;
 config.buffer_size = 256;
 config.printers.push_back(file_cfg);
 
-auto logger = LoggerBuilder().set_config(config).build_shared();
+auto logger = LoggerBuilder().set_config(config).build();
 ```
 
 ---
@@ -313,7 +313,7 @@ auto logger = LoggerBuilder()
     // 或
     .set_overflow_policy(OverflowPolicy::Block)   // 阻塞等待（保证不丢日志）
     .add_console_printer()
-    .build_shared();
+    .build();
 ```
 
 ### Q: 编译时找不到 fmt 库？

@@ -1,15 +1,17 @@
-#include "TinyLogger/ring_buffer.h"
+#include "tiny_logger/ring_buffer.h"
+#include <cassert>
 #include <cstring>
 
 namespace tiny_logger {
 
 RingBuffer::RingBuffer(size_t capacity, OverflowPolicy policy)
     : capacity_(capacity),
-      mask_(capacity_ - 1),
+      mask_(capacity - 1),
       overflow_policy_(policy),
-      buffer_(static_cast<Slot*>(operator new[](sizeof(Slot) * capacity_))),
+      buffer_(static_cast<Slot*>(operator new[](sizeof(Slot) * capacity))),
       write_pos_(0),
       read_pos_(0) {
+    assert((capacity & (capacity - 1)) == 0 && "capacity must be a power of 2");
     for (size_t i = 0; i < capacity_; ++i) {
         new (&buffer_[i]) Slot();
         buffer_[i].sequence.store(i, std::memory_order_relaxed);
@@ -51,14 +53,10 @@ bool RingBuffer::dequeue(LogEvent& e) {
     size_t seq = slot.sequence.load(std::memory_order_acquire);
 
     if (seq != pos + 1) {
-        // 没数据
         return false;
     }
 
-    // 读取数据
     e = std::move(slot.event);
-
-    // 标记该 slot 可复用
     slot.sequence.store(pos + capacity_, std::memory_order_release);
 
     ++read_pos_;

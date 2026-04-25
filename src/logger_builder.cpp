@@ -1,4 +1,4 @@
-#include "TinyLogger/logger_builder.h"
+#include "tiny_logger/logger_builder.h"
 
 namespace tiny_logger {
 
@@ -37,7 +37,7 @@ LoggerBuilder& LoggerBuilder::add_printer(PrinterType type, LogLevel min_level) 
     return *this;
 }
 
-LoggerRef LoggerBuilder::build_shared() {
+LoggerRef LoggerBuilder::build() {
     auto logger = std::make_shared<Logger>();
     logger->init(config_);
     return LoggerRef(std::move(logger));

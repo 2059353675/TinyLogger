@@ -60,7 +60,7 @@ int main() {
         .set_buffer_size(256)
         .set_overflow_policy(OverflowPolicy::Discard)
         .add_console_printer(LogLevel::Debug)
-        .build_shared();
+        .build();
 
     logger.info("Application started");
     logger.debug("Debug info: {}", 42);
@@ -233,7 +233,7 @@ auto logger = LoggerBuilder()
     .set_overflow_policy(OverflowPolicy::Discard)
     .add_console_printer(LogLevel::Debug)        // Console output
     .add_file_printer("app.log", LogLevel::Info)  // File output
-    .build_shared();
+    .build();
 ```
 
 ### Configuration Options
@@ -260,7 +260,7 @@ auto logger = tiny_logger::create_default_logger();
 
 Uses default configuration: Console Printer + Info level + Discard overflow policy.
 
-**Note:** Logger is non-copyable. Use `build_shared()` to create a `LoggerRef` (shared_ptr based).
+**Note:** Logger is non-copyable. Use `build()` to create a `LoggerRef` (shared_ptr based).
 
 ---
 

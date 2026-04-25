@@ -1,4 +1,4 @@
-#include "TinyLogger/printer_null.h"
+#include "tiny_logger/printer/null.h"
 
 namespace tiny_logger {
 

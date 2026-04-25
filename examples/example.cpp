@@ -20,7 +20,7 @@ int main() {
                       .set_buffer_size(256)
                       .set_overflow_policy(tiny_logger::OverflowPolicy::Discard)
                       .add_console_printer(tiny_logger::LogLevel::Debug)
-                      .build_shared();
+                      .build();
 
     logger.info("TinyLogger 初始化完成");
     logger.debug("这是一条调试信息，编号：{}", 43);

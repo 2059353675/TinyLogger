@@ -14,11 +14,7 @@ using namespace tiny_logger;
 using namespace tiny_logger::test;
 
 static LoggerRef create_console_logger(LogLevel level = LogLevel::Debug) {
-    return LoggerBuilder()
-        .set_buffer_size(256)
-        .set_overflow_policy(OverflowPolicy::Discard)
-        .add_console_printer(level)
-        .build_shared();
+    return LoggerBuilder().set_buffer_size(256).set_overflow_policy(OverflowPolicy::Discard).add_console_printer(level).build();
 }
 
 static LoggerRef create_file_logger(const std::string& path, LogLevel level = LogLevel::Debug, size_t flush_every = 1) {
@@ -31,7 +27,7 @@ static LoggerRef create_file_logger(const std::string& path, LogLevel level = Lo
     cfg.buffer_size = 256;
     cfg.overflow_policy = OverflowPolicy::Discard;
     cfg.printers.push_back(pc);
-    return LoggerBuilder().set_config(cfg).build_shared();
+    return LoggerBuilder().set_config(cfg).build();
 }
 
 // ==================== Logger 初始化测试 ====================
@@ -131,7 +127,7 @@ bool test_logger_concurrent_logging() {
                       .set_buffer_size(1024)
                       .set_overflow_policy(OverflowPolicy::Discard)
                       .add_file_printer(log_file.path(), LogLevel::Info)
-                      .build_shared();
+                      .build();
 
     constexpr int THREAD_COUNT = 4;
     constexpr int MSGS_PER_THREAD = 100;
@@ -170,7 +166,7 @@ bool test_logger_overflow_discard() {
                           .set_buffer_size(16)
                           .set_overflow_policy(OverflowPolicy::Discard)
                           .add_file_printer(log_file.path(), LogLevel::Info)
-                          .build_shared();
+                          .build();
 
         for (int i = 0; i < 1000; ++i) {
             logger.info("Overflow test message {}", i);
@@ -193,7 +189,7 @@ bool test_logger_multiple_printers() {
                           .set_overflow_policy(OverflowPolicy::Discard)
                           .add_console_printer(LogLevel::Info)
                           .add_file_printer(log_file.path(), LogLevel::Info)
-                          .build_shared();
+                          .build();
 
         logger.info("Multi-printer test");
     }
@@ -235,7 +231,7 @@ bool test_logger_dropped_count() {
                       .set_buffer_size(16)
                       .set_overflow_policy(OverflowPolicy::Discard)
                       .add_file_printer(log_file.path(), LogLevel::Info)
-                      .build_shared();
+                      .build();
 
     for (int i = 0; i < 1000; ++i) {
         logger.info("Overflow test message {}", i);

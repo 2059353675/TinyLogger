@@ -9,7 +9,7 @@
 
 namespace tiny_logger {
 
-static constexpr size_t LOG_LEVEL_COUNT = 5;
+static constexpr size_t LOG_LEVEL_COUNT = static_cast<size_t>(LogLevel::Count);
 
 class Distributor
 {

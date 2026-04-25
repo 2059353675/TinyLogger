@@ -1,4 +1,4 @@
-#include "TinyLogger/distributor.h"
+#include "tiny_logger/distributor.h"
 #include <chrono>
 #include <thread>
 
@@ -80,11 +80,11 @@ void Distributor::run() {
     constexpr size_t BATCH_SIZE = 64;
     LogEvent batch[BATCH_SIZE];
 
-    constexpr size_t SNAPSHOT_REFRESH_INTERVAL = 100;
+    constexpr size_t SNAPSHOT_REFRESH_INTERVAL = 128 - 1;
     size_t loop_count = 0;
 
     while (running_) {
-        if (loop_count % SNAPSHOT_REFRESH_INTERVAL == 0) {
+        if ((loop_count & SNAPSHOT_REFRESH_INTERVAL) == 0) {
             queues_ = registry_.snapshot();
         }
         ++loop_count;
