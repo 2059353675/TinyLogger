@@ -43,11 +43,6 @@ void Distributor::add_printer(std::unique_ptr<Printer> p) {
 }
 
 void Distributor::recalculate_min_level() {
-    /**
-     * 重新计算全局最小日志级别。
-     * 取所有 printer 中最小的 min_level 作为过滤阈值,
-     * 以减少不必要的格式化和写入操作。
-     */
     LogLevel min_level = LogLevel::Fatal;
     for (const auto& printer : printers_) {
         LogLevel printer_level = printer->min_level();
@@ -70,17 +65,10 @@ bool Distributor::set_printer_min_level(PrinterType type, LogLevel level) {
 }
 
 void Distributor::run() {
-    /**
-     * 分发线程主循环。
-     * 1. 定期从 registry 获取当前队列快照
-     * 2. 批量从各队列消费日志事件
-     * 3. 批量处理事件(按级别过滤后写入各 printer)
-     * 4. 若无数据则让出 CPU
-     */
     constexpr size_t BATCH_SIZE = 64;
     LogEvent batch[BATCH_SIZE];
 
-    constexpr size_t SNAPSHOT_REFRESH_INTERVAL = 128 - 1;
+    constexpr size_t SNAPSHOT_REFRESH_INTERVAL = 512 - 1;
     size_t loop_count = 0;
 
     while (running_) {
@@ -91,7 +79,7 @@ void Distributor::run() {
 
         bool any_dequeued = false;
 
-        for (RingBuffer* q : queues_) {
+        for (auto* q : queues_) {
             size_t count = 0;
             while (count < BATCH_SIZE && q->dequeue(batch[count])) {
                 ++count;

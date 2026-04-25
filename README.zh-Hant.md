@@ -77,8 +77,6 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
     -L/path/to/TinyLogger/build -lTinyLogger -lfmt
 ```
 
-**注意：** `LoggerRef` 支援拷貝和點操作符（`.info()`、`.debug()` 等），API 更美觀。
-
 ---
 
 ## 核心概念
@@ -117,63 +115,73 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ## 效能基準 (Performance Benchmark)
 
-TinyLogger 採用無鎖環形緩衝區（Lock-free RingBuffer）與異步分發設計，旨在將日誌記錄對業務主執行緒的影響降至最低。以下是一組實測資料，僅供參考：
+TinyLogger 採用基於 TSC（rdtsc）的高精確度計時方式，並透過 CPU 綁定（CPU pinning）與基線對照（baseline）來確保測試結果穩定可靠。
 
 ### 配置
 
-- Buffer Size: 256 slots
-- Payload: 128B storage per event
-- Iterations: 50,000 measurements (after 10,000 warmup)
-- Hardware: 2 核 CPU，Linux 5.15.0-164-generic
+編譯選項：-O3 -march=native
+CPU 頻率：約 2.50 GHz（≈ 2.50 cycles/ns）
+單核綁定執行（taskset / pthread_setaffinity_np）
+使用 NullPrinter 排除 I/O 干擾
+批次測量（batch=64）減少計時雜訊
+
+### 基線對照（Baseline）
+
+| 測試項目   | 平均 (cycles) | p50  | p99  | 說明          |
+| ----- | ----------- | ---- | ---- | ----------- |
+| 空函式呼叫 | 16.1        | 15.4 | 23.8 | 測量函式呼叫與迴圈開銷 |
 
 ### 延遲測試 (Latency)
 
-測量從呼叫 `logger.info()` 到函式回傳（即主執行緒等待部分）的時間開銷。測試使用 `NullPrinter` 以排除磁碟 I/O 的干擾。
+測試重點關注主執行緒路徑延遲，即 `logger.info()` 返回前的開銷。
 
-| 指標           | 耗時 (ns) | 說明                         |
-| ------------------ | ------------- | -------------------------------- |
-| 平均延遲 (Avg) | 138.7 ns  | 极速回應，主執行緒開銷微秒級以下   |
-| 中位數 (p50)   | 112.0 ns  | 絕大多數呼叫的核心開銷           |
-| p99 分位       | 345.0 ns  | 即使在高並行下，長尾延遲依然受控 |
-| 最小延遲 (Min) | 56.0 ns       | 理想情況下的最快寫入             |
+| 測試項目                   | 平均 (cycles) | p50    | p99    | 說明         |
+| --------------------- | ----------- | ------ | ------ | ---------- |
+| `fmt::format`         | 1380.7      | 1319.0 | 2133.9 | 同步字串格式化   |
+| `RingBuffer::enqueue` | 62.7        | 56.6   | 85.9   | 無鎖入隊（SPSC） |
+| `logger.info()`       | 896.5       | 396.8  | 738.5  | 主執行緒完整路徑    |
 
 ### 吞吐量測試 (Throughput)
 
-評估系統在持續高負載下的極限處理能力。同樣使用 `NullPrinter` 以排除磁碟 I/O 的干擾。
+吞吐量測試用於評估系統在持續高負載下的極限處理能力，重點關注多執行緒並行寫入場景。
 
 | 並行執行緒數 | 吞吐量 (ops/s) |
 |-----------|----------------|
 | 1 執行緒 | 7.08 M |
-| 2 執行緒 | 7.31M |
+| 2 執行緒 | 7.31 M |
 | 4 執行緒 | 14.21 M |
 | 8 執行緒 | 15.26 M |
 
 ### 關鍵路徑開銷分解
 
-| 環節 | 說明 | 耗時 |
-|------|------|------|
-| 1. tuple 建構 | 將參數打包到 128B storage | ~71 ns |
-| 2. RingBuffer::enqueue | 無鎖入隊 | ~35 ns |
-| 3. RingBuffer::dequeue | 無鎖出隊（後台執行緒） | - |
-| 4. event.format_fn | 呼叫回呼函式格式化 | - |
-| 5. Printer::write | 寫入輸出（後台執行緒） | - |
+| 測試項目                   | 平均 (cycles) | p50    | p99    | 說明         |
+| --------------------- | ----------- | ------ | ------ | ---------- |
+| `fmt::format()`         | 1380.7      | 1319.0 | 2133.9 | 同步字串格式化   |
+| `RingBuffer::enqueue()` | 62.7        | 56.6   | 85.9   | 無鎖入隊（SPSC） |
+| `logger->log()`       | 896.5       | 396.8  | 738.5  | 主執行緒完整路徑    |
+
+換算為時間（2.5 cycles/ns）：
+
+- fmt::format ≈ 552 ns
+- enqueue ≈ 25 ns
+- logger.info()：
+    - p50 ≈ 160 ns
+    - p99 ≈ 300 ns
 
 **關鍵設計：**
-- 主執行緒延遲格式化: `logger.log()` 在主執行緒僅執行參數的 tuple 建構（使用 placement new 寫入預分配空間）並入隊。耗時的 `fmt::format()` 字元串接和 I/O 寫入完全由後台執行緒異步執行。
-- 無鎖 RingBuffer: `RingBuffer::enqueue()` 每個應用執行緒獨立擁有一個 SPSC 佇列，實現無競爭入隊。
-- RAII 資源管理: 確保所有異步任務在系統關閉（shutdown）前被正確刷新和回收。
+- **主執行緒延遲格式化**：`logger->log()` 在主執行緒僅執行參數的 tuple 建構（使用 placement new 寫入預先配置的空間）並入隊。耗時的 `fmt::format()` 字串拼接和 I/O 寫入完全由背景執行緒非同步執行。
+- **無鎖 RingBuffer**：`RingBuffer::enqueue()` 每個應用執行緒獨立擁有一個 SPSC 佇列，實現無競爭入隊。
+- **RAII 資源管理**：確保所有非同步任務在系統關閉（shutdown）前被正確刷新和回收。
 
 **效能建議：**
-- 生產環境優先使用 `OverflowPolicy::Discard`，避免阻塞延遲尖峰
-- 批次日誌寫入時，後台執行緒可充分消化，延遲更穩定
+- 正式環境優先使用 `OverflowPolicy::Discard`，避免阻塞延遲尖峰
+- 批次寫入日誌時，背景執行緒可充分消化，延遲更穩定
 
-### 復現方式
-
-你可以透過建置系統執行自带的測試套件來驗證這些資料：
+### 重現方式
 
 ```bash
-cd build
-make run_tests  # 包含單元測試與基準測試
+mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
+./benckmark
 ```
 
 ---

@@ -77,8 +77,6 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
     -L/path/to/TinyLogger/build -lTinyLogger -lfmt
 ```
 
-**Note:** `LoggerRef` supports copy and dot operator (`.info()`, `.debug()`, etc.) for cleaner API.
-
 ---
 
 ## Core Concepts
@@ -117,65 +115,73 @@ Level filtering rule: A log is only recorded when its level ≥ the `min_level` 
 
 ## Performance Benchmark
 
-TinyLogger uses a lock-free ring buffer and asynchronous dispatch design to minimize the impact of logging on the main business thread. The following are measured data points for reference only:
+TinyLogger uses a high-precision timing method based on TSC (rdtsc), along with CPU pinning and baseline comparison to ensure stable and reliable test results.
 
 ### Configuration
 
-- Buffer Size: 256 slots
-- Payload: 128B storage per event
-- Iterations: 50,000 measurements (after 10,000 warmup)
-- Hardware: 2-core CPU, Linux 5.15.0-164-generic
+Compilation flags: `-O3 -march=native`
+CPU frequency: approximately 2.50 GHz (≈ 2.50 cycles/ns)
+Single-core binding (taskset / pthread_setaffinity_np)
+`NullPrinter` used to eliminate I/O interference
+Batch measurement (batch=64) to reduce timing noise
+
+### Baseline
+
+| Test Item         | Average (cycles) | p50   | p99   | Description                          |
+| ----------------- | ---------------- | ----- | ----- | ------------------------------------ |
+| Empty function call | 16.1             | 15.4  | 23.8  | Measures function call and loop overhead |
 
 ### Latency Test
 
-Measures the time overhead from calling `logger.info()` to function return (i.e., main thread wait portion). Tests use `NullPrinter` to eliminate disk I/O interference.
+The latency test focuses on the main thread path delay, i.e., the overhead before `logger.info()` returns.
 
-| Metric | Time (ns) | Description |
-|--------|-----------|-------------|
-| Average Latency | 138.7 ns | Ultra-fast response, main thread overhead below microseconds |
-| Median (p50) | 112.0 ns | Core overhead for the vast majority of calls |
-| p99 Percentile | 345.0 ns | Even under high concurrency, tail latency remains controlled |
-| Minimum Latency | 56.0 ns | Fastest write under ideal conditions |
+| Test Item                   | Average (cycles) | p50    | p99    | Description                          |
+| --------------------------- | ---------------- | ------ | ------ | ------------------------------------ |
+| `fmt::format`               | 1380.7           | 1319.0 | 2133.9 | Synchronous string formatting        |
+| `RingBuffer::enqueue`       | 62.7             | 56.6   | 85.9   | Lock-free enqueue (SPSC)             |
+| `logger.info()`             | 896.5            | 396.8  | 738.5  | Complete main thread path            |
 
 ### Throughput Test
 
-Evaluates the system's extreme processing capability under sustained high load. Also uses `NullPrinter` to eliminate disk I/O interference.
+The throughput test evaluates the system's peak processing capability under sustained high load, focusing on multi-threaded concurrent logging scenarios.
 
-| Concurrent Threads | Throughput (ops/s) |
-|--------------------|--------------------|
-| 1 thread | 7.08 M |
-| 2 threads | 7.31 M |
-| 4 threads | 14.21 M |
-| 8 threads | 15.26 M |
+| Number of Concurrent Threads | Throughput (ops/s) |
+|------------------------------|--------------------|
+| 1 thread                     | 7.08 M             |
+| 2 threads                    | 7.31 M             |
+| 4 threads                    | 14.21 M            |
+| 8 threads                    | 15.26 M            |
 
-### Key Path Overhead Breakdown
+### Critical Path Overhead Breakdown
 
-| Step | Description | Time |
-|------|-------------|------|
-| 1. tuple construction | Pack parameters into 128B storage | ~71 ns |
-| 2. RingBuffer::enqueue | Lock-free enqueue | ~35 ns |
-| 3. RingBuffer::dequeue | Lock-free dequeue (background thread) | - |
-| 4. event.format_fn | Call callback function for formatting | - |
-| 5. Printer::write | Write to output (background thread) | - |
+| Test Item                   | Average (cycles) | p50    | p99    | Description                          |
+| --------------------------- | ---------------- | ------ | ------ | ------------------------------------ |
+| `fmt::format()`             | 1380.7           | 1319.0 | 2133.9 | Synchronous string formatting        |
+| `RingBuffer::enqueue()`     | 62.7             | 56.6   | 85.9   | Lock-free enqueue (SPSC)             |
+| `logger->log()`             | 896.5            | 396.8  | 738.5  | Complete main thread path            |
 
-**Key Design:**
+Converted to time (2.5 cycles/ns):
 
-- Main thread deferred formatting: `logger.log()` only performs tuple construction of parameters on the main thread (using placement new to write to pre-allocated space) and enqueues. Time-consuming `fmt::format()` string concatenation and I/O writing are executed asynchronously by the background thread.
-- Lock-free RingBuffer: Each application thread has its own independent SPSC queue for `RingBuffer::enqueue()`, achieving contention-free enqueue.
-- RAII Resource Management: Ensures all asynchronous tasks are properly flushed and reclaimed before system shutdown.
+- `fmt::format` ≈ 552 ns
+- `enqueue` ≈ 25 ns
+- `logger.info()`:
+    - p50 ≈ 160 ns
+    - p99 ≈ 300 ns
+
+**Key Design Points:**
+- **Deferred formatting on main thread:** `logger->log()` performs only tuple construction (using placement new into pre-allocated space) and enqueue on the main thread. The expensive `fmt::format()` string concatenation and I/O writes are handled asynchronously by a background thread.
+- **Lock-free RingBuffer:** `RingBuffer::enqueue()` — each application thread has its own SPSC queue, achieving contention-free enqueue.
+- **RAII resource management:** Ensures all asynchronous tasks are properly flushed and reclaimed before system shutdown.
 
 **Performance Recommendations:**
-
-- Use `OverflowPolicy::Discard` in production to avoid blocking latency spikes
-- When batch logging, the background thread can fully digest, resulting in more stable latency
+- Prefer `OverflowPolicy::Discard` in production environments to avoid blocking latency spikes.
+- For batch log writes, the background thread can fully digest them, resulting in more stable latency.
 
 ### Reproduction
 
-You can verify these data by running the built-in test suite through the build system:
-
 ```bash
-cd build
-make run_tests  # Includes unit tests and benchmark tests
+mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
+./benchmark
 ```
 
 ---

@@ -70,8 +70,8 @@ if(TINYLOGGER_BUILD_EXAMPLES)
     add_executable(example examples/example.cpp)
     target_link_libraries(example PRIVATE tinylogger)
     
-    add_executable(speed_test examples/speed_test.cpp)
-    target_link_libraries(speed_test PRIVATE tinylogger)
+    add_executable(benchmark examples/benchmark.cpp)
+    target_link_libraries(benchmark PRIVATE tinylogger)
     
 endif()
 
