@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <TinyLogger/types.h>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -19,6 +18,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <tiny_logger/types.h>
 #include <vector>
 
 namespace tiny_logger {

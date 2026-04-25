@@ -10,15 +10,15 @@
  *   mkdir build && cd build && cmake .. && make
  */
 
-#include <TinyLogger/logger_builder.h>
-#include <TinyLogger/printer_null.h>
-#include <TinyLogger/ring_buffer.h>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstring>
 #include <iostream>
 #include <thread>
+#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/printer/null.h>
+#include <tiny_logger/ring_buffer.h>
 #include <vector>
 
 namespace {

@@ -28,9 +28,9 @@ set(TINYLOGGER_SOURCES
     src/ring_buffer.cpp
     src/distributor.cpp
     src/queue_registry.cpp
-    src/printer_console.cpp
-    src/printer_file.cpp
-    src/printer_null.cpp
+    src/console.cpp
+    src/file.cpp
+    src/null.cpp
 )
 
 # 创建静态库

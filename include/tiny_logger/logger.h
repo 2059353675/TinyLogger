@@ -1,12 +1,11 @@
 #pragma once
 
-#include "tiny_logger/config.h"
-#include "tiny_logger/distributor.h"
-#include "tiny_logger/printer/console.h"
-#include "tiny_logger/printer/file.h"
-#include "tiny_logger/queue_registry.h"
-#include "tiny_logger/ring_buffer.h"
-#include "tiny_logger/types.h"
+#include "distributor.h"
+#include "printer/console.h"
+#include "printer/file.h"
+#include "queue_registry.h"
+#include "ring_buffer.h"
+#include "types.h"
 #include <atomic>
 #include <cstdio>
 #include <fmt/format.h>

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "tiny_logger/config.h"
-#include "tiny_logger/logger.h"
+#include "logger.h"
 #include <memory>
 
 namespace tiny_logger {

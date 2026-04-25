@@ -51,7 +51,7 @@ sudo make install      # 可選，安裝到 /usr/local
 ### 基本使用
 
 ```cpp
-#include <TinyLogger/logger_builder.h>
+#include <tiny_logger/logger_builder.h>
 
 int main() {
     using namespace tiny_logger;
@@ -107,6 +107,7 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 |------|------|----------|
 | `Debug` | 除錯資訊 | 開發階段詳細追蹤 |
 | `Info` | 一般資訊 | 正常運作狀態記錄 |
+| `Warn` | 警告資訊 | 潛在問題但不影響運作 |
 | `Error` | 錯誤資訊 | 異常但不影響運作 |
 | `Fatal` | 致命錯誤 | 程式無法繼續 |
 
@@ -269,6 +270,7 @@ auto logger = tiny_logger::create_default_logger();
 ```cpp
 logger.debug(fmt::format_string<T...>, T&&... args);
 logger.info(fmt::format_string<T...>, T&&... args);
+logger.warn(fmt::format_string<T...>, T&&... args);
 logger.error(fmt::format_string<T...>, T&&... args);
 logger.fatal(fmt::format_string<T...>, T&&... args);
 ```
@@ -277,6 +279,7 @@ logger.fatal(fmt::format_string<T...>, T&&... args);
 
 ```cpp
 logger.info("使用者 {} 登入", username);
+logger.warn("警告：記憶體使用率 {}%", 85);
 logger.debug("數值：{:.2f}", 3.14159);
 logger.error("錯誤碼：{:#x}", 0xDEAD);
 logger.info("多個值：{}, {}, {}", a, b, c);
@@ -301,18 +304,31 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 
 ```
 TinyLogger/
-├── include/TinyLogger/      # 標頭檔
+├── include/tiny_logger/      # 標頭檔
 │   ├── logger.h
 │   ├── logger_builder.h
 │   ├── logger_factory.h     # 工廠函式
+│   ├── logger_error.h
 │   ├── ring_buffer.h
+│   ├── distributor.h
+│   ├── printer.h
+│   ├── printer/             # Printer 子目錄
+│   │   ├── base.h
+│   │   ├── console.h
+│   │   ├── file.h
+│   │   └── null.h
 │   ├── types.h
 │   └── ...
 ├── src/                    # 實作檔
 │   ├── logger.cpp
-│   ├── logger_factory.cpp   # 工廠函式實作
+│   ├── logger_builder.cpp
+│   ├── logger_factory.cpp
 │   ├── ring_buffer.cpp
 │   ├── distributor.cpp
+│   ├── queue_registry.cpp
+│   ├── console.cpp         # Console Printer
+│   ├── file.cpp            # File Printer
+│   ├── null.cpp            # Null Printer
 │   └── ...
 ├── test/                   # 測試套件
 │   ├── test_ring_buffer.cpp

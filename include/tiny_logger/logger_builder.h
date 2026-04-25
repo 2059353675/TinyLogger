@@ -1,9 +1,8 @@
 #pragma once
 
-#include "tiny_logger/config.h"
-#include "tiny_logger/logger.h"
-#include "tiny_logger/printer.h"
-#include "tiny_logger/types.h"
+#include "logger.h"
+#include "printer.h"
+#include "types.h"
 #include <memory>
 #include <string>
 #include <utility>

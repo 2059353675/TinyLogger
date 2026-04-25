@@ -1,6 +1,4 @@
 #include "test_common.h"
-#include <TinyLogger/logger_builder.h>
-#include <TinyLogger/types.h>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -8,6 +6,8 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/types.h>
 #include <vector>
 
 using namespace tiny_logger;

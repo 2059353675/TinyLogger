@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tiny_logger/types.h"
+#include "types.h"
 #include <functional>
 #include <mutex>
 #include <string>
@@ -36,6 +36,8 @@ inline const char* level_to_string(LogLevel level) {
             return "Debug";
         case LogLevel::Info:
             return "Info";
+        case LogLevel::Warn:
+            return "Warn";
         case LogLevel::Error:
             return "Error";
         case LogLevel::Fatal:

@@ -77,7 +77,7 @@ sudo make install
 推荐使用 `LoggerBuilder`（链式配置，类型安全）：
 
 ```cpp
-#include <TinyLogger/logger_builder.h>
+#include <tiny_logger/logger_builder.h>
 
 int main() {
     using namespace tiny_logger;
@@ -99,7 +99,7 @@ int main() {
 或使用默认配置（最简方式）：
 
 ```cpp
-#include <TinyLogger/logger_builder.h>
+#include <tiny_logger/logger_builder.h>
 
 int main() {
     auto logger = tiny_logger::create_default_logger();
@@ -140,6 +140,7 @@ auto logger = LoggerBuilder()
 | `set_overflow_policy(policy)` | 函数 | 溢出策略：`Discard`（丢弃）或 `Block`（阻塞） |
 | `add_console_printer(level)` | 函数 | 添加控制台输出，参数为最小日志级别 |
 | `add_file_printer(path, level)` | 函数 | 添加文件输出，参数为文件路径和最小日志级别 |
+| `add_null_printer()` | 函数 | 添加 Null 输出（丢弃所有日志，用于测试） |
 
 ### Console Printer 配置
 
@@ -180,6 +181,7 @@ auto logger = LoggerBuilder()
 | `set_overflow_policy(policy)` | OverflowPolicy | Discard | 溢出策略 |
 | `add_console_printer(level)` | LogLevel | Info | 添加控制台，设定最小级别 |
 | `add_file_printer(path, level)` | string, LogLevel | Debug | 添加文件输出 |
+| `add_null_printer()` | - | - | 添加 Null Printer |
 
 #### 默认配置
 
@@ -220,6 +222,7 @@ Logger 在析构时会自动调用 `shutdown()`。
 |------|------|----------|
 | `Debug` | 调试信息 | 开发阶段详细追踪 |
 | `Info` | 一般信息 | 正常运行状态记录 |
+| `Warn` | 警告信息 | 潜在问题但不影响运行 |
 | `Error` | 错误信息 | 异常情况但不影响运行 |
 | `Fatal` | 致命错误 | 导致程序无法继续的错误 |
 
@@ -231,6 +234,7 @@ TinyLogger 使用 `fmt` 库语法：
 
 ```cpp
 logger.info("用户 {} 登录", username);
+logger.warn("警告：内存使用率 {}%", 85);
 logger.debug("数值：{:.2f}", 3.14159);
 logger.error("错误码：{:#x}", 0xDEAD);
 logger.info("多个值：{}, {}, {}", a, b, c);

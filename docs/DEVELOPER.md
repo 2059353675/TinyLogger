@@ -27,31 +27,36 @@
 ```
 TinyLogger/
 ├── CMakeLists.txt              # 主 CMake 构建文件
-├── include/TinyLogger/         # 头文件
+├── include/tiny_logger/        # 头文件
 │   ├── logger.h
 │   ├── logger_builder.h
 │   ├── logger_factory.h
+│   ├── logger_error.h
 │   ├── ring_buffer.h
-│   ├── config.h
 │   ├── distributor.h
 │   ├── printer.h
+│   ├── printer/
+│   │   ├── base.h
+│   │   ├── console.h
+│   │   ├── file.h
+│   │   └── null.h
 │   ├── types.h
 │   └── ...
 ├── src/                        # 实现文件
 │   ├── logger.cpp
+│   ├── logger_builder.cpp
 │   ├── logger_factory.cpp
 │   ├── ring_buffer.cpp
-│   ├── config.cpp
 │   ├── distributor.cpp
-│   ├── printer_console.cpp
-│   ├── printer_file.cpp
-│   ├── printer_null.cpp
+│   ├── queue_registry.cpp
+│   ├── console.cpp
+│   ├── file.cpp
+│   ├── null.cpp
 │   └── ...
 ├── test/                       # 测试套件
-│   ├── CMakeLists.txt          # 测试 CMake 配置
-│   ├── test_common.h          # 测试框架、公共测试工具等
+│   ├── CMakeLists.txt
+│   ├── test_common.h
 │   ├── test_ring_buffer.cpp
-│   ├── test_config.cpp
 │   ├── test_printer.cpp
 │   ├── test_distributor.cpp
 │   └── test_logger.cpp
@@ -168,7 +173,7 @@ sequenceDiagram
 - **RAII 资源管理：** 所有资源（文件、线程）在析构时自动清理
 - **运行期只读：** Logger 在 init 后进入不可变状态，所有配置（buffer_size、overflow_policy）不可更改
 - **对象不可拷贝：** Logger 禁止拷贝/移动，避免线程 + 队列生命周期问题
-- **LoggerRef 包装类：** 提供 `.` 操作符 API，支持拷贝共享底层 Logger
+- **LoggerRef 包装类：** 自动管理生命周期；简化日志 API；支持拷贝共享底层 Logger；提供空安全
 
 ---
 
@@ -275,21 +280,6 @@ cd build
 make run_tests
 ```
 
-#### 使用测试脚本
-
-```bash
-# Linux/macOS
-cd test
-chmod +x run_tests.sh
-./run_tests.sh
-
-# Windows
-cd test
-run_tests.bat
-```
-
-**注意：** 测试脚本是轻量包装，需要先执行主构建。
-
 #### 运行单个测试
 
 ```bash
@@ -307,7 +297,7 @@ cd build/test
 每个测试文件遵循以下结构：
 
 ```cpp
-#include <TinyLogger/xxx.h>
+#include <tiny_logger/xxx.h>
 #include "test_common.h"
 
 using namespace TinyLogger;
@@ -426,9 +416,8 @@ print_test_summary("Suite Name", result);
 ### 代码风格
 
 - **换行、空格等：** 由 `.clang-format` 自动配置
-- **枚举类型的简单判断：** 优先用 `switch` 结构
 - **头文件保护：** `#pragma once` 风格
-- **注释：** 中文，Doxygen 风格；关键逻辑必须注释
+- **注释：** Doxygen 风格；关键逻辑必须注释
 
 ### 提交规范
 

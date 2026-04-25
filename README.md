@@ -51,7 +51,7 @@ sudo make install      # Optional, install to /usr/local
 ### Basic Usage
 
 ```cpp
-#include <TinyLogger/logger_builder.h>
+#include <tiny_logger/logger_builder.h>
 
 int main() {
     using namespace tiny_logger;
@@ -107,6 +107,7 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 |-------|-------------|----------------------|
 | `Debug` | Debug information | Detailed tracking during development |
 | `Info` | General information | Normal operation status logging |
+| `Warn` | Warning information | Potential issues that don't affect execution |
 | `Error` | Error information | Exceptions that don't affect execution |
 | `Fatal` | Fatal error | Program cannot continue |
 
@@ -271,6 +272,7 @@ Uses default configuration: Console Printer + Info level + Discard overflow poli
 ```cpp
 logger.debug(fmt::format_string<T...>, T&&... args);
 logger.info(fmt::format_string<T...>, T&&... args);
+logger.warn(fmt::format_string<T...>, T&&... args);
 logger.error(fmt::format_string<T...>, T&&... args);
 logger.fatal(fmt::format_string<T...>, T&&... args);
 ```
@@ -279,6 +281,7 @@ logger.fatal(fmt::format_string<T...>, T&&... args);
 
 ```cpp
 logger.info("User {} logged in", username);
+logger.warn("Warning: memory usage at {}%", 85);
 logger.debug("Value: {:.2f}", 3.14159);
 logger.error("Error code: {:#x}", 0xDEAD);
 logger.info("Multiple values: {}, {}, {}", a, b, c);
@@ -303,18 +306,31 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 
 ```
 TinyLogger/
-├── include/TinyLogger/      # Header files
+├── include/tiny_logger/      # Header files
 │   ├── logger.h
 │   ├── logger_builder.h
 │   ├── logger_factory.h     # Factory functions
+│   ├── logger_error.h
 │   ├── ring_buffer.h
+│   ├── distributor.h
+│   ├── printer.h
+│   ├── printer/             # Printer subdirectory
+│   │   ├── base.h
+│   │   ├── console.h
+│   │   ├── file.h
+│   │   └── null.h
 │   ├── types.h
 │   └── ...
 ├── src/                    # Implementation files
 │   ├── logger.cpp
-│   ├── logger_factory.cpp   # Factory functions implementation
+│   ├── logger_builder.cpp
+│   ├── logger_factory.cpp
 │   ├── ring_buffer.cpp
 │   ├── distributor.cpp
+│   ├── queue_registry.cpp
+│   ├── console.cpp         # Console Printer
+│   ├── file.cpp            # File Printer
+│   ├── null.cpp            # Null Printer
 │   └── ...
 ├── test/                   # Test suite
 │   ├── test_ring_buffer.cpp

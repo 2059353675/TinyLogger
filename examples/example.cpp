@@ -10,10 +10,10 @@
  *   ./examples/example
  */
 
-#include <TinyLogger/logger_builder.h>
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <tiny_logger/logger_builder.h>
 
 int main() {
     auto logger = tiny_logger::LoggerBuilder()
