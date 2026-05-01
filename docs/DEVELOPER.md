@@ -191,7 +191,6 @@ option(TINYLOGGER_BUILD_TESTS "Build tests" ON)
 option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
 
 # 依赖查找
-find_path(NLOHMANN_JSON_INCLUDE_DIR NAMES nlohmann/json.hpp ...)
 find_path(FMT_INCLUDE_DIR NAMES fmt/format.h ...)
 find_library(FMT_LIBRARY NAMES fmt ...)
 ```
@@ -300,8 +299,8 @@ cd build/test
 #include <tiny_logger/xxx.h>
 #include "test_common.h"
 
-using namespace TinyLogger;
-using namespace TinyLogger::test;
+using namespace tiny_logger;
+using namespace tiny_logger::test;
 
 // ==================== 测试函数 ====================
 

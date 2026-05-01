@@ -1,0 +1,35 @@
+name: CMake Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        cmake_build_type: [ Release, Debug ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DTINYLOGGER_BUILD_TESTS=ON
+
+      - name: Build
+        run: |
+          cd build
+          cmake --build . --config ${{ matrix.cmake_build_type }}
+
+      - name: Run Tests
+        if: matrix.os == 'ubuntu-latest' && matrix.cmake_build_type == 'Release'
+        run: |
+          cd build
+          ctest --output-on-failure

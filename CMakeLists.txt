@@ -100,7 +100,7 @@ endif()
 # ==================== 安装 ====================
 
 # 安装头文件
-install(DIRECTORY include/TinyLogger
+install(DIRECTORY include/tiny_logger
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
