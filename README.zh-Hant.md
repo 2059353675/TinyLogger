@@ -43,7 +43,8 @@ sudo dnf install fmt-devel nlohmann-json-devel
 git clone <repository-url>
 cd TinyLogger
 mkdir build && cd build
-cmake ..
+cmake ..                                                  # Linux/Unix
+cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"  # Windows
 make
 sudo make install      # 可選，安裝到 /usr/local
 ```
