@@ -43,9 +43,9 @@ void Distributor::add_printer(std::unique_ptr<Printer> p) {
 }
 
 void Distributor::recalculate_min_level() {
-    LogLevel min_level = LogLevel::Fatal;
+    auto min_level = LogLevel::Fatal;
     for (const auto& printer : printers_) {
-        LogLevel printer_level = printer->min_level();
+        auto printer_level = printer->min_level();
         if (static_cast<uint8_t>(printer_level) < static_cast<uint8_t>(min_level)) {
             min_level = printer_level;
         }

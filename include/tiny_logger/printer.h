@@ -13,21 +13,29 @@ struct CachedTime {
     char buf[32]; // "YYYY-MM-DD HH:MM:SS"
 };
 
-inline thread_local CachedTime cache;
+inline CachedTime& get_cached_time() {
+    thread_local static CachedTime cache;
+    return cache;
+}
 
 inline void format_timestamp(uint64_t ts_us, fmt::memory_buffer& buf) {
     time_t sec = ts_us / 1000000;
+    auto& cache = get_cached_time();
     if (sec != cache.last_sec) {
         cache.last_sec = sec;
 
         std::tm tm;
+#ifdef _WIN32
+        localtime_s(&tm, &sec);
+#else
         localtime_r(&sec, &tm);
+#endif
 
         std::strftime(cache.buf, sizeof(cache.buf), "%Y-%m-%d %H:%M:%S", &tm);
     }
 
     uint32_t us = ts_us % 1000000;
-    fmt::format_to(buf, "{}.{:06}", cache.buf, us);
+    fmt::format_to(std::back_inserter(buf), "{}.{:06}", cache.buf, us);
 }
 
 inline const char* level_to_string(LogLevel level) {
@@ -48,16 +56,16 @@ inline const char* level_to_string(LogLevel level) {
 }
 
 inline void format_log_line(LogEvent& event, fmt::memory_buffer& out) {
-    fmt::format_to(out, "[");
+    fmt::format_to(std::back_inserter(out), "[");
 
     format_timestamp(event.timestamp, out);
 
-    fmt::format_to(out, "][{}][{}] ", event.thread_id, level_to_string(event.level));
+    fmt::format_to(std::back_inserter(out), "][{}][{}] ", event.thread_id, level_to_string(event.level));
 
     if (event.vtable && event.vtable->format_fn) {
         event.vtable->format_fn(event, out);
     } else if (event.fmt) {
-        fmt::format_to(out, "{}", event.fmt);
+        fmt::format_to(std::back_inserter(out), "{}", event.fmt);
     }
 }
 

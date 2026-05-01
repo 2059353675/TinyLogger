@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -15,9 +16,9 @@
 
 namespace tiny_logger {
 
-const size_t LOG_COUNT = 256;
-const size_t LOG_MSG_SIZE = 512;
-const size_t LOG_ARGS_STORAGE_SIZE = 128;
+constexpr size_t LOG_COUNT = 256;
+constexpr size_t LOG_MSG_SIZE = 512;
+constexpr size_t LOG_ARGS_STORAGE_SIZE = 128;
 
 /* 日志级别 */
 enum class LogLevel : uint8_t {

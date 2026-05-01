@@ -110,9 +110,9 @@ void format_log_event(const LogEvent& event, fmt::memory_buffer& out) {
     auto* tuple_ptr = event.storage_as<Tuple>();
 
     if constexpr (sizeof...(Args) == 0) {
-        fmt::format_to(out, "{}", event.fmt);
+        fmt::format_to(std::back_inserter(out), "{}", event.fmt);
     } else {
-        std::apply([&](const auto&... unpacked) { fmt::format_to(out, event.fmt, unpacked...); }, *tuple_ptr);
+        std::apply([&](const auto&... unpacked) { fmt::format_to(std::back_inserter(out), event.fmt, unpacked...); }, *tuple_ptr);
     }
 }
 

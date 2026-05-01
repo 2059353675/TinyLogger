@@ -58,6 +58,9 @@ inline uint64_t rdtsc() {
 }
 
 void pin_thread(int cpu_id) {
+#ifdef _WIN32
+    (void)cpu_id;
+#else
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(cpu_id, &cpuset);
@@ -65,6 +68,7 @@ void pin_thread(int cpu_id) {
     if (pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset) != 0) {
         perror("pthread_setaffinity_np");
     }
+#endif
 }
 
 double calibrate_tsc_ghz() {
@@ -111,7 +115,7 @@ void bench_fmt_only(int iterations, int batch) {
 
     auto fn = [&]() {
         buf.clear();
-        fmt::format_to(buf, "msg {} {}", 42, 84);
+        fmt::format_to(std::back_inserter(buf), "msg {} {}", 42, 84);
     };
 
     printf("  fmt::format:\n");

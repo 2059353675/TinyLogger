@@ -116,23 +116,6 @@ test/
 
 ## 运行测试
 
-### Windows
-
-```bash
-cd test
-run_tests.bat
-```
-
-### Linux/macOS
-
-```bash
-cd test
-chmod +x run_tests.sh
-./run_tests.sh
-```
-
-### 手动构建和运行
-
 ```bash
 # 创建构建目录
 cd test
