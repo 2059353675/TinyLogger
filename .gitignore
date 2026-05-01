@@ -29,8 +29,10 @@ examples/*.log
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+cmake-build-debug/
 Makefile
 *.cmake
+.idea/
 
 # 包管理器
 vcpkg_installed/

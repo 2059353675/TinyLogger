@@ -7,7 +7,7 @@
 ## 核心特性
 
 - **异步日志** - 应用线程零阻塞，日志写入延迟约 150ns（p99 < 400ns）
-- **无锁设计** - SPSC 环形缓冲区（基于 Disruptor 消息队列架构），单线程吞吐量超 700 万 logs/s
+- **无锁设计** - SPSC 环形缓冲区，单线程吞吐量超 700 万 logs/s
 - **高并发** - 8 线程并发写入可达 1500 万 logs/s
 - **RAII 资源管理** - 线程、文件等资源自动清理
 - **多输出目标** - Console、File、Null Printer，支持同时配置多个
@@ -195,6 +195,7 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 |------|--------|------|
 | `TINYLOGGER_BUILD_TESTS` | ON | 构建测试套件 |
 | `TINYLOGGER_BUILD_EXAMPLES` | ON | 构建示例程序 |
+| `USE_SYSTEM_FMT` | OFF | 使用系统已安装的 fmt（而非 FetchContent） |
 | `CMAKE_BUILD_TYPE` | - | 构建类型（Release/Debug） |
 | `CMAKE_INSTALL_PREFIX` | /usr/local | 安装路径 |
 

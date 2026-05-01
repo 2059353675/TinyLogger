@@ -7,7 +7,7 @@ C++17 high-performance asynchronous logging library based on lock-free ring buff
 ## Core Features
 
 - **Asynchronous Logging** - Zero blocking for application threads, average log write latency ~130ns (p99 < 400ns)
-- **Lock-free Design** - SPSC ring buffer (based on Disruptor message queue architecture), single-thread throughput exceeds 7M logs/s
+- **Lock-free Design** - SPSC ring buffer, single-thread throughput exceeds 7M logs/s
 - **High Concurrency** - 15M logs/s with 8 threads concurrent writing
 - **RAII Resource Management** - Automatic cleanup of threads, files and other resources
 - **Multiple Output Targets** - Console, File, Null Printer, supports simultaneous configuration
@@ -194,6 +194,7 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 |--------|---------|-------------|
 | `TINYLOGGER_BUILD_TESTS` | ON | Build test suite |
 | `TINYLOGGER_BUILD_EXAMPLES` | ON | Build example programs |
+| `USE_SYSTEM_FMT` | OFF | Use system-installed fmt instead of FetchContent |
 | `CMAKE_BUILD_TYPE` | - | Build type (Release/Debug) |
 | `CMAKE_INSTALL_PREFIX` | /usr/local | Installation path |
 
