@@ -143,7 +143,6 @@ ctest --output-on-failure
 - CMake 3.14+
 - C++17 编译器
 - fmt 库
-- nlohmann/json 库
 
 ## 添加新测试
 

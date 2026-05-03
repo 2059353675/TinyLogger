@@ -1,33 +1,34 @@
-# TinyLogger 开发者文档
+# TinyLogger Developer Documentation
 
-> 面向开发者：构建系统、测试规范、架构设计与贡献指南
-> 项目开源地址：[Github: TinyLogger](https://github.com/2059353675/TinyLogger)
+**[English](./DEVELOPER.md)** | **[简体中文](./DEVELOPER.zh-Hans.md)** | **[繁體中文](./DEVELOPER.zh-Hant.md)**
 
-## 目录
+> For developers: Build system, testing standards, architecture design, and contribution guide
+> Project open source address: [Github: TinyLogger](https://github.com/2059353675/TinyLogger)
 
-- [项目结构](#项目结构)
-- [构建系统](#构建系统)
-  - [CMake 配置](#cmake-配置)
-  - [构建命令](#构建命令)
-  - [清理构建](#清理构建)
-- [测试系统](#测试系统)
-  - [测试架构](#测试架构)
-  - [运行测试](#运行测试)
-  - [编写测试](#编写测试)
-  - [测试工具函数](#测试工具函数)
-- [代码规范](#代码规范)
-- [架构设计](#架构设计)
-- [贡献指南](#贡献指南)
-- [依赖管理](#依赖管理)
+## Table of Contents
+
+- [Project Structure](#project-structure)
+- [Architecture Design](#architecture-design)
+- [Build System](#build-system)
+    - [CMake Configuration](#cmake-configuration)
+    - [Build Commands](#build-commands)
+    - [Cleaning the Build](#cleaning-the-build)
+- [Testing System](#testing-system)
+    - [Testing Architecture](#testing-architecture)
+    - [Running Tests](#running-tests)
+    - [Writing Tests](#writing-tests)
+    - [Test Utility Functions](#test-utility-functions)
+- [Contribution Guide](#contribution-guide)
+- [Future Plans](#future-plans)
 
 ---
 
-## 项目结构
+## Project Structure
 
 ```
 TinyLogger/
-├── CMakeLists.txt              # 主 CMake 构建文件
-├── include/tiny_logger/        # 头文件
+├── CMakeLists.txt              # Main CMake build file
+├── include/tiny_logger/        # Header files
 │   ├── logger.h
 │   ├── logger_builder.h
 │   ├── logger_factory.h
@@ -42,7 +43,7 @@ TinyLogger/
 │   │   └── null.h
 │   ├── types.h
 │   └── ...
-├── src/                        # 实现文件
+├── src/                        # Implementation files
 │   ├── logger.cpp
 │   ├── logger_builder.cpp
 │   ├── logger_factory.cpp
@@ -53,27 +54,27 @@ TinyLogger/
 │   ├── file.cpp
 │   ├── null.cpp
 │   └── ...
-├── test/                       # 测试套件
+├── test/                       # Test suite
 │   ├── CMakeLists.txt
 │   ├── test_common.h
 │   ├── test_ring_buffer.cpp
 │   ├── test_printer.cpp
 │   ├── test_distributor.cpp
 │   └── test_logger.cpp
-├── examples/                  # 示例程序
+├── examples/                   # Example programs
 │   ├── example.cpp
 │   └── speed_test.cpp
-├── docs/                      # 文档
-│   ├── USER_GUIDE.md          # 用户指南
-│   └── DEVELOPER.md          # 开发者文档（本文件）
-└── .clang-format              # 代码格式化配置
+├── docs/                       # Documentation
+│   ├── USER_GUIDE.md          # User guide
+│   └── DEVELOPER.md           # Developer documentation (this file)
+└── .clang-format               # Code formatting configuration
 ```
 
 ---
 
-## 架构设计
+## Architecture Design
 
-### 核心组件
+### Core Components
 
 ```mermaid
 flowchart TD
@@ -82,43 +83,43 @@ flowchart TD
     classDef outLayer fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
     classDef note fill:#f5f5f5,stroke:#9e9e9e,stroke-dasharray: 5 5,font-size:12px;
 
-    subgraph App ["🖥️ 应用层"]
+    subgraph App ["🖥️ Application Layer"]
         direction TB
-        User["User Thread(s)<br/>支持多线程"]:::appLayer
+        User["User Thread(s)<br/>Supports multithreading"]:::appLayer
     end
 
-    subgraph Core ["⚙️ 日志核心层"]
+    subgraph Core ["⚙️ Logging Core Layer"]
         direction TB
-        Logger["Logger 接口"]:::coreLayer
-        Ring["RingBuffer(s)<br/>基于 Disruptor 消息队列架构的<br/>SPSC 无锁环形缓冲区<br/>（每个线程独立拥有）"]:::coreLayer
-        Dist["Distributor 事件分发"]:::coreLayer
+        Logger["Logger Interface"]:::coreLayer
+        Ring["RingBuffer(s)<br/>SPSC lock-free ring buffer<br/>based on Disruptor message queue architecture<br/>(each thread has its own)"]:::coreLayer
+        Dist["Distributor Event Dispatcher"]:::coreLayer
     end
 
-    subgraph Out ["📤 输出层"]
+    subgraph Out ["📤 Output Layer"]
         direction TB
-        Printer["Printer(s)<br/>Console / File 等"]:::outLayer
+        Printer["Printer(s)<br/>Console / File etc."]:::outLayer
     end
 
-    User -->|写入 | Logger
-    Logger -->|生产 | Ring
-    Ring -->|消费 | Dist
-    Dist -->|渲染输出 | Printer
-
+    User -->|write | Logger
+    Logger -->|produce | Ring
+    Ring -->|consume | Dist
+    Dist -->|render output | Printer
 ```
 
-### 数据流
+### Data Flow
 
-1. 用户调用 `logger.fatal("严重错误：系统崩溃，错误码：{}", errorcode);` 
-2. Logger 将日志信息封装成 `LogEvent`，写入 `RingBuffer`
-3. `Distributor` 线程从 `RingBuffer` 读取事件
-4. `Distributor` 根据级别过滤，分发给匹配的 `Printer`
-5. `Printer` 格式化日志信息，并写入目标（控制台/文件），如
-    - `[2026-03-21 07:19:25.339158][8343213073192788484][Fatal] 严重错误：系统崩溃，错误码：57005`
+1. User calls `logger.fatal("Fatal error: system crash, error code: {}", errorcode);`
+2. Logger wraps the log information into a `LogEvent` and writes it to `RingBuffer`
+3. `Distributor` thread reads events from `RingBuffer`
+4. `Distributor` filters by level and dispatches to matching `Printer`s
+5. `Printer` formats the log message and writes to target (console/file), e.g.,
+    - `[2026-03-21 07:19:25.339158][8343213073192788484][Fatal] Fatal error: system crash, error code: 57005`
 
-时序图如下：
+Sequence diagram:
+
 ```mermaid
 sequenceDiagram
-    participant App as 应用线程
+    participant App as Application Thread
     participant Logger as Logger
     participant Ring as SPSC RingBuffer
     participant Dist as Distributor
@@ -126,78 +127,82 @@ sequenceDiagram
     participant P2 as Printer 2
     participant P3 as Printer 3
 
-    Note over App, Ring: 🟢 日志生产阶段
+    Note over App, Ring: 🟢 Log production phase
     App->>Logger: info("num = {}", num);
     activate Logger
-    Logger->>Logger: 封装 LogEvent
+    Logger->>Logger: wrap LogEvent
     Logger->>Ring: write(event)
     activate Ring
-    Ring-->>Logger: 写入成功 (无锁)
+    Ring-->>Logger: write success (lock-free)
     deactivate Ring
-    Logger-->>App: 立即返回 (不阻塞 IO)
+    Logger-->>App: return immediately (no IO blocking)
     deactivate Logger
 
-    Note over Dist, P3: 🔵 日志消费阶段
-    loop 持续监听
+    Note over Dist, P3: 🔵 Log consumption phase
+    loop continuously listening
         Dist->>Ring: read(event)
         activate Ring
-        Ring-->>Dist: 获取事件
+        Ring-->>Dist: get event
         deactivate Ring
         
-        Dist->>Dist: 过滤日志级别
-        alt 输出方式 1
+        Dist->>Dist: filter log level
+        alt output method 1
             Dist->>P1: print(event)
             activate P1
-            P1-->>Dist: 输出到控制台
+            P1-->>Dist: output to console
             deactivate P1
         end
-        alt 输出方式 2
+        alt output method 2
             Dist->>P2: print(event)
             activate P2
-            P2-->>Dist: 写入文件 (app.log)
+            P2-->>Dist: write to file (app.log)
             deactivate P2
         end
-        alt 输出方式 3
+        alt output method 3
             Dist->>P3: print(event)
             activate P3
-            P3-->>Dist: 写入文件 (errors.log)
+            P3-->>Dist: write to file (errors.log)
             deactivate P3
         end
     end
 ```
 
-### 关键特性
+### Key Features
 
-- **异步日志：** 应用线程不阻塞（提交日志仅需约 30 纳秒），日志输出由 Distributor 线程分发给 Printers 处理
-- **无锁缓冲区：** RingBuffer 为单生产者单消费者（SPSC）队列，无需锁，提供了良好的高并发性能
-- **RAII 资源管理：** 所有资源（文件、线程）在析构时自动清理
-- **运行期只读：** Logger 在 init 后进入不可变状态，所有配置（buffer_size、overflow_policy）不可更改
-- **对象不可拷贝：** Logger 禁止拷贝/移动，避免线程 + 队列生命周期问题
-- **LoggerRef 包装类：** 自动管理生命周期；简化日志 API；支持拷贝共享底层 Logger；提供空安全
+- **Asynchronous logging:** Application threads do not block (log submission takes about 30 nanoseconds); log output is
+  handled by the Distributor thread dispatching to Printers
+- **Lock-free buffer:** RingBuffer is a single-producer single-consumer (SPSC) queue, no locks needed, providing
+  excellent high-concurrency performance
+- **RAII resource management:** All resources (files, threads) are automatically cleaned up upon destruction
+- **Runtime read-only:** Logger enters an immutable state after init; all configuration (buffer_size, overflow_policy)
+  cannot be changed
+- **Non-copyable objects:** Logger禁止copy/move to avoid thread + queue lifetime issues
+- **LoggerRef wrapper class:** Automatically manages lifetime; simplifies logging API; supports copy sharing of
+  underlying Logger; provides null safety
 
 ---
 
-## 构建系统
+## Build System
 
-### CMake 配置
+### CMake Configuration
 
-项目使用 CMake 3.14+ 构建，主配置文件位于 `CMakeLists.txt`。
+The project uses CMake 3.14+ for building. The main configuration file is `CMakeLists.txt`.
 
-**核心配置项：**
+**Core configuration options:**
 
 ```cmake
-# 构建选项
+# Build options
 option(TINYLOGGER_BUILD_TESTS "Build tests" ON)
 option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
 
-# 依赖查找
+# Dependency查找
 find_path(FMT_INCLUDE_DIR NAMES fmt/format.h ...)
 find_library(FMT_LIBRARY NAMES fmt ...)
 ```
 
-### 构建命令
+### Build Commands
 
-#### 完整构建（推荐）
+#### Full Build (Recommended)
 
 ```bash
 mkdir build && cd build
@@ -205,95 +210,84 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 ```
 
-#### 选择性构建
+#### Selective Build
 
 ```bash
-# 仅构建库（不构建测试和示例）
+# Build only the library (skip tests and examples)
 cmake .. -DTINYLOGGER_BUILD_TESTS=OFF -DTINYLOGGER_BUILD_EXAMPLES=OFF
 
-# 仅构建测试
+# Build only tests
 cmake .. -DTINYLOGGER_BUILD_EXAMPLES=OFF
 
-# 仅构建示例
+# Build only examples
 cmake .. -DTINYLOGGER_BUILD_TESTS=OFF
 ```
 
-#### 运行测试
+#### Running Tests
 
 ```bash
-# 方式 1：使用 make 目标
+# Method 1: Using make target
 make run_tests
 
-# 方式 2：使用 CTest
+# Method 2: Using CTest
 ctest --output-on-failure
 ```
 
-#### 安装
+#### Installation
 
 ```bash
-make install  # 默认安装到 /usr/local
+make install  # Installs to /usr/local by default
 
-# 自定义安装路径
+# Custom installation path
 cmake .. -DCMAKE_INSTALL_PREFIX=/opt/tinylogger
 make install
 ```
 
-### 清理构建
+### Cleaning the Build
 
 ```bash
-# 标准清理（仅清理构建产物）
+# Standard clean (only build artifacts)
 make clean
 
-# 完整清理（构建产物 + 测试临时文件 + 示例产物）
+# Full clean (build artifacts + test temporary files + example artifacts)
 make clean-all
 ```
 
-`clean-all` 目标会清理：
-- CMake/Make 构建产物
-- 测试产生的临时文件（`test_temp_*.json`、`test_*.log`）
-- 示例产生的日志文件（`examples/*.log`）
+The `clean-all` target cleans:
+
+- CMake/Make build artifacts
+- Temporary files generated by tests (`test_temp_*.json`, `test_*.log`)
+- Log files generated by examples (`examples/*.log`)
 
 ---
 
-## 测试系统
+## Testing System
 
-### 测试架构
+### Testing Architecture
 
-TinyLogger 使用**自定义测试框架**（不依赖外部测试库），包含 5 个测试套件：
+TinyLogger uses a **custom test framework** (no external test library dependency) and includes 5 test suites:
 
-| 测试文件 | 测试类型 | 测试数量 | 覆盖模块 |
-|---------|---------|---------|---------|
-| `test_ring_buffer.cpp` | 单元测试 | 11 | 环形缓冲区 |
-| `test_printer.cpp` | 单元测试 | 13 | Console/File Printer |
-| `test_distributor.cpp` | 单元测试 | 13 | 事件分发器 |
-| `test_logger.cpp` | 集成测试 | 14 | Logger 完整流程 |
+| Test File              | Test Type         | Number of Tests | Modules Covered          |
+|------------------------|-------------------|-----------------|--------------------------|
+| `test_ring_buffer.cpp` | Unit tests        | 11              | Ring buffer              |
+| `test_printer.cpp`     | Unit tests        | 13              | Console/File Printer     |
+| `test_distributor.cpp` | Unit tests        | 13              | Event dispatcher         |
+| `test_logger.cpp`      | Integration tests | 14              | Complete Logger workflow |
 
-**总计：51 个测试用例**
+**Total: 51 test cases**
 
-### 运行测试
-
-#### 使用主构建系统
+### Running Tests
 
 ```bash
 cd build
-make run_tests
+ctest --output-on-failure
 ```
 
-#### 运行单个测试
+### Writing Tests
 
-```bash
-cd build/test
-./test_ring_buffer
-./test_printer
-./test_distributor
-./test_logger
-```
+#### Test File Structure
 
-### 编写测试
-
-#### 测试文件结构
-
-每个测试文件遵循以下结构：
+Each test file follows this structure:
 
 ```cpp
 #include <tiny_logger/xxx.h>
@@ -302,15 +296,15 @@ cd build/test
 using namespace tiny_logger;
 using namespace tiny_logger::test;
 
-// ==================== 测试函数 ====================
+// ==================== Test functions ====================
 
 bool test_xxx_feature() {
-    // 测试逻辑
-    return true; // 通过
-    // return false; // 失败
+    // Test logic
+    return true; // Pass
+    // return false; // Fail
 }
 
-// ==================== 主函数 ====================
+// ==================== Main function ====================
 
 int main() {
     std::cout << "========================================" << std::endl;
@@ -327,56 +321,58 @@ int main() {
 }
 ```
 
-#### 测试函数规范
+#### Test Function Specifications
 
-**要求：**
-1. 测试函数返回 `bool`（`true` = 通过，`false` = 失败）
-2. **不在测试函数内打印 `[TEST]` 或 `PASSED/FAILED`**（由框架统一处理）
-3. 使用 `test_common.h` 提供的工具函数
-4. 临时文件使用 RAII 类（自动清理）
+**Requirements:**
 
-**推荐：**
-- 测试函数命名：`test_模块_功能`，如 `test_ring_buffer_creation`
-- 使用简洁的断言逻辑，直接返回布尔表达式
-- 并发测试使用适当的等待和同步机制
+1. Test functions return `bool` (`true` = pass, `false` = fail)
+2. **Do not print `[TEST]` or `PASSED/FAILED` inside test functions** (handled by framework)
+3. Use utility functions provided by `test_common.h`
+4. Use RAII classes for temporary files (automatic cleanup)
 
-### 测试工具函数
+**Recommendations:**
 
-`test/test_common.h` 提供以下工具：
+- Name test functions as `test_module_feature`, e.g., `test_ring_buffer_creation`
+- Use simple assertion logic, returning boolean expressions directly
+- Use appropriate等待and synchronization mechanisms for concurrent tests
+
+### Test Utility Functions
+
+`test/test_common.h` provides the following utilities:
 
 #### `create_test_event()`
 
-创建测试用 `LogEvent`：
+Creates a `LogEvent` for testing:
 
 ```cpp
-// 版本 1：返回 LogEvent（适用于 distributor、printer 测试）
+// Version 1: Returns LogEvent (suitable for distributor, printer tests)
 LogEvent event = create_test_event(LogLevel::Info, "Test message");
 
-// 版本 2：通过引用赋值，返回 bool（适用于 ring_buffer 测试）
+// Version 2: Assigns by reference, returns bool (suitable for ring_buffer tests)
 LogEvent event;
 bool ok = create_test_event(event, LogLevel::Info, "Test message");
 ```
 
-#### `TempLogFile` - 临时日志文件
+#### `TempLogFile` - Temporary Log File
 
-RAII 风格，提供内容读取：
+RAII style for temporary files with content reading:
 
 ```cpp
 {
     TempLogFile log("output.log");
     
-    // 使用 log.path() 作为日志输出路径
+    // Use log.path() as the log output path
     Logger logger;
     logger.init(create_file_config(log.path()));
     logger.info("Test");
     
-    // 读取内容验证
+    // Read content to verify
     std::string content = log.read_content();
     assert(content.find("Test") != std::string::npos);
-} // 文件自动删除
+} // File automatically deleted
 ```
 
-#### `run_test()` - 测试运行器
+#### `run_test()` - Test Runner
 
 统一执行、捕获异常、统计结果：
 
@@ -385,13 +381,13 @@ TestResult result;
 run_test("Test name", test_function, result);
 ```
 
-#### `print_test_summary()` - 结果输出
+#### `print_test_summary()` - Result Output
 
-打印格式化的测试结果：
+Prints formatted test results:
 
 ```cpp
 print_test_summary("Suite Name", result);
-// 输出：
+// Output:
 // ========================================
 //   Suite Name
 //   Results: 10 passed, 0 failed
@@ -400,62 +396,61 @@ print_test_summary("Suite Name", result);
 
 ---
 
-## 代码规范
+## Contribution Guide
 
-### 命名约定
+### Naming Conventions
 
-| 类型 | 规范 | 示例 |
-|------|------|------|
-| 类名 | PascalCase | `RingBuffer`, `ConsolePrinter` |
-| 函数/方法 | snake_case | `create_test_event`, `should_log` |
-| 变量 | snake_case | `buffer_size`, `min_level` |
-| 常量 | UPPER_SNAKE_CASE | `LOG_MSG_SIZE`, `MAX_PRINTERS` |
-| 命名空间 | snake_case | `tiny_logger`, `tiny_logger::test` |
+| Type              | Convention       | Example                            |
+|-------------------|------------------|------------------------------------|
+| Class names       | PascalCase       | `RingBuffer`, `ConsolePrinter`     |
+| Functions/methods | snake_case       | `create_test_event`, `should_log`  |
+| Variables         | snake_case       | `buffer_size`, `min_level`         |
+| Constants         | UPPER_SNAKE_CASE | `LOG_MSG_SIZE`, `MAX_PRINTERS`     |
+| Namespaces        | snake_case       | `tiny_logger`, `tiny_logger::test` |
 
-### 代码风格
+### Code Style
 
-- **换行、空格等：** 由 `.clang-format` 自动配置
-- **头文件保护：** `#pragma once` 风格
-- **注释：** Doxygen 风格；关键逻辑必须注释
+- **Line breaks, whitespace, etc.:** Automatically configured by `.clang-format`
+- **Header guards:** `#pragma once` style
+- **Comments:** Doxygen style;关键逻辑必须注释
 
-### 提交规范
+### Commit Specifications
 
-提交消息格式：
+Commit message format:
 
 ```
 <type>: <subject>
 
-<body>  # 可选
+<body>  # Optional
 ```
 
-**Type 列表：**
-- `feat`：新功能
-- `fix`：修复 bug
-- `docs`：文档更新
-- `refactor`：代码重构
-- `test`：测试相关
-- `chore`：构建/工具链变更
+**Type list:**
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation update
+- `refactor`: Code refactoring
+- `test`: Test-related
+- `chore`: Build/toolchain changes
 
 ---
 
-## 未来计划
+## Future Plans
 
-字母越前，重要性越高，即 A 最优先，以此类推。
+The earlier the letter, the higher the priority, i.e., A is highest priority, and so on.
 
-### 更好的配置方式（B）
+### Add Serial Port Printing (C)
 
-### 增加串口打印（C）
+Support RS-232, RS-485/RS-422, UART and other serial communication methods.
 
-支持 RS-232、RS-485/RS-422、UART 等串口通信方式
+### Custom Log Output Formatting (D)
 
-### 自定义日志输出格式化（D）
+Currently, the formatting method for each printer is hardcoded into `printer_xxx.h`. In the future, support can be added
+for optional custom patterns in the configuration file (similar to spdlog's `%Y-%m-%d [%l] %v`).
 
-目前，每个 printer 的格式化方法都被硬编码进 `printer_xxx.h`，未来可以支持在配置文件中增加可选的自定义 pattern（类似 spdlog %Y-%m-%d [%l] %v）
+### Dependency Management (D)
 
-### 依赖管理（D）
+Plans to support the following package managers:
 
-计划支持以下包管理器：
-
-- **vcpkg：** 添加 `vcpkg.json`
-- **Conan：** 添加 `conanfile.txt`
-- **FetchContent：** CMake 自动下载
+- **vcpkg:** Add `vcpkg.json`
+- **Conan:** Add `conanfile.txt`

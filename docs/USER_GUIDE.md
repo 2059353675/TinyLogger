@@ -1,80 +1,84 @@
-# TinyLogger 用户指南
+# TinyLogger User Guide
 
-> 面向使用者：快速了解如何使用 TinyLogger 库
+**[English](./USER_GUIDE.md)** | **[简体中文](./USER_GUIDE.zh-Hans.md)** | **[繁體中文](./USER_GUIDE.zh-Hant.md)**
 
-## 目录
+> For users: Quick introduction to using the TinyLogger library
 
-- [快速开始](#快速开始)
-  - [安装依赖](#安装依赖)
-  - [构建与安装](#构建与安装)
-  - [基本使用](#基本使用)
-- [配置方式](#配置方式)
-  - [程序化配置](#程序化配置推荐)
-  - [配置项说明](#配置项说明)
-- [API 参考](#api-参考)
-  - [Logger 类](#logger-类)
-  - [日志级别](#日志级别)
-  - [格式化输出](#格式化输出)
-- [高级用法](#高级用法)
-  - [多 Printer 配置](#多-printer-配置)
-  - [文件日志滚动](#文件日志滚动)
-- [在其他项目中使用](#在其他项目中使用)
-- [常见问题](#常见问题)
+## Table of Contents
+
+- [Quick Start](#quick-start)
+    - [Installing Dependencies](#installing-dependencies)
+    - [Building and Installing](#building-and-installing)
+    - [Minimal Demo](#minimal-demo)
+- [Configuration](#configuration)
+    - [Configuration Options](#configuration-options)
+    - [Console Printer Configuration](#console-printer-configuration)
+    - [File Printer Configuration](#file-printer-configuration)
+- [API Reference](#api-reference)
+    - [Builder API](#builder-api)
+    - [Log Levels](#log-levels)
+    - [Formatted Output](#formatted-output)
+- [Advanced Usage](#advanced-usage)
+    - [Multiple Printer Configuration](#multiple-printer-configuration)
+    - [Log File Rotation](#log-file-rotation)
+- [Using in Other Projects](#using-in-other-projects)
+- [Frequently Asked Questions](#frequently-asked-questions)
 
 ---
 
-## 快速开始
+## Quick Start
 
-### 安装依赖
+### Installing Dependencies
 
-TinyLogger 需要以下依赖：
+TinyLogger requires the following dependencies:
 
-- **C++17 兼容编译器**（GCC 9+, Clang 10+, MSVC 2019+）
-- **fmt 库**：高性能格式化输出
-- **nlohmann/json 库**：JSON 解析
+- **C++17 compatible compiler** (GCC 9+, Clang 10+, MSVC 2019+)
+- **CMake build tool**: at least 3.14
+- **fmt library**: high-performance formatting output
 
 #### Ubuntu/Debian
 
 ```bash
-sudo apt-get install libfmt-dev nlohmann-json3-dev
+sudo apt-get install libfmt-dev
 ```
 
 #### Arch Linux
 
 ```bash
-sudo pacman -S fmt nlohmann-json
+sudo pacman -S fmt
 ```
 
 #### Fedora
 
 ```bash
-sudo dnf install fmt-devel nlohmann-json-devel
+sudo dnf install fmt-devel
 ```
 
-### 构建与安装
+### Building and Installing
 
 ```bash
-# 克隆项目
-git clone <repository-url>
+# Clone the project
+git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 
-# 构建
+# Build
 mkdir build && cd build
 cmake ..
 make
 
-# 安装（可选）
+# Install (optional)
 sudo make install
 ```
 
-构建产物：
-- `build/libTinyLogger.a` - 静态库
-- `build/example` - 示例程序
-- `build/test/*` - 测试可执行文件
+Build artifacts:
 
-### 基本使用
+- `build/libTinyLogger.a` - static library
+- `build/example` - example program
+- `build/test/*` - test executables
 
-推荐使用 `LoggerBuilder`（链式配置，类型安全）：
+### Minimal Demo
+
+It is recommended to use `LoggerBuilder` (fluent configuration, type-safe):
 
 ```cpp
 #include <tiny_logger/logger_builder.h>
@@ -88,38 +92,38 @@ int main() {
         .add_console_printer(LogLevel::Debug)
         .build();
 
-    logger.info("应用程序启动");
-    logger.debug("调试信息：{}", 42);
-    logger.error("错误：{}", "详细信息");
+    logger.info("Application started");
+    logger.debug("Debug info: {}", 42);
+    logger.error("Error: {}", "details");
 
     return 0;
 }
 ```
 
-或使用默认配置（最简方式）：
+Or use default configuration (discard only, output Info level and above):
 
 ```cpp
 #include <tiny_logger/logger_builder.h>
 
 int main() {
     auto logger = tiny_logger::create_default_logger();
-    logger.info("应用程序启动");
+    logger.info("Application started");
     return 0;
 }
 ```
 
-编译你的程序：
+Then compile your program:
 
 ```bash
-g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
-    -L/path/to/TinyLogger/build -lTinyLogger -lfmt
+g++ -std=c++17 -I /path/to/TinyLogger/include -o myapp myapp.cpp \
+    -L /path/to/TinyLogger/build -lTinyLogger -lfmt
 ```
 
 ---
 
-## 配置方法
+## Configuration
 
-使用 `LoggerBuilder` 进行链式配置（推荐）：
+Use `LoggerBuilder` for fluent configuration:
 
 ```cpp
 using namespace tiny_logger;
@@ -132,36 +136,36 @@ auto logger = LoggerBuilder()
     .build();
 ```
 
-### 配置项说明
+### Configuration Options
 
-| 配置项 | 类型 | 说明 |
-|--------|------|------|
-| `set_buffer_size(size)` | 函数 | 环形缓冲区大小（槽位数），必须是 2 的幂次（默认 256） |
-| `set_overflow_policy(policy)` | 函数 | 溢出策略：`Discard`（丢弃）或 `Block`（阻塞） |
-| `add_console_printer(level)` | 函数 | 添加控制台输出，参数为最小日志级别 |
-| `add_file_printer(path, level)` | 函数 | 添加文件输出，参数为文件路径和最小日志级别 |
-| `add_null_printer()` | 函数 | 添加 Null 输出（丢弃所有日志，用于测试） |
+| Configuration Item              | Type                 | Default   | Description                                      |
+|---------------------------------|----------------------|-----------|--------------------------------------------------|
+| `set_buffer_size(size)`         | `size_t`             | `256`     | Ring buffer size (must be power of two)          |
+| `set_overflow_policy(policy)`   | `OverflowPolicy`     | `Discard` | Overflow policy: `Discard` or `Block`            |
+| `add_console_printer(level)`    | `LogLevel`           | `Info`    | Add console printer, set minimum log level       |
+| `add_file_printer(path, level)` | `string`, `LogLevel` | `Debug`   | Add file printer, set path and minimum level     |
+| `add_null_printer()`            | -                    | -         | Add Null printer (discard all logs, for testing) |
 
-### Console Printer 配置
+### Console Printer Configuration
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `type` | 枚举 | - | 固定值 `PrinterType::Console` |
-| `min_level` | 枚举 | `LogLevel::Info` | 最低日志级别 |
+| Configuration | Type | Default          | Description                        |
+|---------------|------|------------------|------------------------------------|
+| `type`        | enum | -                | Fixed value `PrinterType::Console` |
+| `min_level`   | enum | `LogLevel::Info` | Minimum log level                  |
 
-### File Printer 配置
+### File Printer Configuration
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `type` | 枚举 | - | 固定值 `PrinterType::File` |
-| `min_level` | 枚举 | `LogLevel::Info` | 最低日志级别 |
-| `file_path` | 字符串 | - | 日志文件路径 |
-| `max_size` | 整数 | `0`（不滚动） | 文件最大字节数，超出后滚动 |
-| `flush_every` | 整数 | `64` | 每 N 次写入后 flush |
+| Configuration | Type    | Default           | Description                                       |
+|---------------|---------|-------------------|---------------------------------------------------|
+| `type`        | enum    | -                 | Fixed value `PrinterType::File`                   |
+| `min_level`   | enum    | `LogLevel::Info`  | Minimum log level                                 |
+| `file_path`   | string  | -                 | Log file path                                     |
+| `max_size`    | integer | `0` (no rotation) | Maximum file size in bytes, rotates when exceeded |
+| `flush_every` | integer | `64`              | Flush after every N writes                        |
 
 ---
 
-## API 参考
+## API Reference
 
 ### Builder API
 
@@ -173,25 +177,25 @@ auto logger = LoggerBuilder()
     .build();
 ```
 
-#### 方法说明
+#### Method Descriptions
 
-| 方法 | 参数 | 默认值 | 说明 |
-|------|------|--------|------|
-| `set_buffer_size(size)` | size_t | 256 | 环形缓冲区大小 |
-| `set_overflow_policy(policy)` | OverflowPolicy | Discard | 溢出策略 |
-| `add_console_printer(level)` | LogLevel | Info | 添加控制台，设定最小级别 |
-| `add_file_printer(path, level)` | string, LogLevel | Debug | 添加文件输出 |
-| `add_null_printer()` | - | - | 添加 Null Printer |
+| Method                          | Parameters       | Default | Description                            |
+|---------------------------------|------------------|---------|----------------------------------------|
+| `set_buffer_size(size)`         | size_t           | 256     | Set ring buffer size                   |
+| `set_overflow_policy(policy)`   | OverflowPolicy   | Discard | Set overflow policy                    |
+| `add_console_printer(level)`    | LogLevel         | Info    | Add console printer with minimum level |
+| `add_file_printer(path, level)` | string, LogLevel | Debug   | Add file printer                       |
+| `add_null_printer()`            | -                | -       | Add Null printer                       |
 
-#### 默认配置
+#### Default Configuration
 
 ```cpp
 LoggerRef create_default_logger();
 ```
 
-使用默认配置创建 LoggerRef：Console Printer + Info 级别 + Discard 溢出策略。
+Creates a LoggerRef with default configuration: Console Printer + Info level + Discard overflow policy.
 
-**示例：**
+**Example:**
 ```cpp
 auto logger = create_default_logger();
 logger.info("Hello");
@@ -199,58 +203,59 @@ logger.info("Hello");
 
 #### LoggerRef
 
-`LoggerRef` 是 Logger 的包装类，支持**拷贝语义**
+`LoggerRef` is a wrapper class for Logger that supports **copy semantics**.
 
-**示例：**
+**Example:**
 ```cpp
 auto logger1 = LoggerBuilder().add_console_printer().build();
-auto logger2 = logger1;  // 拷贝，共享同一 Logger
+auto logger2 = logger1;  // Copy, shares the same Logger
 
 logger1.info("Message from logger1");
-logger2.info("Message from logger2");  // 同一 Logger
+logger2.info("Message from logger2");  // Same Logger
 ```
 
-#### 关闭 Logger
+#### Shutting Down Logger
 
-Logger 在析构时会自动调用 `shutdown()`。
+The Logger automatically calls `shutdown()` upon destruction.
 
-### 日志级别
+### Log Levels
 
-从低到高排列：
+Ordered from lowest to highest:
 
-| 级别 | 说明 | 适用场景（建议） |
-|------|------|----------|
-| `Debug` | 调试信息 | 开发阶段详细追踪 |
-| `Info` | 一般信息 | 正常运行状态记录 |
-| `Warn` | 警告信息 | 潜在问题但不影响运行 |
-| `Error` | 错误信息 | 异常情况但不影响运行 |
-| `Fatal` | 致命错误 | 导致程序无法继续的错误 |
+| Level   | Description  | Suggested Use Case                       |
+|---------|--------------|------------------------------------------|
+| `Debug` | Debug info   | Detailed tracing during development      |
+| `Info`  | General info | Normal runtime status recording          |
+| `Warn`  | Warning      | Potential issues but不影响正常运行              |
+| `Error` | Error        | Exceptional situations but不影响正常运行        |
+| `Fatal` | Fatal error  | Errors that prevent program continuation |
 
-**级别过滤规则：** 只有当日志级别 ≥ Printer 配置的 `level` 时，才会被记录。
+**Level filtering rule:** A log is recorded only if its level ≥ the printer's configured `min_level`.
 
-### 格式化输出
+### Formatted Output
 
-TinyLogger 使用 `fmt` 库语法：
+TinyLogger uses `fmt` library syntax:
 
 ```cpp
-logger.info("用户 {} 登录", username);
-logger.warn("警告：内存使用率 {}%", 85);
-logger.debug("数值：{:.2f}", 3.14159);
-logger.error("错误码：{:#x}", 0xDEAD);
-logger.info("多个值：{}, {}, {}", a, b, c);
+logger.info("User {} logged in", username);
+logger.warn("Warning: memory usage {}%", 85);
+logger.debug("Value: {:.2f}", 3.14159);
+logger.error("Error code: {:#x}", 0xDEAD);
+logger.info("Multiple values: {}, {}, {}", a, b, c);
 ```
 
-详细语法参考：[fmt 文档](https://fmt.dev/latest/syntax.html)
+For detailed syntax, refer to the [fmt documentation](https://fmt.dev/latest/syntax.html).
 
-注意：日志参数必须是可拷贝的小型 POD 类型（如整数、浮点、C 字符串 `const char*` 等），且总大小不超过固定存储（默认 128B），避免传入临时对象或大对象，如 `std::string`。
+Note: Log parameters must be copyable small POD types (e.g., integers, floats, C-strings `const char*`, etc.) with total
+size不超过fixed storage (default 128B). Avoid passing temporary objects or large objects like `std::string`.
 
 ---
 
-## 高级用法
+## Advanced Usage
 
-### 多 Printer 配置
+### Multiple Printer Configuration
 
-可以使用 Builder 同时配置多个输出目标：
+You can configure multiple output targets using the Builder:
 
 ```cpp
 using namespace tiny_logger;
@@ -258,18 +263,19 @@ using namespace tiny_logger;
 auto logger = LoggerBuilder()
     .set_buffer_size(512)
     .set_overflow_policy(OverflowPolicy::Discard)
-    .add_console_printer(LogLevel::Debug)    // 控制台：Debug+
-    .add_file_printer("app.log", LogLevel::Info)   // 文件：Info+
+    .add_console_printer(LogLevel::Debug)    // Console: Debug+
+    .add_file_printer("app.log", LogLevel::Info)   // File: Info+
     .build();
 ```
 
-此配置会：
-- 在控制台输出所有 Debug+ 日志
-- 在 `app.log` 记录 Info+ 日志
+This configuration will:
 
-### 文件日志滚动
+- Output all Debug+ logs to the console
+- Record Info+ logs in `app.log`
 
-Builder 支持文件日志配置（详细参数暂未在 Builder 中暴露，可直接使用 LoggerConfig）：
+### Log File Rotation
+
+The Builder supports file log configuration (detailed parameters not yet exposed in Builder; use LoggerConfig directly):
 
 ```cpp
 PrinterConfig file_cfg;
@@ -287,9 +293,9 @@ auto logger = LoggerBuilder().set_config(config).build();
 
 ---
 
-## 在其他项目中使用
+## Using in Other Projects
 
-安装 TinyLogger 后，可以在其他项目的 CMakeLists.txt 中使用：
+After installing TinyLogger, you can use it in another project's CMakeLists.txt:
 
 ```cmake
 find_package(TinyLogger REQUIRED)
@@ -298,49 +304,47 @@ target_link_libraries(your_target TinyLogger::tinylogger)
 
 ---
 
-## 常见问题
+## Frequently Asked Questions
 
-### Q: 日志没有写入文件？
+### Q: Logs are not being written to the file?
 
-检查：
-1. File Printer 的 `file_path` 是否有写权限
-2. `min_level` 设置是否正确（可能被过滤）
-3. 是否调用了 `shutdown()` 或等待自动 flush
+Check:
 
-### Q: 如何更改溢出策略？
+1. Does the File Printer's `file_path` have write permissions?
+2. Is the `min_level` configured correctly (may be filtering)?
+3. Have you called `shutdown()` or waited for automatic flush?
 
-使用 Builder 设置（初始化后不可更改）：
+### Q: How to change the overflow policy?
+
+Use the Builder to set it (cannot be changed after initialization):
 
 ```cpp
 auto logger = LoggerBuilder()
-    .set_overflow_policy(OverflowPolicy::Discard)  // 丢弃新日志（默认，性能更好）
-    // 或
-    .set_overflow_policy(OverflowPolicy::Block)   // 阻塞等待（保证不丢日志）
+    .set_overflow_policy(OverflowPolicy::Discard)  // Discard new logs (default, better performance)
+    // or
+    .set_overflow_policy(OverflowPolicy::Block)   // Block until space available (guarantees no log loss)
     .add_console_printer()
     .build();
 ```
 
-### Q: 编译时找不到 fmt 库？
+### Q: Compiler cannot find the fmt library?
 
-确保已安装 fmt 库，并在编译时指定路径：
+Ensure the fmt library is installed and specify the path during compilation:
 
 ```bash
 g++ ... -L/usr/lib -lfmt
 ```
 
-或使用 CMake 自动查找。
+Or use CMake to find it automatically.
 
 ---
 
-## 示例程序
+## Example Program
 
-构建项目后，示例程序位于 `build/example`：
-
-```bash
-./build/example
-```
+After building the project, the example program is located at `build/example`.
 
 ---
 
-**更多信息请参考：**
-- [开发者文档](DEVELOPER.md) - 构建系统、测试、贡献指南
+**For more information, refer to:**
+
+- [Developer Documentation](DEVELOPER.md) - Build system, testing, contribution guide

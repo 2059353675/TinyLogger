@@ -15,10 +15,10 @@ C++17 high-performance asynchronous logging library based on lock-free ring buff
 
 ## Detailed Documentation
 
-| Document | Description |
-|----------|-------------|
-| [USER_GUIDE.md](docs/USER_GUIDE.md) | User guide, complete API reference, advanced usage, FAQ |
-| [DEVELOPER.md](docs/DEVELOPER.md) | Developer documentation, build system, testing specifications, architecture design |
+| Document                            | Description                                                                        |
+|-------------------------------------|------------------------------------------------------------------------------------|
+| [USER_GUIDE.md](docs/USER_GUIDE.md) | User guide, complete API reference, advanced usage, FAQ                            |
+| [DEVELOPER.md](docs/DEVELOPER.md)   | Developer documentation, build system, testing specifications, architecture design |
 
 ---
 
@@ -28,19 +28,19 @@ C++17 high-performance asynchronous logging library based on lock-free ring buff
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install libfmt-dev nlohmann-json3-dev
+sudo apt-get install libfmt-dev
 
 # Arch Linux
-sudo pacman -S fmt nlohmann-json
+sudo pacman -S fmt
 
 # Fedora
-sudo dnf install fmt-devel nlohmann-json-devel
+sudo dnf install fmt-devel
 ```
 
 ### Build and Install
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 mkdir build && cd build
 cmake ..                                                  # Linux/Unix
@@ -93,22 +93,22 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ### Core Components
 
-| Component | Description |
-|-----------|-------------|
-| **Logger** | User API, encapsulates LogEvent and writes to RingBuffer |
-| **RingBuffer** | SPSC lock-free ring buffer, Disruptor-style |
+| Component       | Description                                                      |
+|-----------------|------------------------------------------------------------------|
+| **Logger**      | User API, encapsulates LogEvent and writes to RingBuffer         |
+| **RingBuffer**  | SPSC lock-free ring buffer, Disruptor-style                      |
 | **Distributor** | Dedicated thread, consumes log events and dispatches to Printers |
-| **Printers** | Output handlers: Console, File, Null |
+| **Printers**    | Output handlers: Console, File, Null                             |
 
 ### Log Levels
 
-| Level | Description | Recommended Scenario |
-|-------|-------------|----------------------|
-| `Debug` | Debug information | Detailed tracking during development |
-| `Info` | General information | Normal operation status logging |
-| `Warn` | Warning information | Potential issues that don't affect execution |
-| `Error` | Error information | Exceptions that don't affect execution |
-| `Fatal` | Fatal error | Program cannot continue |
+| Level   | Description         | Recommended Scenario                         |
+|---------|---------------------|----------------------------------------------|
+| `Debug` | Debug information   | Detailed tracking during development         |
+| `Info`  | General information | Normal operation status logging              |
+| `Warn`  | Warning information | Potential issues that don't affect execution |
+| `Error` | Error information   | Exceptions that don't affect execution       |
+| `Fatal` | Fatal error         | Program cannot continue                      |
 
 Level filtering rule: A log is only recorded when its level ≥ the `min_level` configured for the Printer.
 
@@ -128,19 +128,19 @@ Batch measurement (batch=64) to reduce timing noise
 
 ### Baseline
 
-| Test Item         | Average (cycles) | p50   | p99   | Description                          |
-| ----------------- | ---------------- | ----- | ----- | ------------------------------------ |
-| Empty function call | 16.1             | 15.4  | 23.8  | Measures function call and loop overhead |
+| Test Item           | Average (cycles) | p50  | p99  | Description                              |
+|---------------------|------------------|------|------|------------------------------------------|
+| Empty function call | 16.1             | 15.4 | 23.8 | Measures function call and loop overhead |
 
 ### Latency Test
 
 The latency test focuses on the main thread path delay, i.e., the overhead before `logger.info()` returns.
 
-| Test Item                   | Average (cycles) | p50    | p99    | Description                          |
-| --------------------------- | ---------------- | ------ | ------ | ------------------------------------ |
-| `fmt::format`               | 1380.7           | 1319.0 | 2133.9 | Synchronous string formatting        |
-| `RingBuffer::enqueue`       | 62.7             | 56.6   | 85.9   | Lock-free enqueue (SPSC)             |
-| `logger.info()`             | 896.5            | 396.8  | 738.5  | Complete main thread path            |
+| Test Item             | Average (cycles) | p50    | p99    | Description                   |
+|-----------------------|------------------|--------|--------|-------------------------------|
+| `fmt::format`         | 1380.7           | 1319.0 | 2133.9 | Synchronous string formatting |
+| `RingBuffer::enqueue` | 62.7             | 56.6   | 85.9   | Lock-free enqueue (SPSC)      |
+| `logger.info()`       | 896.5            | 396.8  | 738.5  | Complete main thread path     |
 
 ### Throughput Test
 
@@ -155,11 +155,11 @@ The throughput test evaluates the system's peak processing capability under sust
 
 ### Critical Path Overhead Breakdown
 
-| Test Item                   | Average (cycles) | p50    | p99    | Description                          |
-| --------------------------- | ---------------- | ------ | ------ | ------------------------------------ |
-| `fmt::format()`             | 1380.7           | 1319.0 | 2133.9 | Synchronous string formatting        |
-| `RingBuffer::enqueue()`     | 62.7             | 56.6   | 85.9   | Lock-free enqueue (SPSC)             |
-| `logger->log()`             | 896.5            | 396.8  | 738.5  | Complete main thread path            |
+| Test Item               | Average (cycles) | p50    | p99    | Description                   |
+|-------------------------|------------------|--------|--------|-------------------------------|
+| `fmt::format()`         | 1380.7           | 1319.0 | 2133.9 | Synchronous string formatting |
+| `RingBuffer::enqueue()` | 62.7             | 56.6   | 85.9   | Lock-free enqueue (SPSC)      |
+| `logger->log()`         | 896.5            | 396.8  | 738.5  | Complete main thread path     |
 
 Converted to time (2.5 cycles/ns):
 
@@ -191,13 +191,13 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 
 ### CMake Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `TINYLOGGER_BUILD_TESTS` | ON | Build test suite |
-| `TINYLOGGER_BUILD_EXAMPLES` | ON | Build example programs |
-| `USE_SYSTEM_FMT` | OFF | Use system-installed fmt instead of FetchContent |
-| `CMAKE_BUILD_TYPE` | - | Build type (Release/Debug) |
-| `CMAKE_INSTALL_PREFIX` | /usr/local | Installation path |
+| Option                      | Default    | Description                                      |
+|-----------------------------|------------|--------------------------------------------------|
+| `TINYLOGGER_BUILD_TESTS`    | ON         | Build test suite                                 |
+| `TINYLOGGER_BUILD_EXAMPLES` | ON         | Build example programs                           |
+| `USE_SYSTEM_FMT`            | OFF        | Use system-installed fmt instead of FetchContent |
+| `CMAKE_BUILD_TYPE`          | -          | Build type (Release/Debug)                       |
+| `CMAKE_INSTALL_PREFIX`      | /usr/local | Installation path                                |
 
 ### Build Commands
 
@@ -247,19 +247,19 @@ auto logger = LoggerBuilder()
 
 ### Configuration Options
 
-| Method | Parameters | Default | Description |
-|--------|------------|---------|-------------|
-| `set_buffer_size(size)` | size_t | 256 | Ring buffer size (must be power of 2) |
-| `set_overflow_policy(policy)` | OverflowPolicy | Discard | Overflow policy |
-| `add_console_printer(level)` | LogLevel | Info | Add console Printer |
-| `add_file_printer(path, level)` | string, LogLevel | Debug | Add file Printer |
+| Method                          | Parameters       | Default | Description                           |
+|---------------------------------|------------------|---------|---------------------------------------|
+| `set_buffer_size(size)`         | size_t           | 256     | Ring buffer size (must be power of 2) |
+| `set_overflow_policy(policy)`   | OverflowPolicy   | Discard | Overflow policy                       |
+| `add_console_printer(level)`    | LogLevel         | Info    | Add console Printer                   |
+| `add_file_printer(path, level)` | string, LogLevel | Debug   | Add file Printer                      |
 
 ### Overflow Policies
 
-| Policy | Description | Notes |
-|--------|-------------|-------|
-| `Discard` | Discard new logs (default) | Better performance, suitable for production |
-| `Block` | Block and wait for space | May cause 3ms+ latency spikes, use with caution |
+| Policy    | Description                | Notes                                           |
+|-----------|----------------------------|-------------------------------------------------|
+| `Discard` | Discard new logs (default) | Better performance, suitable for production     |
+| `Block`   | Block and wait for space   | May cause 3ms+ latency spikes, use with caution |
 
 ### Default Configuration
 

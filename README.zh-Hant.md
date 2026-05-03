@@ -15,10 +15,10 @@
 
 ## 詳細文件
 
-| 文件 | 說明 |
-|------|------|
+| 文件                                  | 說明                         |
+|-------------------------------------|----------------------------|
 | [USER_GUIDE.md](docs/USER_GUIDE.md) | 使用者指南，包含完整 API 參考、高階用法、FAQ |
-| [DEVELOPER.md](docs/DEVELOPER.md) | 開發者文件，包含建置系統、測試規範、架構設計 |
+| [DEVELOPER.md](docs/DEVELOPER.md)   | 開發者文件，包含建置系統、測試規範、架構設計     |
 
 ---
 
@@ -28,19 +28,19 @@
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install libfmt-dev nlohmann-json3-dev
+sudo apt-get install libfmt-dev
 
 # Arch Linux
-sudo pacman -S fmt nlohmann-json
+sudo pacman -S fmt
 
 # Fedora
-sudo dnf install fmt-devel nlohmann-json-devel
+sudo dnf install fmt-devel
 ```
 
 ### 建置與安裝
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 mkdir build && cd build
 cmake ..                                                  # Linux/Unix
@@ -93,22 +93,22 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ### 核心元件
 
-| 元件 | 說明 |
-|------|------|
-| **Logger** | 使用者 API，封裝 LogEvent 並寫入 RingBuffer |
-| **RingBuffer** | SPSC 無鎖環形緩衝區，Disruptor 風格 |
-| **Distributor** | 專用執行緒，消费日誌事件並分發給 Printers |
-| **Printers** | 輸出處理器：Console、File、Null |
+| 元件              | 說明                                 |
+|-----------------|------------------------------------|
+| **Logger**      | 使用者 API，封裝 LogEvent 並寫入 RingBuffer |
+| **RingBuffer**  | SPSC 無鎖環形緩衝區，Disruptor 風格          |
+| **Distributor** | 專用執行緒，消费日誌事件並分發給 Printers          |
+| **Printers**    | 輸出處理器：Console、File、Null            |
 
 ### 日誌級別
 
-| 級別 | 說明 | 建議場景 |
-|------|------|----------|
-| `Debug` | 除錯資訊 | 開發階段詳細追蹤 |
-| `Info` | 一般資訊 | 正常運作狀態記錄 |
-| `Warn` | 警告資訊 | 潛在問題但不影響運作 |
-| `Error` | 錯誤資訊 | 異常但不影響運作 |
-| `Fatal` | 致命錯誤 | 程式無法繼續 |
+| 級別      | 說明   | 建議場景       |
+|---------|------|------------|
+| `Debug` | 除錯資訊 | 開發階段詳細追蹤   |
+| `Info`  | 一般資訊 | 正常運作狀態記錄   |
+| `Warn`  | 警告資訊 | 潛在問題但不影響運作 |
+| `Error` | 錯誤資訊 | 異常但不影響運作   |
+| `Fatal` | 致命錯誤 | 程式無法繼續     |
 
 級別過濾規則：只有當日誌級別 ≥ Printer 配置的 `min_level` 時才會被記錄。
 
@@ -128,38 +128,38 @@ CPU 頻率：約 2.50 GHz（≈ 2.50 cycles/ns）
 
 ### 基線對照（Baseline）
 
-| 測試項目   | 平均 (cycles) | p50  | p99  | 說明          |
-| ----- | ----------- | ---- | ---- | ----------- |
+| 測試項目  | 平均 (cycles) | p50  | p99  | 說明          |
+|-------|-------------|------|------|-------------|
 | 空函式呼叫 | 16.1        | 15.4 | 23.8 | 測量函式呼叫與迴圈開銷 |
 
 ### 延遲測試 (Latency)
 
 測試重點關注主執行緒路徑延遲，即 `logger.info()` 返回前的開銷。
 
-| 測試項目                   | 平均 (cycles) | p50    | p99    | 說明         |
-| --------------------- | ----------- | ------ | ------ | ---------- |
-| `fmt::format`         | 1380.7      | 1319.0 | 2133.9 | 同步字串格式化   |
+| 測試項目                  | 平均 (cycles) | p50    | p99    | 說明         |
+|-----------------------|-------------|--------|--------|------------|
+| `fmt::format`         | 1380.7      | 1319.0 | 2133.9 | 同步字串格式化    |
 | `RingBuffer::enqueue` | 62.7        | 56.6   | 85.9   | 無鎖入隊（SPSC） |
-| `logger.info()`       | 896.5       | 396.8  | 738.5  | 主執行緒完整路徑    |
+| `logger.info()`       | 896.5       | 396.8  | 738.5  | 主執行緒完整路徑   |
 
 ### 吞吐量測試 (Throughput)
 
 吞吐量測試用於評估系統在持續高負載下的極限處理能力，重點關注多執行緒並行寫入場景。
 
 | 並行執行緒數 | 吞吐量 (ops/s) |
-|-----------|----------------|
-| 1 執行緒 | 7.08 M |
-| 2 執行緒 | 7.31 M |
-| 4 執行緒 | 14.21 M |
-| 8 執行緒 | 15.26 M |
+|--------|-------------|
+| 1 執行緒  | 7.08 M      |
+| 2 執行緒  | 7.31 M      |
+| 4 執行緒  | 14.21 M     |
+| 8 執行緒  | 15.26 M     |
 
 ### 關鍵路徑開銷分解
 
-| 測試項目                   | 平均 (cycles) | p50    | p99    | 說明         |
-| --------------------- | ----------- | ------ | ------ | ---------- |
-| `fmt::format()`         | 1380.7      | 1319.0 | 2133.9 | 同步字串格式化   |
+| 測試項目                    | 平均 (cycles) | p50    | p99    | 說明         |
+|-------------------------|-------------|--------|--------|------------|
+| `fmt::format()`         | 1380.7      | 1319.0 | 2133.9 | 同步字串格式化    |
 | `RingBuffer::enqueue()` | 62.7        | 56.6   | 85.9   | 無鎖入隊（SPSC） |
-| `logger->log()`       | 896.5       | 396.8  | 738.5  | 主執行緒完整路徑    |
+| `logger->log()`         | 896.5       | 396.8  | 738.5  | 主執行緒完整路徑   |
 
 換算為時間（2.5 cycles/ns）：
 
@@ -191,13 +191,13 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 
 ### CMake 選項
 
-| 選項 | 預設值 | 說明 |
-|------|--------|------|
-| `TINYLOGGER_BUILD_TESTS` | ON | 建置測試套件 |
-| `TINYLOGGER_BUILD_EXAMPLES` | ON | 建置範例程式 |
-| `USE_SYSTEM_FMT` | OFF | 使用系統已安裝的 fmt（而非 FetchContent） |
-| `CMAKE_BUILD_TYPE` | - | 建置類型（Release/Debug） |
-| `CMAKE_INSTALL_PREFIX` | /usr/local | 安裝路徑 |
+| 選項                          | 預設值        | 說明                            |
+|-----------------------------|------------|-------------------------------|
+| `TINYLOGGER_BUILD_TESTS`    | ON         | 建置測試套件                        |
+| `TINYLOGGER_BUILD_EXAMPLES` | ON         | 建置範例程式                        |
+| `USE_SYSTEM_FMT`            | OFF        | 使用系統已安裝的 fmt（而非 FetchContent） |
+| `CMAKE_BUILD_TYPE`          | -          | 建置類型（Release/Debug）           |
+| `CMAKE_INSTALL_PREFIX`      | /usr/local | 安裝路徑                          |
 
 ### 建置命令
 
@@ -247,19 +247,19 @@ auto logger = LoggerBuilder()
 
 ### 設定項說明
 
-| 方法 | 參數 | 預設值 | 說明 |
-|------|------|--------|------|
-| `set_buffer_size(size)` | size_t | 256 | 環形緩衝區大小（必須是 2 的冪次） |
-| `set_overflow_policy(policy)` | OverflowPolicy | Discard | 溢位策略 |
-| `add_console_printer(level)` | LogLevel | Info | 新增控制台 Printer |
-| `add_file_printer(path, level)` | string, LogLevel | Debug | 新增檔案 Printer |
+| 方法                              | 參數               | 預設值     | 說明                 |
+|---------------------------------|------------------|---------|--------------------|
+| `set_buffer_size(size)`         | size_t           | 256     | 環形緩衝區大小（必須是 2 的冪次） |
+| `set_overflow_policy(policy)`   | OverflowPolicy   | Discard | 溢位策略               |
+| `add_console_printer(level)`    | LogLevel         | Info    | 新增控制台 Printer      |
+| `add_file_printer(path, level)` | string, LogLevel | Debug   | 新增檔案 Printer       |
 
 ### 溢位策略
 
-| 策略 | 說明 | 注意事項 |
-|------|------|----------|
-| `Discard` | 丟棄新日誌（預設） | 效能更好，適合生產環境 |
-| `Block` | 阻塞等待空間 | 可能導致 3ms+ 延遲尖峰，慎用 |
+| 策略        | 說明        | 注意事項              |
+|-----------|-----------|-------------------|
+| `Discard` | 丟棄新日誌（預設） | 效能更好，適合生產環境       |
+| `Block`   | 阻塞等待空間    | 可能導致 3ms+ 延遲尖峰，慎用 |
 
 ### 預設配置
 

@@ -15,10 +15,10 @@
 
 ## 详细文档
 
-| 文档 | 说明 |
-|------|------|
+| 文档                                  | 说明                        |
+|-------------------------------------|---------------------------|
 | [USER_GUIDE.md](docs/USER_GUIDE.md) | 用户指南，包含完整 API 参考、高级用法、FAQ |
-| [DEVELOPER.md](docs/DEVELOPER.md) | 开发者文档，包含构建系统、测试规范、架构设计 |
+| [DEVELOPER.md](docs/DEVELOPER.md)   | 开发者文档，包含构建系统、测试规范、架构设计    |
 
 ---
 
@@ -28,19 +28,19 @@
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install libfmt-dev nlohmann-json3-dev
+sudo apt-get install libfmt-dev
 
 # Arch Linux
-sudo pacman -S fmt nlohmann-json
+sudo pacman -S fmt
 
 # Fedora
-sudo dnf install fmt-devel nlohmann-json-devel
+sudo dnf install fmt-devel
 ```
 
 ### 构建与安装
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 mkdir build && cd build
 cmake ..                                                  # Linux/Unix
@@ -93,22 +93,22 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 ### 核心组件
 
-| 组件 | 说明 |
-|------|------|
-| **Logger** | 用户 API，封装 LogEvent 并写入 RingBuffer |
-| **RingBuffer** | SPSC 无锁环形缓冲区，Disruptor 风格 |
-| **Distributor** | 专用线程，消费日志事件并分发给 Printers |
-| **Printers** | 输出处理器：Console、File、Null |
+| 组件              | 说明                                |
+|-----------------|-----------------------------------|
+| **Logger**      | 用户 API，封装 LogEvent 并写入 RingBuffer |
+| **RingBuffer**  | SPSC 无锁环形缓冲区，Disruptor 风格         |
+| **Distributor** | 专用线程，消费日志事件并分发给 Printers          |
+| **Printers**    | 输出处理器：Console、File、Null           |
 
 ### 日志级别
 
-| 级别 | 说明 | 建议场景 |
-|------|------|----------|
-| `Debug` | 调试信息 | 开发阶段详细追踪 |
-| `Info` | 一般信息 | 正常运行状态记录 |
-| `Warn` | 警告信息 | 潜在问题但不影响运行 |
-| `Error` | 错误信息 | 异常但不影响运行 |
-| `Fatal` | 致命错误 | 程序无法继续 |
+| 级别      | 说明   | 建议场景       |
+|---------|------|------------|
+| `Debug` | 调试信息 | 开发阶段详细追踪   |
+| `Info`  | 一般信息 | 正常运行状态记录   |
+| `Warn`  | 警告信息 | 潜在问题但不影响运行 |
+| `Error` | 错误信息 | 异常但不影响运行   |
+| `Fatal` | 致命错误 | 程序无法继续     |
 
 级别过滤规则：只有当日志级别 ≥ Printer 配置的 `min_level` 时才会被记录。
 
@@ -129,7 +129,7 @@ CPU 频率：约 2.50 GHz（≈ 2.50 cycles/ns）
 ### 基线对照（Baseline）
 
 | 测试项   | 平均 (cycles) | p50  | p99  | 说明          |
-| ----- | ----------- | ---- | ---- | ----------- |
+|-------|-------------|------|------|-------------|
 | 空函数调用 | 16.1        | 15.4 | 23.8 | 测量函数调用与循环开销 |
 
 ### 延迟测试 (Latency)
@@ -137,7 +137,7 @@ CPU 频率：约 2.50 GHz（≈ 2.50 cycles/ns）
 测试重点关注主线程路径延迟，即 `logger.info()` 返回前的开销。
 
 | 测试项                   | 平均 (cycles) | p50    | p99    | 说明         |
-| --------------------- | ----------- | ------ | ------ | ---------- |
+|-----------------------|-------------|--------|--------|------------|
 | `fmt::format`         | 1380.7      | 1319.0 | 2133.9 | 同步字符串格式化   |
 | `RingBuffer::enqueue` | 62.7        | 56.6   | 85.9   | 无锁入队（SPSC） |
 | `logger.info()`       | 896.5       | 396.8  | 738.5  | 主线程完整路径    |
@@ -148,19 +148,19 @@ CPU 频率：约 2.50 GHz（≈ 2.50 cycles/ns）
 吞吐量测试用于评估系统在持续高负载下的极限处理能力，重点关注多线程并发写入场景。
 
 | 并发线程数 | 吞吐量 (ops/s) |
-|-----------|----------------|
-| 1 线程 | 7.08 M |
-| 2 线程 | 7.31M |
-| 4 线程 | 14.21 M |
-| 8 线程 | 15.26 M |
+|-------|-------------|
+| 1 线程  | 7.08 M      |
+| 2 线程  | 7.31M       |
+| 4 线程  | 14.21 M     |
+| 8 线程  | 15.26 M     |
 
 ### 关键路径开销分解
 
-| 测试项                   | 平均 (cycles) | p50    | p99    | 说明         |
-| --------------------- | ----------- | ------ | ------ | ---------- |
+| 测试项                     | 平均 (cycles) | p50    | p99    | 说明         |
+|-------------------------|-------------|--------|--------|------------|
 | `fmt::format()`         | 1380.7      | 1319.0 | 2133.9 | 同步字符串格式化   |
 | `RingBuffer::enqueue()` | 62.7        | 56.6   | 85.9   | 无锁入队（SPSC） |
-| `logger->log()`       | 896.5       | 396.8  | 738.5  | 主线程完整路径    |
+| `logger->log()`         | 896.5       | 396.8  | 738.5  | 主线程完整路径    |
 
 换算为时间（2.5 cycles/ns）：
 
@@ -192,13 +192,13 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 
 ### CMake 选项
 
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `TINYLOGGER_BUILD_TESTS` | ON | 构建测试套件 |
-| `TINYLOGGER_BUILD_EXAMPLES` | ON | 构建示例程序 |
-| `USE_SYSTEM_FMT` | OFF | 使用系统已安装的 fmt（而非 FetchContent） |
-| `CMAKE_BUILD_TYPE` | - | 构建类型（Release/Debug） |
-| `CMAKE_INSTALL_PREFIX` | /usr/local | 安装路径 |
+| 选项                          | 默认值        | 说明                            |
+|-----------------------------|------------|-------------------------------|
+| `TINYLOGGER_BUILD_TESTS`    | ON         | 构建测试套件                        |
+| `TINYLOGGER_BUILD_EXAMPLES` | ON         | 构建示例程序                        |
+| `USE_SYSTEM_FMT`            | OFF        | 使用系统已安装的 fmt（而非 FetchContent） |
+| `CMAKE_BUILD_TYPE`          | -          | 构建类型（Release/Debug）           |
+| `CMAKE_INSTALL_PREFIX`      | /usr/local | 安装路径                          |
 
 ### 构建命令
 
@@ -248,19 +248,19 @@ auto logger = LoggerBuilder()
 
 ### 配置项说明
 
-| 方法 | 参数 | 默认值 | 说明 |
-|------|------|--------|------|
-| `set_buffer_size(size)` | size_t | 256 | 环形缓冲区大小（必须是 2 的幂次） |
-| `set_overflow_policy(policy)` | OverflowPolicy | Discard | 溢出策略 |
-| `add_console_printer(level)` | LogLevel | Info | 添加控制台 Printer |
-| `add_file_printer(path, level)` | string, LogLevel | Debug | 添加文件 Printer |
+| 方法                              | 参数               | 默认值     | 说明                 |
+|---------------------------------|------------------|---------|--------------------|
+| `set_buffer_size(size)`         | size_t           | 256     | 环形缓冲区大小（必须是 2 的幂次） |
+| `set_overflow_policy(policy)`   | OverflowPolicy   | Discard | 溢出策略               |
+| `add_console_printer(level)`    | LogLevel         | Info    | 添加控制台 Printer      |
+| `add_file_printer(path, level)` | string, LogLevel | Debug   | 添加文件 Printer       |
 
 ### 溢出策略
 
-| 策略 | 说明 | 注意事项 |
-|------|------|----------|
-| `Discard` | 丢弃新日志（默认） | 性能更好，适合生产环境 |
-| `Block` | 阻塞等待空间 | 可能导致 3ms+ 延迟尖峰，慎用 |
+| 策略        | 说明        | 注意事项              |
+|-----------|-----------|-------------------|
+| `Discard` | 丢弃新日志（默认） | 性能更好，适合生产环境       |
+| `Block`   | 阻塞等待空间    | 可能导致 3ms+ 延迟尖峰，慎用 |
 
 ### 默认配置
 
