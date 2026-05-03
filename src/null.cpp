@@ -1,20 +1,24 @@
 #include "tiny_logger/printer/null.h"
 
-namespace tiny_logger {
+namespace tiny_logger
+{
+    NullPrinter::NullPrinter(const PrinterConfig& config)
+    {
+        min_level_ = config.min_level;
+    }
 
-NullPrinter::NullPrinter(const PrinterConfig& config) {
-    min_level_ = config.min_level;
-}
+    void NullPrinter::write(LogEvent & [[maybe_unused]]event)
+    {
+    }
 
-void NullPrinter::write(LogEvent& event) {
-}
+    void NullPrinter::flush()
+    {
+    }
 
-void NullPrinter::flush() {
-}
-
-void register_null_printer() {
-    tiny_logger::PrinterRegistry::instance().register_printer(
-        tiny_logger::PrinterType::Null,
-        [](const tiny_logger::PrinterConfig& cfg) { return std::make_unique<tiny_logger::NullPrinter>(cfg); });
-}
+    void register_null_printer()
+    {
+        tiny_logger::PrinterRegistry::instance().register_printer(
+            tiny_logger::PrinterType::Null,
+            [](const tiny_logger::PrinterConfig& cfg) { return std::make_unique < tiny_logger::NullPrinter > (cfg); });
+    }
 } // namespace tiny_logger

@@ -43,7 +43,7 @@ sudo dnf install fmt-devel
 git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 mkdir build && cd build
-cmake ..                                                  # Linux/Unix
+cmake .. -DCMAKE_BUILD_TYPE=Release                       # Linux/Unix
 cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"  # Windows
 make
 sudo make install      # 可選，安裝到 /usr/local

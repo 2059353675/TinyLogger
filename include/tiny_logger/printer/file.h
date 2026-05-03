@@ -4,47 +4,46 @@
 #include <cstdio>
 #include <string>
 
-namespace tiny_logger {
-
-class FilePrinter : public Printer
+namespace tiny_logger
 {
-public:
-    explicit FilePrinter(const PrinterConfig& config);
+    class FilePrinter : public Printer
+    {
+    public:
+        explicit FilePrinter(const PrinterConfig& config);
 
-    ~FilePrinter() override;
+        ~FilePrinter() override;
 
-    FilePrinter(const FilePrinter&) = delete;
-    FilePrinter& operator=(const FilePrinter&) = delete;
+        FilePrinter(const FilePrinter&) = delete;
+        FilePrinter& operator=(const FilePrinter&) = delete;
 
-    FilePrinter(FilePrinter&&) = default;
-    FilePrinter& operator=(FilePrinter&&) = default;
+        FilePrinter(FilePrinter&&) = delete;
+        FilePrinter& operator=(FilePrinter&&) = delete;
 
-    void write(LogEvent& event) override;
+        void write(LogEvent& event) override;
 
-    void flush() override;
+        void flush() override;
 
-    void set_flush_every(size_t n);
+        void set_flush_every(size_t n);
 
-    void set_max_size(size_t bytes);
+        void set_max_size(size_t bytes);
 
-private:
-    void open_file();
+    private:
+        void open_file();
 
-    void rotate();
+        void rotate();
 
-private:
-    std::string file_path_;
-    FILE* file_{nullptr};
+    private:
+        std::string file_path_;
+        FILE* file_{nullptr};
 
-    size_t current_size_{0};
-    size_t max_size_{0}; // 0 表示不滚动
+        size_t current_size_{0};
+        size_t max_size_{0}; // 0 表示不滚动
 
-    size_t write_count_{0};
-    size_t flush_every_{64}; // 每 N 条 flush
+        size_t write_count_{0};
+        size_t flush_every_{64}; // 每 N 条 flush
 
-    char buffer_[64 * 1024]; // 文件缓冲（64KB）
-};
+        char buffer_[64 * 1024]; // 文件缓冲（64KB）
+    };
 
-void register_file_printer();
-
+    void register_file_printer();
 } // namespace tiny_logger

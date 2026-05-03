@@ -10,9 +10,27 @@
 #include <tiny_logger/printer/null.h>
 #include <tiny_logger/ring_buffer.h>
 #include <vector>
+#if defined(__x86_64__) || defined(_M_X64)
 #include <x86intrin.h>
+inline uint64_t rdtsc() {
+    unsigned aux;
+    return __rdtscp(&aux);
+}
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#include <arm_neon.h>
+inline uint64_t rdtsc() {
+    uint64_t val;
+    __asm__ __volatile__("mrs %0, cntvct_el0" : "=r"(val));
+    return val;
+}
+#else
+inline uint64_t rdtsc() {
+    return 0;
+}
+#endif
 
-struct LatencyStats {
+struct LatencyStats
+{
     double avg_ns;
     double p50_ns;
     double p99_ns;
@@ -50,11 +68,6 @@ LatencyStats calculate_stats(const std::vector<double>& samples) {
     double p99 = percentile(sorted, 0.99);
 
     return {avg, p50, p99};
-}
-
-inline uint64_t rdtsc() {
-    unsigned aux;
-    return __rdtscp(&aux); // serialize + read
 }
 
 void pin_thread(int cpu_id) {
