@@ -71,7 +71,9 @@ LatencyStats calculate_stats(const std::vector<double>& samples) {
 }
 
 void pin_thread(int cpu_id) {
-#ifdef _WIN32
+#if defined(_WIN32)
+    (void)cpu_id;
+#elif defined(__APPLE__)
     (void)cpu_id;
 #else
     cpu_set_t cpuset;
