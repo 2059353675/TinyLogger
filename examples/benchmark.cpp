@@ -2,9 +2,13 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <fmt/format.h>
+#include <string>
+#ifndef _WIN32
 #include <pthread.h>
 #include <sched.h>
+#endif
 #include <thread>
 #include <tiny_logger/logger_builder.h>
 #include <tiny_logger/printer/null.h>
@@ -168,15 +172,21 @@ void bench_logger(int iterations, int batch) {
     measure_cycles_per_op(fn, iterations, batch);
 }
 
-int main() {
-    pin_thread(0); // 固定在 CPU0
+int main(int argc, char* argv[]) {
+    int ITER = 20000;
+    int BATCH = 64;
+
+    for (int i = 1; i + 1 < argc; ++i) {
+        std::string arg(argv[i]);
+        if (arg == "--iter" || arg == "-i") ITER = std::atoi(argv[++i]);
+        else if (arg == "--batch" || arg == "-b") BATCH = std::atoi(argv[++i]);
+    }
+
+    pin_thread(0);
 
     printf("Calibrating TSC...\n");
     double ghz = calibrate_tsc_ghz();
     printf("TSC: %.2f cycles/ns\n\n", ghz);
-
-    constexpr int ITER = 20000;
-    constexpr int BATCH = 64;
 
     printf("========== Baseline ==========\n");
     measure_cycles_per_op([&]() { noop(1, 2); }, ITER, BATCH);

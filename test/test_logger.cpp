@@ -134,7 +134,7 @@ bool test_logger_concurrent_logging() {
 
     std::vector<std::thread> threads;
     for (int t = 0; t < THREAD_COUNT; ++t) {
-        threads.emplace_back([logger, t]() mutable {
+        threads.emplace_back([logger, t, MSGS_PER_THREAD]() mutable {
             for (int i = 0; i < MSGS_PER_THREAD; ++i) {
                 logger.info("Thread {} Message {}", t, i);
             }
