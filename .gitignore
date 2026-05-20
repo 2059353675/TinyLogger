@@ -1,6 +1,6 @@
 # 构建目录
-build/
-test/build_test/
+build*/
+cmake-build*/
 
 # Agents
 .qwen/
@@ -29,7 +29,6 @@ examples/*.log
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-cmake-build-debug/
 Makefile
 *.cmake
 .idea/
