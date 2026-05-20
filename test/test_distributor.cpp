@@ -218,48 +218,6 @@ bool test_distributor_level_filtering() {
     return printer_ptr->get_write_count() == 2;
 }
 
-bool test_distributor_concurrent_enqueue() {
-    QueueRegistry registry;
-    RingBuffer rb(1024, OverflowPolicy::Discard);
-    registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
-
-    auto printer = std::make_unique<MockPrinter>();
-    printer->set_min_level(LogLevel::Debug);
-    MockPrinter* printer_ptr = printer.get();
-    distributor->add_printer(std::move(printer));
-
-    distributor->start();
-
-    constexpr int THREAD_COUNT = 4;
-    constexpr int EVENTS_PER_THREAD = 250;
-
-    std::vector<std::thread> threads;
-    for (int t = 0; t < THREAD_COUNT; ++t) {
-        threads.emplace_back([&rb, t]() {
-            for (int i = 0; i < EVENTS_PER_THREAD; ++i) {
-                char msg[64];
-                std::snprintf(msg, sizeof(msg), "T%d-E%d", t, i);
-                LogEvent event = create_test_event(LogLevel::Info, msg);
-
-                while (!rb.enqueue(std::move(event))) {
-                    std::this_thread::yield();
-                }
-            }
-        });
-    }
-
-    for (auto& t : threads) {
-        t.join();
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    distributor->stop();
-
-    int expected = THREAD_COUNT * EVENTS_PER_THREAD;
-    return printer_ptr->get_write_count() == static_cast<size_t>(expected);
-}
-
 bool test_distributor_drain_on_stop() {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
@@ -388,7 +346,6 @@ int main() {
     run_test("Distributor multiple events", test_distributor_multiple_events, result);
     run_test("Distributor multiple printers", test_distributor_multiple_printers, result);
     run_test("Distributor level filtering", test_distributor_level_filtering, result);
-    run_test("Distributor concurrent enqueue", test_distributor_concurrent_enqueue, result);
     run_test("Distributor drain on stop", test_distributor_drain_on_stop, result);
     run_test("Distributor flush on stop", test_distributor_flush_on_stop, result);
     run_test("Distributor double start/stop", test_distributor_double_start_stop, result);

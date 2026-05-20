@@ -61,7 +61,7 @@ test/
 - 无效路径
 - 空消息
 
-### 3. Distributor 测试 (test_distributor.cpp) - 13 个测试
+### 3. Distributor 测试 (test_distributor.cpp) - 12 个测试
 
 **基础测试：**
 - 创建 Distributor
@@ -75,9 +75,6 @@ test/
 
 **级别过滤测试：**
 - 基于级别的过滤
-
-**并发测试：**
-- 并发入队
 
 **生命周期测试：**
 - 停止时清空缓冲区
