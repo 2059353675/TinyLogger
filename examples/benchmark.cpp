@@ -130,7 +130,11 @@ void measure_cycles_per_op(F&& fn, int iterations, int batch) {
 }
 
 inline void noop(int, int) {
+#ifdef _MSC_VER
+    _ReadWriteBarrier();
+#else
     asm volatile("" ::: "memory");
+#endif
 }
 
 void bench_fmt_only(int iterations, int batch) {
