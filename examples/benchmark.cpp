@@ -15,7 +15,11 @@
 #include <tiny_logger/ring_buffer.h>
 #include <vector>
 #if defined(__x86_64__) || defined(_M_X64)
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
 #include <x86intrin.h>
+#endif
 inline uint64_t rdtsc() {
     unsigned aux;
     return __rdtscp(&aux);
