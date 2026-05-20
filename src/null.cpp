@@ -7,7 +7,7 @@ namespace tiny_logger
         min_level_ = config.min_level;
     }
 
-    void NullPrinter::write(LogEvent & [[maybe_unused]]event)
+    void NullPrinter::write([[maybe_unused]] LogEvent & event)
     {
     }
 
