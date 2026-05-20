@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    timeout-minutes: 10
     strategy:
       max-parallel: 3
       matrix:
@@ -38,4 +39,4 @@ jobs:
       - name: Tiny Benchmark (pipeline closure check)
         if: matrix.os == 'ubuntu-latest' && matrix.cmake_build_type == 'Release'
         run: |
-          build/examples/benchmark --iter 100 --batch 8
+          build/benchmark --iter 100 --batch 8
