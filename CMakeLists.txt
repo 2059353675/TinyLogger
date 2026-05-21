@@ -57,6 +57,7 @@ else()
     FetchContent_MakeAvailable(fmt)
 endif()
 
+find_package(Threads REQUIRED)
 
 # =============================================================================
 # 库目标定义 / Library Target Definition
@@ -94,6 +95,7 @@ target_include_directories(tinylogger
 target_link_libraries(tinylogger
         PUBLIC
         fmt::fmt
+	Threads::Threads
 )
 
 # 配置库目标属性 / Configure library target properties
