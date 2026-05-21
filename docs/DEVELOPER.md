@@ -205,9 +205,8 @@ find_library(FMT_LIBRARY NAMES fmt ...)
 #### Full Build (Recommended)
 
 ```bash
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
 #### Selective Build
@@ -226,8 +225,8 @@ cmake .. -DTINYLOGGER_BUILD_TESTS=OFF
 #### Running Tests
 
 ```bash
-# Method 1: Using make target
-make run_tests
+# Method 1: Using cmake target
+cmake --build build --target run_tests
 
 # Method 2: Using CTest
 ctest --output-on-failure
@@ -236,21 +235,21 @@ ctest --output-on-failure
 #### Installation
 
 ```bash
-make install  # Installs to /usr/local by default
+cmake --install build  # Installs to /usr/local by default
 
 # Custom installation path
-cmake .. -DCMAKE_INSTALL_PREFIX=/opt/tinylogger
-make install
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/tinylogger
+cmake --install build
 ```
 
 ### Cleaning the Build
 
 ```bash
 # Standard clean (only build artifacts)
-make clean
+cmake --build build --target clean
 
 # Full clean (build artifacts + test temporary files + example artifacts)
-make clean-all
+cmake --build build --target clean-all
 ```
 
 The `clean-all` target cleans:

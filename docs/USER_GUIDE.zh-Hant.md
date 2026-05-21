@@ -64,10 +64,10 @@ cd TinyLogger
 # 建置
 mkdir build && cd build
 cmake ..
-make
+cmake --build .
 
 # 安裝（可選）
-sudo make install
+sudo cmake --install .
 ```
 
 建置產物：
@@ -297,10 +297,63 @@ auto logger = LoggerBuilder().set_config(config).build();
 
 ## 在其他專案中使用
 
-安裝 TinyLogger 後，可以在其他專案的 CMakeLists.txt 中使用：
+TinyLogger 支援三種整合方式。
+
+### 方法一：系統安裝（find_package）
+
+編譯並安裝 TinyLogger，然後使用 `find_package`：
+
+```bash
+git clone https://github.com/2059353675/TinyLogger.git
+cd TinyLogger
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+sudo cmake --install .
+```
 
 ```cmake
 find_package(TinyLogger REQUIRED)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+### 方法二：原始碼整合（add_subdirectory）
+
+將 TinyLogger 放入你的專案中，透過 `add_subdirectory` 引入。TinyLogger 會自動透過 `FetchContent` 下載 fmt：
+
+```cmake
+add_subdirectory(path/to/TinyLogger)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+如需使用系統已安裝的 fmt，請在新增子目錄前設定 `USE_SYSTEM_FMT`：
+
+```cmake
+set(USE_SYSTEM_FMT ON)
+add_subdirectory(path/to/TinyLogger)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+### 方法三：FetchContent 自動下載
+
+在 CMake 配置階段自動下載 TinyLogger：
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    TinyLogger
+    GIT_REPOSITORY https://github.com/2059353675/TinyLogger.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(TinyLogger)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+如需使用系統已安裝的 fmt：
+
+```cmake
+set(USE_SYSTEM_FMT ON)
+FetchContent_MakeAvailable(TinyLogger)
 target_link_libraries(your_target TinyLogger::tinylogger)
 ```
 

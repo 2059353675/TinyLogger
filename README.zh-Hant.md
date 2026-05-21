@@ -43,10 +43,9 @@ sudo dnf install fmt-devel
 git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release                       # Linux/Unix
-cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"  # Windows
-make
-sudo make install      # 可選，安裝到 /usr/local
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+sudo cmake --install .      # 可選，安裝到 /usr/local
 ```
 
 ### 基本使用
@@ -181,8 +180,9 @@ CPU 頻率：約 2.50 GHz（≈ 2.50 cycles/ns）
 ### 重現方式
 
 ```bash
-mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
-./benckmark
+cmake -B build -DTINYLOGGER_BUILD_EXAMPLES=ON
+cmake --build build
+./benchmark
 ```
 
 ---
@@ -203,29 +203,34 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 
 ```bash
 # 完整建置
-mkdir build && cd build && cmake .. && make
+cmake -B build && cmake --build build
 
 # Release 建置（推薦）
-mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make
+cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
 
 # 僅建置庫
-cmake .. -DTINYLOGGER_BUILD_TESTS=OFF -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake -B build -DTINYLOGGER_BUILD_TESTS=OFF -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake --build build
 
 # 僅建置測試
-cmake .. -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake -B build -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake --build build
 
 # 僅建置範例
-cmake .. -DTINYLOGGER_BUILD_TESTS=OFF
+cmake -B build -DTINYLOGGER_BUILD_TESTS=OFF
+cmake --build build
 
 # 自訂安裝路徑
-cmake .. -DCMAKE_INSTALL_PREFIX=/opt/tinylogger && make install
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/tinylogger
+cmake --build build
+cmake --install build
 ```
 
 ### 清理
 
 ```bash
-make clean              # 清理建置產物
-make clean-all        # 清理建置 + 測試暫存檔 + 範例產物
+cmake --build build --target clean      # 清理建置產物
+cmake --build build --target clean-all  # 清理建置 + 測試暫存檔 + 範例產物
 ```
 
 ---
@@ -301,12 +306,7 @@ logger.info("多個值：{}, {}, {}", a, b, c);
 
 ## 在其他專案中使用
 
-安裝後，在 CMakeLists.txt 中使用：
-
-```cmake
-find_package(TinyLogger REQUIRED)
-target_link_libraries(your_target TinyLogger::tinylogger)
-```
+詳細的整合方式（find_package、add_subdirectory、FetchContent）請參考 [使用者指南](docs/USER_GUIDE.zh-Hant.md)。
 
 ---
 

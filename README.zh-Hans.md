@@ -43,10 +43,9 @@ sudo dnf install fmt-devel
 git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release                       # Linux/Unix
-cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"  # Windows
-make
-sudo make install      # 可选，安装到 /usr/local
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+sudo cmake --install .      # 可选，安装到 /usr/local
 ```
 
 ### 基本使用
@@ -182,7 +181,7 @@ CPU 频率：约 2.50 GHz（≈ 2.50 cycles/ns）
 ### 复现方式
 
 ```bash
-mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
+mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && cmake --build .
 ./benckmark
 ```
 
@@ -204,10 +203,10 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 
 ```bash
 # 完整构建
-mkdir build && cd build && cmake .. && make
+mkdir build && cd build && cmake .. && cmake --build .
 
 # Release 构建（推荐）
-mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make
+mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build .
 
 # 仅构建库
 cmake .. -DTINYLOGGER_BUILD_TESTS=OFF -DTINYLOGGER_BUILD_EXAMPLES=OFF
@@ -219,14 +218,14 @@ cmake .. -DTINYLOGGER_BUILD_EXAMPLES=OFF
 cmake .. -DTINYLOGGER_BUILD_TESTS=OFF
 
 # 自定义安装路径
-cmake .. -DCMAKE_INSTALL_PREFIX=/opt/tinylogger && make install
+cmake .. -DCMAKE_INSTALL_PREFIX=/opt/tinylogger && cmake --install .
 ```
 
 ### 清理
 
 ```bash
-make clean              # 清理构建产物
-make clean-all        # 清理构建 + 测试临时文件 + 示例产物
+cmake --build . --target clean              # 清理构建产物
+cmake --build . --target clean-all        # 清理构建 + 测试临时文件 + 示例产物
 ```
 
 ---
@@ -302,12 +301,7 @@ logger.info("多个值：{}, {}, {}", a, b, c);
 
 ## 在其他项目中使用
 
-安装后，在 CMakeLists.txt 中使用：
-
-```cmake
-find_package(TinyLogger REQUIRED)
-target_link_libraries(your_target TinyLogger::tinylogger)
-```
+详细的集成方式（find_package、add_subdirectory、FetchContent）请参考 [用户指南](docs/USER_GUIDE.zh-Hans.md)。
 
 ---
 

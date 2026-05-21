@@ -29,7 +29,7 @@ jobs:
       - name: Run Tests (Debug)
         run: ctest --test-dir build --output-on-failure
 
-      # ---- Clean (keep _deps and cache) ----
+      # ---- Clean ----
       - name: Clean artifacts
         shell: bash
         run: |

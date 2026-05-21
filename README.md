@@ -43,10 +43,9 @@ sudo dnf install fmt-devel
 git clone https://github.com/2059353675/TinyLogger.git
 cd TinyLogger
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release                       # Linux/Unix
-cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"  # Windows
-make
-sudo make install      # Optional, install to /usr/local
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+sudo cmake --install .      # Optional, install to /usr/local
 ```
 
 ### Basic Usage
@@ -181,7 +180,8 @@ Converted to time (2.5 cycles/ns):
 ### Reproduction
 
 ```bash
-mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
+cmake -B build -DTINYLOGGER_BUILD_EXAMPLES=ON
+cmake --build build
 ./outputs/benchmark
 ```
 
@@ -203,29 +203,34 @@ mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
 
 ```bash
 # Full build
-mkdir build && cd build && cmake .. && make
+cmake -B build && cmake --build build
 
 # Release build (recommended)
-mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make
+cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
 
 # Build library only
-cmake .. -DTINYLOGGER_BUILD_TESTS=OFF -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake -B build -DTINYLOGGER_BUILD_TESTS=OFF -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake --build build
 
 # Build tests only
-cmake .. -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake -B build -DTINYLOGGER_BUILD_EXAMPLES=OFF
+cmake --build build
 
 # Build examples only
-cmake .. -DTINYLOGGER_BUILD_TESTS=OFF
+cmake -B build -DTINYLOGGER_BUILD_TESTS=OFF
+cmake --build build
 
 # Custom installation path
-cmake .. -DCMAKE_INSTALL_PREFIX=/opt/tinylogger && make install
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/tinylogger
+cmake --build build
+cmake --install build
 ```
 
 ### Cleanup
 
 ```bash
-make clean              # Clean build artifacts
-make clean-all          # Clean build + test temp files + example outputs
+cmake --build build --target clean      # Clean build artifacts
+cmake --build build --target clean-all  # Clean build + test temp files + example outputs
 ```
 
 ---
@@ -301,12 +306,7 @@ Log parameters should be copyable small POD types (integers, floats, C strings, 
 
 ## Using in Other Projects
 
-After installation, use in CMakeLists.txt:
-
-```cmake
-find_package(TinyLogger REQUIRED)
-target_link_libraries(your_target TinyLogger::tinylogger)
-```
+See [User Guide](docs/USER_GUIDE.md) for detailed integration methods (find_package, add_subdirectory, FetchContent).
 
 ---
 

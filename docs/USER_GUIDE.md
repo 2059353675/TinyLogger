@@ -64,10 +64,10 @@ cd TinyLogger
 # Build
 mkdir build && cd build
 cmake ..
-make
+cmake --build .
 
 # Install (optional)
-sudo make install
+sudo cmake --install .
 ```
 
 Build artifacts:
@@ -295,10 +295,63 @@ auto logger = LoggerBuilder().set_config(config).build();
 
 ## Using in Other Projects
 
-After installing TinyLogger, you can use it in another project's CMakeLists.txt:
+TinyLogger supports three integration methods.
+
+### Method 1: System Installation (find_package)
+
+Build and install TinyLogger, then use `find_package`:
+
+```bash
+git clone https://github.com/2059353675/TinyLogger.git
+cd TinyLogger
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+sudo cmake --install .
+```
 
 ```cmake
 find_package(TinyLogger REQUIRED)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+### Method 2: Source Integration (add_subdirectory)
+
+Place TinyLogger in your project directory and add it as a subdirectory. TinyLogger will automatically download fmt via `FetchContent`:
+
+```cmake
+add_subdirectory(path/to/TinyLogger)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+To use the system-installed fmt instead, set `USE_SYSTEM_FMT` before adding the subdirectory:
+
+```cmake
+set(USE_SYSTEM_FMT ON)
+add_subdirectory(path/to/TinyLogger)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+### Method 3: FetchContent
+
+Download TinyLogger automatically during CMake configuration:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    TinyLogger
+    GIT_REPOSITORY https://github.com/2059353675/TinyLogger.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(TinyLogger)
+target_link_libraries(your_target TinyLogger::tinylogger)
+```
+
+To use the system-installed fmt:
+
+```cmake
+set(USE_SYSTEM_FMT ON)
+FetchContent_MakeAvailable(TinyLogger)
 target_link_libraries(your_target TinyLogger::tinylogger)
 ```
 

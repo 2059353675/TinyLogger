@@ -202,9 +202,8 @@ find_library(FMT_LIBRARY NAMES fmt ...)
 #### 完整建置（推薦）
 
 ```bash
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
 #### 選擇性建置
@@ -223,8 +222,8 @@ cmake .. -DTINYLOGGER_BUILD_TESTS=OFF
 #### 執行測試
 
 ```bash
-# 方式 1：使用 make 目標
-make run_tests
+# 方式 1：使用 cmake 目標
+cmake --build build --target run_tests
 
 # 方式 2：使用 CTest
 ctest --output-on-failure
@@ -233,21 +232,21 @@ ctest --output-on-failure
 #### 安裝
 
 ```bash
-make install  # 預設安裝到 /usr/local
+cmake --install build  # 預設安裝到 /usr/local
 
 # 自訂安裝路徑
-cmake .. -DCMAKE_INSTALL_PREFIX=/opt/tinylogger
-make install
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/tinylogger
+cmake --install build
 ```
 
 ### 清理建置
 
 ```bash
 # 標準清理（僅清理建置產物）
-make clean
+cmake --build build --target clean
 
 # 完整清理（建置產物 + 測試暫存檔 + 範例產物）
-make clean-all
+cmake --build build --target clean-all
 ```
 
 `clean-all` 目標會清理：
