@@ -1,41 +1,41 @@
 # TinyLogger Tests CMakeLists.txt
 #
-# 注意：此文件仅作为主 CMakeLists.txt 的子目录使用
-# 不应单独构建此目录
+# NOTE: This file is intended to be used as a subdirectory of the main CMakeLists.txt only.
+# Do not build this directory standalone.
 #
-# 构建测试请使用主构建系统：
-#   mkdir build && cd build
-#   cmake ..
-#   make run_tests
+# To build tests, use the main build system:
+#   cmake -B build -DCMAKE_BUILD_TYPE=Debug -DTINYLOGGER_BUILD_TESTS=ON
+#   cmake --build build --config Debug
+#   ctest --test-dir build --output-on-failure -C Debug
 
-# ==================== 测试可执行文件 ====================
+# ==================== Test Executables ====================
 
-# RingBuffer 测试
+# RingBuffer test
 add_executable(test_ring_buffer test_ring_buffer.cpp)
 target_link_libraries(test_ring_buffer PRIVATE TinyLogger::tinylogger)
 
-# Printer 测试
+# Printer test
 add_executable(test_printer test_printer.cpp)
 target_link_libraries(test_printer PRIVATE TinyLogger::tinylogger)
 
-# Distributor 测试
+# Distributor test
 add_executable(test_distributor test_distributor.cpp)
 target_link_libraries(test_distributor PRIVATE TinyLogger::tinylogger)
 
-# Logger 集成测试
+# Logger integration test
 add_executable(test_logger test_logger.cpp)
 target_link_libraries(test_logger PRIVATE TinyLogger::tinylogger)
 
-# ==================== 测试配置 ====================
+# ==================== Test Configuration ====================
 
 add_test(NAME RingBufferTest COMMAND test_ring_buffer)
 add_test(NAME PrinterTest COMMAND test_printer)
 add_test(NAME DistributorTest COMMAND test_distributor)
 add_test(NAME LoggerIntegrationTest COMMAND test_logger)
 
-# 自定义目标：运行所有测试
+# Custom target: run all tests
 add_custom_target(run_tests
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_ring_buffer test_printer test_distributor test_logger
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        DEPENDS test_ring_buffer test_printer test_distributor test_logger
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )

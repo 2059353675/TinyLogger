@@ -27,7 +27,7 @@ jobs:
         run: cmake --build build --config Debug
 
       - name: Run Tests (Debug)
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure -C Debug
 
       # ---- Clean ----
       - name: Clean artifacts
@@ -44,4 +44,4 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Run Tests (Release)
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure -C Release
