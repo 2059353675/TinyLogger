@@ -8,35 +8,40 @@ on:
 
 jobs:
   build:
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       max-parallel: 3
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        cmake_build_type: [ Release, Debug ]
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure CMake
-        run: |
-          mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DTINYLOGGER_BUILD_TESTS=ON
+      # ---- Debug ----
+      - name: Configure CMake (Debug)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DTINYLOGGER_BUILD_TESTS=ON
 
-      - name: Build
-        run: |
-          cd build
-          cmake --build . --config ${{ matrix.cmake_build_type }}
+      - name: Build (Debug)
+        run: cmake --build build --config Debug
 
-      - name: Run Tests
-        if: matrix.os == 'ubuntu-latest' && matrix.cmake_build_type == 'Release'
-        run: |
-          cd build
-          ctest --output-on-failure
+      - name: Run Tests (Debug)
+        run: ctest --test-dir build --output-on-failure
 
-      - name: Tiny Benchmark (pipeline closure check)
-        if: matrix.os == 'ubuntu-latest' && matrix.cmake_build_type == 'Release'
+      # ---- Clean (keep _deps and cache) ----
+      - name: Clean artifacts
+        shell: bash
         run: |
-          build/benchmark --iter 100 --batch 8
+          cmake --build build --target clean 2>/dev/null || true
+          rm -rf outputs
+
+      # ---- Release ----
+      - name: Configure CMake (Release)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DTINYLOGGER_BUILD_TESTS=ON
+
+      - name: Build (Release)
+        run: cmake --build build --config Release
+
+      - name: Run Tests (Release)
+        run: ctest --test-dir build --output-on-failure

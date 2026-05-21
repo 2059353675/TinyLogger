@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 # 定义项目名称、版本及编程语言 / Define project name, version, and languages
-project(TinyLogger VERSION 1.0.0 LANGUAGES CXX)
+project(TinyLogger VERSION 1.0.1 LANGUAGES CXX)
 
 # 设置C++标准及强制要求 / Set C++ standard and enforce requirement
 set(CMAKE_CXX_STANDARD 17)
@@ -15,6 +15,26 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 引入GNU安装目录规范及CMake包配置辅助模块 / Include GNU install directories and CMake package config helpers
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+
+
+# =============================================================================
+# 输出目录配置 / Output Directory Configuration
+# =============================================================================
+
+# 设置所有构建产物的输出根目录为项目根目录下的 outputs 文件夹
+# Set output root directory for all build artifacts to outputs folder under project root
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/outputs)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/outputs)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/outputs)
+
+# 为不同配置类型设置相同的输出目录（Debug/Release等）
+# Set same output directory for different configuration types (Debug/Release, etc.)
+foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+    string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG_UPPER)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${CMAKE_CURRENT_SOURCE_DIR}/outputs)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${CMAKE_CURRENT_SOURCE_DIR}/outputs)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${CMAKE_CURRENT_SOURCE_DIR}/outputs)
+endforeach()
 
 
 # =============================================================================
@@ -27,7 +47,7 @@ option(TINYLOGGER_BUILD_TESTS "Build tests" ON)
 # 是否构建示例程序（默认开启） / Whether to build example programs (default: ON)
 option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
 
-# 是否使用系统已安装的fmt库而非通过FetchContent获取（默认关闭） / 
+# 是否使用系统已安装的fmt库而非通过FetchContent获取（默认关闭） /
 # Whether to use system-installed fmt library instead of FetchContent (default: OFF)
 option(USE_SYSTEM_FMT "Use system-installed fmt instead of FetchContent" OFF)
 
@@ -38,26 +58,22 @@ option(USE_SYSTEM_FMT "Use system-installed fmt instead of FetchContent" OFF)
 
 include(FetchContent)
 
-# 条件判断：使用系统fmt库或通过Git自动获取 / Conditional: use system fmt or fetch via Git
 if(USE_SYSTEM_FMT)
-    # 尝试查找系统已安装的fmt包 / Attempt to find system-installed fmt package
     find_package(fmt QUIET)
-    # 若未找到则报错终止 / Terminate with error if not found
     if(NOT fmt_FOUND)
         message(FATAL_ERROR "fmt is required but could not be found")
     endif()
 else()
-    # 声明通过FetchContent获取fmt库的配置 / Declare FetchContent configuration for fmt
     FetchContent_Declare(
             fmt
             GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-            GIT_TAG 10.2.1  # 指定稳定版本 / Specify stable version
+            GIT_TAG 10.2.1
     )
-    # 使fmt库对当前项目可用 / Make fmt library available to the project
     FetchContent_MakeAvailable(fmt)
 endif()
 
 find_package(Threads REQUIRED)
+
 
 # =============================================================================
 # 库目标定义 / Library Target Definition
@@ -91,11 +107,11 @@ target_include_directories(tinylogger
         $<INSTALL_INTERFACE:include>                    # 安装后使用标准include目录 / Use standard include dir after install
 )
 
-# 链接依赖库：公开链接fmt库，使用者会自动继承 / Link dependencies: publicly link fmt, consumers inherit automatically
+# 链接依赖库 / Link dependencies
 target_link_libraries(tinylogger
         PUBLIC
         fmt::fmt
-	Threads::Threads
+        Threads::Threads
 )
 
 # 配置库目标属性 / Configure library target properties
@@ -205,10 +221,13 @@ add_custom_target(clean-all
         COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/test/test_temp_*.log
         COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/test/test_*.log
 
-        # 清理示例程序产物 / Clean example program outputs
+        # 清理示例程序临时文件 / Clean example temporary files
         COMMAND ${CMAKE_COMMAND} -E echo "Cleaning example temporary files..."
-        COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/examples/example
         COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/examples/*.log
+
+        # 清理 outputs 文件夹 / Clean outputs folder
+        COMMAND ${CMAKE_COMMAND} -E echo "Cleaning outputs folder..."
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_SOURCE_DIR}/outputs"
 
         # 完成提示 / Completion message
         COMMAND ${CMAKE_COMMAND} -E echo "Clean-all complete."

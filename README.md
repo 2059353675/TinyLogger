@@ -182,7 +182,7 @@ Converted to time (2.5 cycles/ns):
 
 ```bash
 mkdir build && cd build && cmake .. -DTINYLOGGER_BUILD_EXAMPLES=ON && make
-./benchmark
+./outputs/benchmark
 ```
 
 ---

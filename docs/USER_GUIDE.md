@@ -72,9 +72,9 @@ sudo make install
 
 Build artifacts:
 
-- `build/libTinyLogger.a` - static library
-- `build/example` - example program
-- `build/test/*` - test executables
+- `outputs/libTinyLogger.a` - static library
+- `outputs/example` - example program
+- `outputs/test_*` - test executables
 
 ### Minimal Demo
 
@@ -341,7 +341,7 @@ Or use CMake to find it automatically.
 
 ## Example Program
 
-After building the project, the example program is located at `build/example`.
+After building the project, the example program is located at `outputs/example`.
 
 ---
 

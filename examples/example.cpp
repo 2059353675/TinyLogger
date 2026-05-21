@@ -7,7 +7,7 @@
  * 或者使用 CMake 构建（在项目根目录执行）：
  *   mkdir build && cd build
  *   cmake .. && make
- *   ./examples/example
+ *   ./outputs/example
  */
 
 #include <chrono>

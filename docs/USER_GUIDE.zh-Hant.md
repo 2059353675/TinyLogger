@@ -72,9 +72,9 @@ sudo make install
 
 建置產物：
 
-- `build/libTinyLogger.a` - 靜態函式庫
-- `build/example` - 範例程式
-- `build/test/*` - 測試可執行檔
+- `outputs/libTinyLogger.a` - 靜態函式庫
+- `outputs/example` - 範例程式
+- `outputs/test_*` - 測試可執行檔
 
 ### 最小範例
 
@@ -343,7 +343,7 @@ g++ ... -L/usr/lib -lfmt
 
 ## 範例程式
 
-建置專案後，範例程式位於 `build/example`。
+建置專案後，範例程式位於 `outputs/example`。
 
 ---
 

@@ -72,9 +72,9 @@ sudo make install
 
 构建产物：
 
-- `build/libTinyLogger.a` - 静态库
-- `build/example` - 示例程序
-- `build/test/*` - 测试可执行文件
+- `outputs/libTinyLogger.a` - 静态库
+- `outputs/example` - 示例程序
+- `outputs/test_*` - 测试可执行文件
 
 ### 最小demo
 
@@ -343,7 +343,7 @@ g++ ... -L/usr/lib -lfmt
 
 ## 示例程序
 
-构建项目后，示例程序位于 `build/example`。
+构建项目后，示例程序位于 `outputs/example`。
 
 ---
 
