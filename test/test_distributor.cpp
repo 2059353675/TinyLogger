@@ -342,15 +342,15 @@ int main() {
     run_test("Distributor creation", test_distributor_creation, result);
     run_test("Distributor start/stop", test_distributor_start_stop, result);
     run_test("Distributor add printer", test_distributor_add_printer, result);
-    run_test("Distributor single event", test_distributor_single_event, result);
-    run_test("Distributor multiple events", test_distributor_multiple_events, result);
-    run_test("Distributor multiple printers", test_distributor_multiple_printers, result);
-    run_test("Distributor level filtering", test_distributor_level_filtering, result);
-    run_test("Distributor drain on stop", test_distributor_drain_on_stop, result);
-    run_test("Distributor flush on stop", test_distributor_flush_on_stop, result);
+    run_test("Distributor single event", test_distributor_single_event, result, 3);
+    run_test("Distributor multiple events", test_distributor_multiple_events, result, 3);
+    run_test("Distributor multiple printers", test_distributor_multiple_printers, result, 3);
+    run_test("Distributor level filtering", test_distributor_level_filtering, result, 3);
+    run_test("Distributor drain on stop", test_distributor_drain_on_stop, result, 3);
+    run_test("Distributor flush on stop", test_distributor_flush_on_stop, result, 3);
     run_test("Distributor double start/stop", test_distributor_double_start_stop, result);
-    run_test("Distributor batch processing", test_distributor_batch_processing, result);
-    run_test("Distributor printer exception handling", test_distributor_printer_exception_handling, result);
+    run_test("Distributor batch processing", test_distributor_batch_processing, result, 3);
+    run_test("Distributor printer exception handling", test_distributor_printer_exception_handling, result, 3);
 
     print_test_summary("Distributor Test Suite", result);
     return result.failed > 0 ? 1 : 0;

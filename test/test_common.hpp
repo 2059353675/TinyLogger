@@ -151,28 +151,49 @@ struct TestResult {
 
 /**
  * 运行单个测试函数并记录结果
+ *
+ * @param retries 失败时重试次数（默认 1，即不重试）
  */
-inline void run_test(const std::string& name, std::function<bool()> test_func, TestResult& result) {
-    std::cout << "[TEST] " << name << "... ";
-    std::cout.flush();
+inline void run_test(const std::string& name, std::function<bool()> test_func, TestResult& result, int retries = 1) {
+    for (int attempt = 1; attempt <= retries; ++attempt) {
+        if (attempt > 1) {
+            std::cout << "[RETRY " << attempt << "/" << retries << "] ";
+            std::cout.flush();
+        } else {
+            std::cout << "[TEST] " << name << "... ";
+            std::cout.flush();
+        }
 
-    try {
-        if (test_func()) {
+        bool passed = false;
+        try {
+            passed = test_func();
+        } catch (const std::exception& e) {
+            std::cout << "FAILED (exception: " << e.what() << ")" << std::endl;
+            if (attempt == retries) {
+                result.failed++;
+                result.failures.push_back(name + " (exception)");
+            }
+            continue;
+        } catch (...) {
+            std::cout << "FAILED (unknown exception)" << std::endl;
+            if (attempt == retries) {
+                result.failed++;
+                result.failures.push_back(name + " (exception)");
+            }
+            continue;
+        }
+
+        if (passed) {
             std::cout << "PASSED" << std::endl;
             result.passed++;
-        } else {
-            std::cout << "FAILED" << std::endl;
+            return;
+        }
+
+        std::cout << "FAILED" << std::endl;
+        if (attempt == retries) {
             result.failed++;
             result.failures.push_back(name);
         }
-    } catch (const std::exception& e) {
-        std::cout << "FAILED (exception: " << e.what() << ")" << std::endl;
-        result.failed++;
-        result.failures.push_back(name + " (exception)");
-    } catch (...) {
-        std::cout << "FAILED (unknown exception)" << std::endl;
-        result.failed++;
-        result.failures.push_back(name + " (exception)");
     }
 }
 

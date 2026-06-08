@@ -271,7 +271,7 @@ TinyLogger uses a **custom test framework** (no external test library dependency
 | `test_ring_buffer.cpp` | Unit tests        | 11              | Ring buffer              |
 | `test_printer.cpp`     | Unit tests        | 13              | Console/File Printer     |
 | `test_distributor.cpp` | Unit tests        | 13              | Event dispatcher         |
-| `test_logger.cpp`      | Integration tests | 14              | Complete Logger workflow |
+| `test_logger.cpp`      | Integration tests | 11              | Complete Logger workflow |
 
 **Total: 51 test cases**
 

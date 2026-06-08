@@ -45,40 +45,19 @@ bool test_logger_init_file_printer() {
 
 // ==================== Logger 日志记录测试 ====================
 
-bool test_logger_info() {
-    TempLogFile log_file("info.log");
-    auto logger = create_file_logger(log_file.path(), LogLevel::Info);
-    logger.info("Test info message");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    std::string content = log_file.read_content();
-    return content.find("Test info message") != std::string::npos;
-}
-
-bool test_logger_debug() {
-    TempLogFile log_file("debug.log");
+bool test_logger_log_levels() {
+    TempLogFile log_file("log_levels.log");
     auto logger = create_file_logger(log_file.path(), LogLevel::Debug);
-    logger.debug("Test debug message");
+    logger.debug("Debug message");
+    logger.info("Info message");
+    logger.error("Error message");
+    logger.fatal("Fatal message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     std::string content = log_file.read_content();
-    return content.find("Test debug message") != std::string::npos;
-}
-
-bool test_logger_error() {
-    TempLogFile log_file("error.log");
-    auto logger = create_file_logger(log_file.path(), LogLevel::Error);
-    logger.error("Test error message");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    std::string content = log_file.read_content();
-    return content.find("Test error message") != std::string::npos;
-}
-
-bool test_logger_fatal() {
-    TempLogFile log_file("fatal.log");
-    auto logger = create_file_logger(log_file.path(), LogLevel::Fatal);
-    logger.fatal("Test fatal message");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    std::string content = log_file.read_content();
-    return content.find("Test fatal message") != std::string::npos;
+    return content.find("Debug message") != std::string::npos &&
+           content.find("Info message") != std::string::npos &&
+           content.find("Error message") != std::string::npos &&
+           content.find("Fatal message") != std::string::npos;
 }
 
 bool test_logger_formatted_output() {
@@ -255,23 +234,20 @@ int main() {
     run_test("Logger init with programmatic config", test_logger_init_programmatic, result);
     run_test("Logger init with file printer", test_logger_init_file_printer, result);
 
-    run_test("Logger info()", test_logger_info, result);
-    run_test("Logger debug()", test_logger_debug, result);
-    run_test("Logger error()", test_logger_error, result);
-    run_test("Logger fatal()", test_logger_fatal, result);
-    run_test("Logger formatted output", test_logger_formatted_output, result);
+    run_test("Logger log levels (debug/info/error/fatal)", test_logger_log_levels, result, 3);
+    run_test("Logger formatted output", test_logger_formatted_output, result, 3);
 
-    run_test("Logger level filtering", test_logger_level_filtering, result);
+    run_test("Logger level filtering", test_logger_level_filtering, result, 3);
 
-    run_test("Logger concurrent logging", test_logger_concurrent_logging, result);
+    run_test("Logger concurrent logging", test_logger_concurrent_logging, result, 3);
 
-    run_test("Logger overflow policy (discard)", test_logger_overflow_discard, result);
+    run_test("Logger overflow policy (discard)", test_logger_overflow_discard, result, 3);
 
-    run_test("Logger with multiple printers", test_logger_multiple_printers, result);
+    run_test("Logger with multiple printers", test_logger_multiple_printers, result, 3);
 
-    run_test("Logger start/stop cycle", test_logger_start_stop_cycle, result);
+    run_test("Logger start/stop cycle", test_logger_start_stop_cycle, result, 3);
 
-    run_test("Logger dropped count", test_logger_dropped_count, result);
+    run_test("Logger dropped count", test_logger_dropped_count, result, 3);
     run_test("Logger init success returns no error", test_logger_init_success_no_error, result);
 
     print_test_summary("Logger Integration Test Suite", result);

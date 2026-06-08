@@ -268,7 +268,7 @@ TinyLogger 使用**自定义测试框架**（不依赖外部测试库），包�
 | `test_ring_buffer.cpp` | 单元测试 | 11   | 环形缓冲区                |
 | `test_printer.cpp`     | 单元测试 | 13   | Console/File Printer |
 | `test_distributor.cpp` | 单元测试 | 13   | 事件分发器                |
-| `test_logger.cpp`      | 集成测试 | 14   | Logger 完整流程          |
+| `test_logger.cpp`      | 集成测试 | 11   | Logger 完整流程          |
 
 **总计：51 个测试用例**
 

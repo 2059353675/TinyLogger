@@ -82,14 +82,14 @@ test/
 **批量处理测试：**
 - 批量事件处理
 
-### 4. Logger 集成测试 (test_logger.cpp) - 14 个测试
+### 4. Logger 集成测试 (test_logger.cpp) - 11 个测试
 
 **初始化测试：**
 - 程序化配置初始化
 - File printer 初始化
 
 **日志记录测试：**
-- info/debug/error/fatal 日志
+- 全日志级别测试（debug/info/error/fatal）
 - 格式化输出
 
 **级别过滤测试：**
@@ -107,7 +107,7 @@ test/
 **生命周期测试：**
 - 启动/停止周期
 
-## 总计：51 个测试
+## 总计：48 个测试
 
 ## 运行测试
 
