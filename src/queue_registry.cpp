@@ -1,4 +1,4 @@
-#include "tiny_logger/queue_registry.h"
+#include "tiny_logger/queue_registry.hpp"
 
 namespace tiny_logger {
 

@@ -1,5 +1,5 @@
-#include "tiny_logger/logger.h"
-#include "tiny_logger/logger_error.h"
+#include "tiny_logger/logger.hpp"
+#include "tiny_logger/logger_error.hpp"
 
 namespace tiny_logger {
 

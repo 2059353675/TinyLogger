@@ -1,6 +1,6 @@
-#include "test_common.h"
-#include <tiny_logger/ring_buffer.h>
-#include <tiny_logger/types.h>
+#include "test_common.hpp"
+#include <tiny_logger/ring_buffer.hpp>
+#include <tiny_logger/types.hpp>
 
 using namespace tiny_logger;
 using namespace tiny_logger::test;

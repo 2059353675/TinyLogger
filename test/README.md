@@ -11,8 +11,6 @@ test/
 ├── test_distributor.cpp     # Distributor 测试
 ├── test_logger.cpp          # Logger 集成测试
 ├── CMakeLists.txt           # CMake 构建配置
-├── run_tests.bat            # Windows 测试运行脚本
-└── run_tests.sh             # Linux/macOS 测试运行脚本
 ```
 
 ## 测试覆盖范围

@@ -10,9 +10,9 @@
 #include <sched.h>
 #endif
 #include <thread>
-#include <tiny_logger/logger_builder.h>
-#include <tiny_logger/printer/null.h>
-#include <tiny_logger/ring_buffer.h>
+#include <tiny_logger/logger_builder.hpp>
+#include <tiny_logger/printer/null.hpp>
+#include <tiny_logger/ring_buffer.hpp>
 #include <vector>
 #if defined(__x86_64__) || defined(_M_X64)
 #ifdef _MSC_VER

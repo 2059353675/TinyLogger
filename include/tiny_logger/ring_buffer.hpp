@@ -1,8 +1,7 @@
 #pragma once
 
-#include "types.h"
+#include "types.hpp"
 #include <atomic>
-#include <cassert>
 #include <optional>
 
 namespace tiny_logger
@@ -20,7 +19,7 @@ namespace tiny_logger
     private:
         const size_t capacity_;
         const size_t mask_;
-        [[maybe_unused]] const OverflowPolicy overflow_policy_;
+        const OverflowPolicy overflow_policy_;
 
         Slot* buffer_;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../printer.h"
+#include "../printer.hpp"
 #include <cstdio>
 
 namespace tiny_logger {

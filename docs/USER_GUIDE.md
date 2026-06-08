@@ -81,7 +81,7 @@ Build artifacts:
 It is recommended to use `LoggerBuilder` (fluent configuration, type-safe):
 
 ```cpp
-#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/logger_builder.hpp>
 
 int main() {
     using namespace tiny_logger;
@@ -103,7 +103,7 @@ int main() {
 Or use default configuration (discard only, output Info level and above):
 
 ```cpp
-#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/logger_builder.hpp>
 
 int main() {
     auto logger = tiny_logger::create_default_logger();

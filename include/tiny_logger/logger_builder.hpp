@@ -1,8 +1,8 @@
 #pragma once
 
-#include "logger.h"
-#include "printer.h"
-#include "types.h"
+#include "logger.hpp"
+#include "printer.hpp"
+#include "types.hpp"
 #include <memory>
 #include <string>
 #include <utility>

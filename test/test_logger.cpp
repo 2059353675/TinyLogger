@@ -1,4 +1,4 @@
-#include "test_common.h"
+#include "test_common.hpp"
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -6,8 +6,8 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include <tiny_logger/logger_builder.h>
-#include <tiny_logger/types.h>
+#include <tiny_logger/logger_builder.hpp>
+#include <tiny_logger/types.hpp>
 #include <vector>
 
 using namespace tiny_logger;

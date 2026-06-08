@@ -1,11 +1,11 @@
 #pragma once
 
-#include "distributor.h"
-#include "printer/console.h"
-#include "printer/file.h"
-#include "queue_registry.h"
-#include "ring_buffer.h"
-#include "types.h"
+#include "distributor.hpp"
+#include "printer/console.hpp"
+#include "printer/file.hpp"
+#include "queue_registry.hpp"
+#include "ring_buffer.hpp"
+#include "types.hpp"
 #include <atomic>
 #include <cstdio>
 #include <fmt/format.h>

@@ -29,19 +29,19 @@
 TinyLogger/
 ├── CMakeLists.txt              # Main CMake build file
 ├── include/tiny_logger/        # Header files
-│   ├── logger.h
-│   ├── logger_builder.h
-│   ├── logger_factory.h
-│   ├── logger_error.h
-│   ├── ring_buffer.h
-│   ├── distributor.h
-│   ├── printer.h
+│   ├── logger.hpp
+│   ├── logger_builder.hpp
+│   ├── logger_factory.hpp
+│   ├── logger_error.hpp
+│   ├── ring_buffer.hpp
+│   ├── distributor.hpp
+│   ├── printer.hpp
 │   ├── printer/
-│   │   ├── base.h
-│   │   ├── console.h
-│   │   ├── file.h
-│   │   └── null.h
-│   ├── types.h
+│   │   ├── base.hpp
+│   │   ├── console.hpp
+│   │   ├── file.hpp
+│   │   └── null.hpp
+│   ├── types.hpp
 │   └── ...
 ├── src/                        # Implementation files
 │   ├── logger.cpp
@@ -56,7 +56,7 @@ TinyLogger/
 │   └── ...
 ├── test/                       # Test suite
 │   ├── CMakeLists.txt
-│   ├── test_common.h
+│   ├── test_common.hpp
 │   ├── test_ring_buffer.cpp
 │   ├── test_printer.cpp
 │   ├── test_distributor.cpp
@@ -195,7 +195,7 @@ The project uses CMake 3.14+ for building. The main configuration file is `CMake
 option(TINYLOGGER_BUILD_TESTS "Build tests" ON)
 option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
 
-# Dependency查找
+# Find dependencies
 find_path(FMT_INCLUDE_DIR NAMES fmt/format.h ...)
 find_library(FMT_LIBRARY NAMES fmt ...)
 ```
@@ -289,8 +289,8 @@ ctest --output-on-failure
 Each test file follows this structure:
 
 ```cpp
-#include <tiny_logger/xxx.h>
-#include "test_common.h"
+#include <tiny_logger/xxx.hpp>
+#include "test_common.hpp"
 
 using namespace tiny_logger;
 using namespace tiny_logger::test;
@@ -326,7 +326,7 @@ int main() {
 
 1. Test functions return `bool` (`true` = pass, `false` = fail)
 2. **Do not print `[TEST]` or `PASSED/FAILED` inside test functions** (handled by framework)
-3. Use utility functions provided by `test_common.h`
+3. Use utility functions provided by `test_common.hpp`
 4. Use RAII classes for temporary files (automatic cleanup)
 
 **Recommendations:**
@@ -337,7 +337,7 @@ int main() {
 
 ### Test Utility Functions
 
-`test/test_common.h` provides the following utilities:
+`test/test_common.hpp` provides the following utilities:
 
 #### `create_test_event()`
 
@@ -444,7 +444,7 @@ Support RS-232, RS-485/RS-422, UART and other serial communication methods.
 
 ### Custom Log Output Formatting (D)
 
-Currently, the formatting method for each printer is hardcoded into `printer_xxx.h`. In the future, support can be added
+Currently, the formatting method for each printer is hardcoded into `printer_xxx.hpp`. In the future, support can be added
 for optional custom patterns in the configuration file (similar to spdlog's `%Y-%m-%d [%l] %v`).
 
 ### Dependency Management (D)

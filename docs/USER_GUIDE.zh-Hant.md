@@ -81,7 +81,7 @@ sudo cmake --install .
 推薦使用 `LoggerBuilder`（鏈式設定，型別安全）：
 
 ```cpp
-#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/logger_builder.hpp>
 
 int main() {
     using namespace tiny_logger;
@@ -103,7 +103,7 @@ int main() {
 或使用預設設定（僅中斷，輸出 Info 以上等級日誌）：
 
 ```cpp
-#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/logger_builder.hpp>
 
 int main() {
     auto logger = tiny_logger::create_default_logger();

@@ -1,10 +1,10 @@
-#include "test_common.h"
+#include "test_common.hpp"
 #include <mutex>
-#include <tiny_logger/distributor.h>
-#include <tiny_logger/printer.h>
-#include <tiny_logger/queue_registry.h>
-#include <tiny_logger/ring_buffer.h>
-#include <tiny_logger/types.h>
+#include <tiny_logger/distributor.hpp>
+#include <tiny_logger/printer.hpp>
+#include <tiny_logger/queue_registry.hpp>
+#include <tiny_logger/ring_buffer.hpp>
+#include <tiny_logger/types.hpp>
 
 using namespace tiny_logger;
 using namespace tiny_logger::test;

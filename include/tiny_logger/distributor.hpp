@@ -1,9 +1,9 @@
 #pragma once
 
-#include "printer.h"
-#include "queue_registry.h"
-#include "ring_buffer.h"
-#include "types.h"
+#include "printer.hpp"
+#include "queue_registry.hpp"
+#include "ring_buffer.hpp"
+#include "types.hpp"
 #include <thread>
 #include <vector>
 

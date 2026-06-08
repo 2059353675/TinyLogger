@@ -1,6 +1,5 @@
-#include "tiny_logger/ring_buffer.h"
+#include "tiny_logger/ring_buffer.hpp"
 #include <cassert>
-#include <cstring>
 
 namespace tiny_logger {
 
@@ -26,13 +25,6 @@ RingBuffer::~RingBuffer() {
 }
 
 bool RingBuffer::enqueue(LogEvent&& e) {
-    /**
-     * Disruptor 风格无锁队列算法:
-     * 1. 读取当前写位置
-     * 2. 检查槽位 sequence 是否等于写位置(表明槽位归生产者所有)
-     * 3. 若相等则 CAS 更新写位置,复制数据,标记槽位可读
-     * 4. 否则返回 false(队列满)
-     */
     size_t pos = write_pos_;
     Slot& slot = buffer_[pos & mask_];
     size_t seq = slot.sequence.load(std::memory_order_acquire);

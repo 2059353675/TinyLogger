@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ring_buffer.h"
+#include "ring_buffer.hpp"
 #include <mutex>
 #include <vector>
 

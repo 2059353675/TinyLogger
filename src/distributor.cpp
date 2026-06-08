@@ -1,4 +1,4 @@
-#include "tiny_logger/distributor.h"
+#include "tiny_logger/distributor.hpp"
 #include <chrono>
 #include <thread>
 

@@ -29,19 +29,19 @@
 TinyLogger/
 ├── CMakeLists.txt              # 主 CMake 建置檔案
 ├── include/tiny_logger/        # 標頭檔
-│   ├── logger.h
-│   ├── logger_builder.h
-│   ├── logger_factory.h
-│   ├── logger_error.h
-│   ├── ring_buffer.h
-│   ├── distributor.h
-│   ├── printer.h
+│   ├── logger.hpp
+│   ├── logger_builder.hpp
+│   ├── logger_factory.hpp
+│   ├── logger_error.hpp
+│   ├── ring_buffer.hpp
+│   ├── distributor.hpp
+│   ├── printer.hpp
 │   ├── printer/
-│   │   ├── base.h
-│   │   ├── console.h
-│   │   ├── file.h
-│   │   └── null.h
-│   ├── types.h
+│   │   ├── base.hpp
+│   │   ├── console.hpp
+│   │   ├── file.hpp
+│   │   └── null.hpp
+│   ├── types.hpp
 │   └── ...
 ├── src/                        # 實作檔
 │   ├── logger.cpp
@@ -56,7 +56,7 @@ TinyLogger/
 │   └── ...
 ├── test/                       # 測試套件
 │   ├── CMakeLists.txt
-│   ├── test_common.h
+│   ├── test_common.hpp
 │   ├── test_ring_buffer.cpp
 │   ├── test_printer.cpp
 │   ├── test_distributor.cpp
@@ -286,8 +286,8 @@ ctest --output-on-failure
 每個測試檔案遵循以下結構：
 
 ```cpp
-#include <tiny_logger/xxx.h>
-#include "test_common.h"
+#include <tiny_logger/xxx.hpp>
+#include "test_common.hpp"
 
 using namespace tiny_logger;
 using namespace tiny_logger::test;
@@ -323,7 +323,7 @@ int main() {
 
 1. 測試函式回傳 `bool`（`true` = 通過，`false` = 失敗）
 2. **不在測試函式內印出 `[TEST]` 或 `PASSED/FAILED`**（由框架統一處理）
-3. 使用 `test_common.h` 提供的工具函式
+3. 使用 `test_common.hpp` 提供的工具函式
 4. 暫存檔使用 RAII 類別（自動清理）
 
 **建議：**
@@ -334,7 +334,7 @@ int main() {
 
 ### 測試工具函式
 
-`test/test_common.h` 提供以下工具：
+`test/test_common.hpp` 提供以下工具：
 
 #### `create_test_event()`
 
@@ -441,7 +441,7 @@ print_test_summary("Suite Name", result);
 
 ### 自訂日誌輸出格式化（D）
 
-目前，每個 printer 的格式化方法都被硬編碼進 `printer_xxx.h`，未來可以支援在設定檔中增加可選的自訂 pattern（類似 spdlog
+目前，每個 printer 的格式化方法都被硬編碼進 `printer_xxx.hpp`，未來可以支援在設定檔中增加可選的自訂 pattern（類似 spdlog
 %Y-%m-%d [%l] %v）
 
 ### 依賴管理（D）

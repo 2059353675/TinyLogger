@@ -13,7 +13,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/logger_builder.hpp>
 
 int main() {
     auto logger = tiny_logger::LoggerBuilder()

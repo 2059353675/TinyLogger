@@ -51,7 +51,7 @@ sudo cmake --install .      # 可选，安装到 /usr/local
 ### 基本使用
 
 ```cpp
-#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/logger_builder.hpp>
 
 int main() {
     using namespace tiny_logger;
@@ -310,18 +310,17 @@ logger.info("多个值：{}, {}, {}", a, b, c);
 ```
 TinyLogger/
 ├── include/tiny_logger/      # 头文件
-│   ├── logger.h
-│   ├── logger_builder.h
-│   ├── logger_factory.h     # 工厂函数
-│   ├── logger_error.h
-│   ├── ring_buffer.h
-│   ├── distributor.h
-│   ├── printer.h
+│   ├── logger.hpp
+│   ├── logger_builder.hpp
+│   ├── logger_factory.hpp     # 工厂函数
+│   ├── logger_error.hpp
+│   ├── ring_buffer.hpp
+│   ├── distributor.hpp
+│   ├── printer.hpp
 │   ├── printer/             # Printer 子目录
-│   │   ├── base.h
-│   │   ├── console.h
-│   │   ├── file.h
-│   │   └── null.h
+│   │   ├── console.hpp
+│   │   ├── file.hpp
+│   │   └── null.hpp
 │   ├── types.h
 │   └── ...
 ├── src/                    # 实现文件

@@ -18,7 +18,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include <tiny_logger/types.h>
+#include <tiny_logger/types.hpp>
 #include <vector>
 
 namespace tiny_logger {

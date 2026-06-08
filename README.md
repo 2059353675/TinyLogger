@@ -51,7 +51,7 @@ sudo cmake --install .      # Optional, install to /usr/local
 ### Basic Usage
 
 ```cpp
-#include <tiny_logger/logger_builder.h>
+#include <tiny_logger/logger_builder.hpp>
 
 int main() {
     using namespace tiny_logger;
@@ -315,19 +315,18 @@ See [User Guide](docs/USER_GUIDE.md) for detailed integration methods (find_pack
 ```
 TinyLogger/
 ├── include/tiny_logger/      # Header files
-│   ├── logger.h
-│   ├── logger_builder.h
-│   ├── logger_factory.h     # Factory functions
-│   ├── logger_error.h
-│   ├── ring_buffer.h
-│   ├── distributor.h
-│   ├── printer.h
+│   ├── logger.hpp
+│   ├── logger_builder.hpp
+│   ├── logger_factory.hpp     # Factory functions
+│   ├── logger_error.hpp
+│   ├── ring_buffer.hpp
+│   ├── distributor.hpp
+│   ├── printer.hpp
 │   ├── printer/             # Printer subdirectory
-│   │   ├── base.h
-│   │   ├── console.h
-│   │   ├── file.h
-│   │   └── null.h
-│   ├── types.h
+│   │   ├── console.hpp
+│   │   ├── file.hpp
+│   │   └── null.hpp
+│   ├── types.hpp
 │   └── ...
 ├── src/                    # Implementation files
 │   ├── logger.cpp

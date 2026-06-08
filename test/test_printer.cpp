@@ -1,7 +1,7 @@
-#include "test_common.h"
-#include <tiny_logger/printer/console.h>
-#include <tiny_logger/printer/file.h>
-#include <tiny_logger/types.h>
+#include "test_common.hpp"
+#include <tiny_logger/printer/console.hpp>
+#include <tiny_logger/printer/file.hpp>
+#include <tiny_logger/types.hpp>
 
 using namespace tiny_logger;
 using namespace tiny_logger::test;

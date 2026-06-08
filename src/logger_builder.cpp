@@ -1,4 +1,4 @@
-#include "tiny_logger/logger_builder.h"
+#include "tiny_logger/logger_builder.hpp"
 
 namespace tiny_logger {
 
