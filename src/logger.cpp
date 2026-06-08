@@ -94,6 +94,7 @@ RingBuffer* Logger::get_queue() {
 }
 
 RingBuffer* Logger::create_and_register_queue() {
+    std::lock_guard<std::mutex> lock(queue_mutex_);
     auto q = std::make_unique<RingBuffer>(buffer_size_, overflow_policy_);
     RingBuffer* ptr = q.get();
     owned_queues_.push_back(std::move(q));

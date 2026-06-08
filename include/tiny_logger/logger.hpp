@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <fmt/format.h>
 #include <memory>
+#include <mutex>
 #include <new>
 #include <tuple>
 #include <type_traits>
@@ -79,6 +80,7 @@ private:
     OverflowPolicy overflow_policy_;
 
     std::vector<std::unique_ptr<RingBuffer>> owned_queues_;
+    std::mutex queue_mutex_;
     QueueRegistry registry_;
 
     std::unique_ptr<Distributor> distributor_;

@@ -1,7 +1,5 @@
 #include "test_common.hpp"
 #include <chrono>
-#include <cstdio>
-#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -50,13 +48,13 @@ bool test_logger_log_levels() {
     auto logger = create_file_logger(log_file.path(), LogLevel::Debug);
     logger.debug("Debug message");
     logger.info("Info message");
+    logger.warn("Warn message");
     logger.error("Error message");
     logger.fatal("Fatal message");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     std::string content = log_file.read_content();
-    return content.find("Debug message") != std::string::npos &&
-           content.find("Info message") != std::string::npos &&
-           content.find("Error message") != std::string::npos &&
+    return content.find("Debug message") != std::string::npos && content.find("Info message") != std::string::npos &&
+           content.find("Warn message") != std::string::npos && content.find("Error message") != std::string::npos &&
            content.find("Fatal message") != std::string::npos;
 }
 
@@ -79,6 +77,7 @@ bool test_logger_level_filtering() {
 
     logger.debug("Debug message");
     logger.info("Info message");
+    logger.warn("Warn message");
     logger.error("Error message");
     logger.fatal("Fatal message");
 
@@ -86,7 +85,13 @@ bool test_logger_level_filtering() {
 
     std::string content = log_file.read_content();
 
-    if (content.find("Debug message") != std::string::npos || content.find("Info message") != std::string::npos) {
+    if (content.find("Debug message") != std::string::npos) {
+        return false;
+    }
+    if (content.find("Info message") != std::string::npos) {
+        return false;
+    }
+    if (content.find("Warn message") != std::string::npos) {
         return false;
     }
 
