@@ -239,7 +239,7 @@ int main() {
     run_test("Logger init with programmatic config", test_logger_init_programmatic, result);
     run_test("Logger init with file printer", test_logger_init_file_printer, result);
 
-    run_test("Logger log levels (debug/info/error/fatal)", test_logger_log_levels, result, 3);
+    run_test("Logger log levels (debug/warn/info/error/fatal)", test_logger_log_levels, result, 3);
     run_test("Logger formatted output", test_logger_formatted_output, result, 3);
 
     run_test("Logger level filtering", test_logger_level_filtering, result, 3);

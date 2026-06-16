@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 # 定义项目名称、版本及编程语言 / Define project name, version, and languages
-project(TinyLogger VERSION 1.0.1 LANGUAGES CXX)
+project(TinyLogger VERSION 1.1.1 LANGUAGES CXX)
 
 # 设置C++标准及强制要求 / Set C++ standard and enforce requirement
 set(CMAKE_CXX_STANDARD 17)
@@ -41,11 +41,11 @@ endforeach()
 # 构建选项 / Build Options
 # =============================================================================
 
-# 是否构建测试用例（默认开启） / Whether to build tests (default: ON)
-option(TINYLOGGER_BUILD_TESTS "Build tests" ON)
+# 是否构建测试用例（默认关闭） / Whether to build tests (default: OFF)
+option(TINYLOGGER_BUILD_TESTS "Build tests" OFF)
 
-# 是否构建示例程序（默认开启） / Whether to build example programs (default: ON)
-option(TINYLOGGER_BUILD_EXAMPLES "Build examples" ON)
+# 是否构建示例程序（默认关闭） / Whether to build example programs (default: OFF)
+option(TINYLOGGER_BUILD_EXAMPLES "Build examples" OFF)
 
 # 是否使用系统已安装的fmt库而非通过FetchContent获取（默认关闭） /
 # Whether to use system-installed fmt library instead of FetchContent (default: OFF)
