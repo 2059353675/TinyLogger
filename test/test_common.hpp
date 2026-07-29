@@ -34,7 +34,7 @@ namespace test {
  * @return 构造好的 LogEvent
  */
 inline LogEvent create_test_event(LogLevel level, const char* msg) {
-    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    auto now = std::chrono::system_clock::now().time_since_epoch();
     uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     uint64_t tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
 
@@ -56,7 +56,7 @@ inline LogEvent create_test_event(LogLevel level, const char* msg) {
  * @return 是否成功（消息长度检查）
  */
 inline bool create_test_event(LogEvent& event, LogLevel level, const char* msg) {
-    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    auto now = std::chrono::system_clock::now().time_since_epoch();
     uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     uint64_t tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
 

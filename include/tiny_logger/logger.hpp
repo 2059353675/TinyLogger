@@ -144,7 +144,7 @@ const VTable* get_vtable() {
  */
 template <typename... Args>
 LogEvent Logger::build_event(LogLevel lvl, const char* fmt, Args&&... args) {
-    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    auto now = std::chrono::system_clock::now().time_since_epoch();
     uint64_t ts = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     auto tid = fast_thread_id();
 
