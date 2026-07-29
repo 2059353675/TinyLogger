@@ -42,6 +42,7 @@ TinyLogger/
 │   │   ├── file.hpp
 │   │   └── null.hpp
 │   ├── types.hpp
+│   ├── thread_name.hpp
 │   └── ...
 ├── src/                        # Implementation files
 │   ├── logger.cpp

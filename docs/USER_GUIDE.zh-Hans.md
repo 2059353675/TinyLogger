@@ -19,6 +19,7 @@
     - [日志级别](#日志级别)
     - [格式化输出](#格式化输出)
 - [高级用法](#高级用法)
+    - [线程命名](#线程命名)
     - [多 Printer 配置](#多-printer-配置)
     - [文件日志滚动](#文件日志滚动)
 - [在其他项目中使用](#在其他项目中使用)
@@ -254,6 +255,37 @@ logger.info("多个值：{}, {}, {}", a, b, c);
 ---
 
 ## 高级用法
+
+### 线程命名
+
+默认情况下，每条日志包含一个哈希后的线程 ID。你可以使用 `set_thread_name()` 为线程设置一个可读的名称：
+
+```cpp
+#include <tiny_logger/logger_builder.hpp>
+
+void worker() {
+    tiny_logger::set_thread_name("Worker-1");
+
+    auto logger = tiny_logger::create_default_logger();
+    logger.info("任务开始");
+    // 输出：[2025-01-15 10:30:45.123456][Worker-1][Info] 任务开始
+}
+
+int main() {
+    tiny_logger::set_thread_name("MainThread");
+    // ...
+}
+```
+
+| 函数                                       | 说明                       |
+|--------------------------------------------|----------------------------|
+| `set_thread_name(const char* name)`        | 设置当前线程的显示名称        |
+| `get_thread_name()`                        | 获取当前线程名称（未设置时为 nullptr） |
+| `resolve_thread_name(uint64_t thread_id)`  | 根据线程 ID 查找对应名称      |
+
+- 调用 `set_thread_name(nullptr)` 或 `set_thread_name("")` 会清除名称。
+- 线程名称在日志记录时捕获，输出时显示为 `[Name]` 而非 `[thread_id]`。
+- 未设置时，回退显示哈希后的数值线程 ID。
 
 ### 多 Printer 配置
 

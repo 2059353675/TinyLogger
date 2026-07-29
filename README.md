@@ -11,6 +11,7 @@ C++17 high-performance asynchronous logging library based on lock-free ring buff
 - **High Concurrency** - 15M logs/s with 8 threads concurrent writing
 - **RAII Resource Management** - Automatic cleanup of threads, files and other resources
 - **Multiple Output Targets** - Console, File, Null Printer, supports simultaneous configuration
+- **Thread Naming** - Replace hashed thread IDs with human-readable custom names in log output
 - **Type-safe Configuration** - Chainable Builder API with compile-time checks
 
 ## Detailed Documentation
@@ -327,6 +328,7 @@ TinyLogger/
 │   │   ├── file.hpp
 │   │   └── null.hpp
 │   ├── types.hpp
+│   ├── thread_name.hpp
 │   └── ...
 ├── src/                    # Implementation files
 │   ├── logger.cpp

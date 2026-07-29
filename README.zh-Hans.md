@@ -11,6 +11,7 @@
 - **高并发** - 8 线程并发写入可达 1500 万 logs/s
 - **RAII 资源管理** - 线程、文件等资源自动清理
 - **多输出目标** - Console、File、Null Printer，支持同时配置多个
+- **线程命名** - 用可读的自定义名称替代日志中的哈希线程 ID
 - **类型安全配置** - 链式 Builder API，编译期检查
 
 ## 详细文档
@@ -321,7 +322,8 @@ TinyLogger/
 │   │   ├── console.hpp
 │   │   ├── file.hpp
 │   │   └── null.hpp
-│   ├── types.h
+│   ├── types.hpp
+│   ├── thread_name.hpp
 │   └── ...
 ├── src/                    # 实现文件
 │   ├── logger.cpp

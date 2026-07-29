@@ -19,6 +19,7 @@
     - [Log Levels](#log-levels)
     - [Formatted Output](#formatted-output)
 - [Advanced Usage](#advanced-usage)
+    - [Thread Naming](#thread-naming)
     - [Multiple Printer Configuration](#multiple-printer-configuration)
     - [Log File Rotation](#log-file-rotation)
 - [Using in Other Projects](#using-in-other-projects)
@@ -252,6 +253,37 @@ size不超过fixed storage (default 128B). Avoid passing temporary objects or la
 ---
 
 ## Advanced Usage
+
+### Thread Naming
+
+By default, each log entry includes a hashed thread ID. You can assign a human-readable name to a thread using `set_thread_name()`:
+
+```cpp
+#include <tiny_logger/logger_builder.hpp>
+
+void worker() {
+    tiny_logger::set_thread_name("Worker-1");
+
+    auto logger = tiny_logger::create_default_logger();
+    logger.info("Task started");
+    // Output: [2025-01-15 10:30:45.123456][Worker-1][Info] Task started
+}
+
+int main() {
+    tiny_logger::set_thread_name("MainThread");
+    // ...
+}
+```
+
+| Function                                   | Description                                        |
+|--------------------------------------------|----------------------------------------------------|
+| `set_thread_name(const char* name)`        | Set the current thread's display name              |
+| `get_thread_name()`                        | Get the current thread's name (nullptr if unset)   |
+| `resolve_thread_name(uint64_t thread_id)`  | Resolve a thread ID to its name                    |
+
+- Calling `set_thread_name(nullptr)` or `set_thread_name("")` clears the name.
+- Thread names are captured at log time and displayed in the output like `[Name]` instead of `[thread_id]`.
+- If unset, the hashed numeric thread ID is shown as before.
 
 ### Multiple Printer Configuration
 

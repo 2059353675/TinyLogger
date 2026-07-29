@@ -11,6 +11,7 @@
 - **高並行** - 8 執行緒並行寫入可達 1500 萬 logs/s
 - **RAII 資源管理** - 執行緒、檔案等資源自動清理
 - **多輸出目標** - Console、File、Null Printer，支援同時配置多個
+- **執行緒命名** - 用可讀的自訂名稱替代日誌中的雜湊執行緒 ID
 - **類型安全配置** - 鏈式 Builder API，編譯期檢查
 
 ## 詳細文件
@@ -326,7 +327,8 @@ TinyLogger/
 │   │   ├── console.hpp
 │   │   ├── file.hpp
 │   │   └── null.hpp
-│   ├── types.h
+│   ├── types.hpp
+│   ├── thread_name.hpp
 │   └── ...
 ├── src/                    # 實作檔
 │   ├── logger.cpp

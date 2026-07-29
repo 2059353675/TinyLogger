@@ -19,6 +19,7 @@
     - [日誌等級](#日誌等級)
     - [格式化輸出](#格式化輸出)
 - [進階用法](#進階用法)
+    - [執行緒命名](#執行緒命名)
     - [多 Printer 設定](#多-printer-設定)
     - [檔案日誌滾動](#檔案日誌滾動)
 - [在其他專案中使用](#在其他專案中使用)
@@ -254,6 +255,37 @@ logger.info("多個值：{}, {}, {}", a, b, c);
 ---
 
 ## 進階用法
+
+### 執行緒命名
+
+預設情況下，每條日誌包含一個雜湊後的執行緒 ID。你可以使用 `set_thread_name()` 為執行緒設定一個可讀的名稱：
+
+```cpp
+#include <tiny_logger/logger_builder.hpp>
+
+void worker() {
+    tiny_logger::set_thread_name("Worker-1");
+
+    auto logger = tiny_logger::create_default_logger();
+    logger.info("任務開始");
+    // 輸出：[2025-01-15 10:30:45.123456][Worker-1][Info] 任務開始
+}
+
+int main() {
+    tiny_logger::set_thread_name("MainThread");
+    // ...
+}
+```
+
+| 函式                                       | 說明                              |
+|--------------------------------------------|-----------------------------------|
+| `set_thread_name(const char* name)`        | 設定當前執行緒的顯示名稱             |
+| `get_thread_name()`                        | 取得當前執行緒名稱（未設定時為 nullptr） |
+| `resolve_thread_name(uint64_t thread_id)`  | 根據執行緒 ID 查詢對應名稱           |
+
+- 呼叫 `set_thread_name(nullptr)` 或 `set_thread_name("")` 會清除名稱。
+- 執行緒名稱在日誌記錄時擷取，輸出時顯示為 `[Name]` 而非 `[thread_id]`。
+- 未設定時，回退顯示雜湊後的數值執行緒 ID。
 
 ### 多 Printer 設定
 
