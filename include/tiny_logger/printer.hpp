@@ -1,5 +1,6 @@
 #pragma once
 
+#include "thread_name.hpp"
 #include "types.hpp"
 #include <functional>
 #include <mutex>
@@ -60,7 +61,12 @@ inline void format_log_line(LogEvent& event, fmt::memory_buffer& out) {
 
     format_timestamp(event.timestamp, out);
 
-    fmt::format_to(std::back_inserter(out), "][{}][{}] ", event.thread_id, level_to_string(event.level));
+    const char* thread_name = resolve_thread_name(event.thread_id);
+    if (thread_name) {
+        fmt::format_to(std::back_inserter(out), "][{}][{}] ", thread_name, level_to_string(event.level));
+    } else {
+        fmt::format_to(std::back_inserter(out), "][{}][{}] ", event.thread_id, level_to_string(event.level));
+    }
 
     if (event.vtable && event.vtable->format_fn) {
         event.vtable->format_fn(event, out);

@@ -5,6 +5,7 @@
 #include "printer/file.hpp"
 #include "queue_registry.hpp"
 #include "ring_buffer.hpp"
+#include "thread_name.hpp"
 #include "types.hpp"
 #include <atomic>
 #include <cstdio>
