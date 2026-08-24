@@ -429,13 +429,20 @@ bool test_idle_cpu_sleep() {
     Distributor distributor(registry, WaitStrategy::Sleep, std::chrono::milliseconds(1));
     distributor.add_printer(std::make_unique<MockPrinter>());
 
+    const auto start = std::chrono::steady_clock::now();
     distributor.start();
     std::this_thread::sleep_for(std::chrono::seconds(2));
     distributor.stop();
+    const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count();
 
-    // Sleep 1ms：约 2000 次迭代；上界防止忙轮询回归
+    // Sleep 1ms：理论迭代率约 1 次/ms。上界按实测耗时自校准，用于排除忙轮询回归
+    // （忙轮询会在同样时间内迭代数千倍，必然超出）；下界只需确认循环确实在运行。
+    // 平台 sleep 精度差异（如 macOS 定时器合并将 1ms 睡眠拉长到数 ms~十余 ms）只会
+    // 降低迭代数，不影响忙轮询判定，因此不做绝对下界限制。
     const uint64_t n = distributor.loop_iterations();
-    return n > 500 && n < 50000;
+    const uint64_t max_iterations = static_cast<uint64_t>(elapsed_ms) * 20; // 理论 ~1/ms 的 20 倍余量
+    return n > 0 && n <= max_iterations;
 }
 
 // ==================== 压力测试（notify/wait/stop 竞争） ====================
