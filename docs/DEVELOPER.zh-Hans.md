@@ -169,6 +169,72 @@ sequenceDiagram
     end
 ```
 
+### Distributor 唤醒协议
+
+Distributor 空闲等待按 `WaitStrategy`（`BusySpin` / `Yield` / `Sleep` / `Blocking`，默认 `Blocking`）分发。
+面向用户的策略选择指南在 README 中；本节记录 `Blocking` 的实现细节。
+
+**边沿触发通知（生产者侧）：**
+- `RingBuffer::enqueue()` 返回 `EnqueueResult`：溢出时 `Full`；队列由空转为非空时 `Success_EmptyToNonEmpty`；其余为 `Success_NonEmptyToNonEmpty`。
+- `Logger::log()` **仅在** `Success_EmptyToNonEmpty` 时调用 `Distributor::notify_work()`——持续日志的常见路径（队列本就非空）**零额外开销**。
+- `notify_work()` 使单调递增的 `generation_` 计数器自增（release）并唤醒条件变量。
+
+**阻塞等待（消费者侧）：**
+- 空闲路径先捕获 `generation_`（acquire），刷新队列快照，复查是否有工作，然后阻塞在 `wake_cv_.wait(predicate)` 上，谓词为 `generation_ != local || !running_`。
+- 该谓词使丢失/重复唤醒不可能发生：等待前被观察到的任何生产者 bump 都会被谓词捕获；捕获后的 bump 则由"捕获后刷新快照 + 复查"兜住。
+- 快照在**捕获代数之后**（而非之前）刷新：因为 `register_queue()` 先于生产者的 `enqueue`，而 `enqueue` 又先于可见的 bump，所以捕获后的快照必然包含任何被观察入队所属的队列。这闭合了"处理中途注册新队列导致事件滞留"的竞态。
+- `stop()` 将 `running_` 置为 `false`，调用 `notify_work()`，join 工作线程（随后 drain），最后 flush。
+
+**底层契约：** 绕过 `Logger` 直接向 `RingBuffer` `enqueue` 不会通知 Distributor。在 `Blocking` 下，调用者必须在"空→非空"入队后自行调用 `Distributor::notify_work()`，否则事件会滞留。高层 `Logger` 会自动完成此操作。
+
+### 性能测试结果
+
+在 x86_64 主机上测量（`-O3 -march=native`，TSC ≈ 1.87 cycles/ns），开发 `WaitStrategy` 功能时记录。空闲 CPU 通过单核固定（`taskset -c 0`）空闲 5 秒测量；延迟/吞吐使用 `benchmark` 示例与专用的生产者侧微基准。
+
+**空闲 CPU（单核，空闲 5 秒）：**
+
+| 策略       | 空闲 CPU | run() 循环次数（2 秒） |
+|------------|----------|------------------------|
+| `Blocking` | 0%       | ≈ 1（阻塞，无 notify 即不迭代） |
+| `Sleep`    | ≈ 1%     | ~2000（1ms 间隔）      |
+| `Yield`    | ≈ 93%    | > 1000（忙轮询）       |
+| `BusySpin` | ≈ 93%    | 忙转                   |
+
+**生产者侧 `logger.info()` 延迟（cycles；p50 各策略一致）：**
+
+| 策略       | p50 | p99（单核） | p99（多核） |
+|------------|-----|------------|------------|
+| `Blocking` | ~67 | ~6900（≈3.7µs futex 唤醒，仅空闲→活跃时每次突发一次） | ~83 |
+| `Yield`    | ~68 | ~78        | ~136       |
+| `Sleep`    | ~68 | ~84        | ~110       |
+| `BusySpin` | ~68 | ~76        | ~377       |
+
+快速路径（p50 ≈ 67 cycles ≈ 36ns）在四种策略下完全一致。`Blocking` 的 p99 尖峰是空闲→活跃时每次突发第一次入队付出的一次 futex 唤醒系统调用；在持续负载/多核下不出现。
+
+**吞吐（生产者侧入队尝试，ops/s）：**
+
+| 策略       | 1线程(单核) | 8线程(单核) | 1线程(多核) | 8线程(多核) |
+|------------|------------|------------|------------|------------|
+| `Blocking` | 11.4M      | 22.2M      | 22.7M      | 37.3M      |
+| `Yield`    | 16.2M      | 22.8M      | 12.7M      | 37.2M      |
+| `Sleep`    | 26.4M      | 25.5M      | 25.4M      | 42.5M      |
+| `BusySpin` | 10.8M      | 21.6M      | 8.2M       | 38.0M      |
+
+**饱和交付率（单核，1 生产者，20 万条，`Discard`）：**
+`Blocking` 实际送达约 2%（约为 `Yield` 的 ~1% 的 1.6–2 倍）：被高效唤醒的消费者比忙轮询抢 CPU 的消费者更高效。饱和下的高丢弃率是 `Discard` 的固有现象（单核上格式化消费者单条处理比简单字符串生产者慢约 20 倍），并非本次改动引入。
+
+**改动前后对比（单核，旧忙轮询 `Yield` vs 新默认 `Blocking`）：**
+
+| 指标                 | 旧（busy-poll Yield） | 新（Blocking） |
+|----------------------|----------------------|----------------|
+| `logger.info()` avg  | 123 cycles           | 67 cycles      |
+| `logger.info()` p50  | ~66 cycles           | ~67 cycles     |
+| `logger.info()` p99  | ~74 cycles           | ~6900（仅空闲→活跃唤醒） |
+| 空闲 CPU             | ~93%                 | 0%             |
+| `RingBuffer::enqueue` | ~4.4 cycles          | ~3.8 cycles    |
+
+结论：`Blocking` 默认值将单核空闲 CPU 从 ~93% 降到 0%，且平均延迟反而改善；唯一代价是每次空闲→活跃突发的首次入队多一次 ~3.7µs 的 futex 唤醒（多核/持续负载下不存在）。若该尖峰不可接受，可改用 `Sleep`（≈1% 空闲 CPU、无唤醒系统调用，代价是 ≤ `sleep_interval` 的延迟）。
+
 ### 关键特性
 
 - **异步日志：** 应用线程不阻塞（提交日志仅需约 30 纳秒），日志输出由 Distributor 线程分发给 Printers 处理

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -35,6 +36,14 @@ enum class OverflowPolicy {
     Discard,   // 丢弃新日志（默认）
     Block,     // 阻塞等待（慎用）
     DropOldest // 丢弃最旧日志（复杂，暂不实现）
+};
+
+/* Distributor 空闲等待策略 */
+enum class WaitStrategy {
+    BusySpin, // 纯自旋，零系统调用，最低延迟、最高 CPU（单核/嵌入式慎用）
+    Yield,    // 空闲时让出 CPU（低延迟，但单核下仍消耗可观 CPU）
+    Sleep,    // 空闲时睡眠 sleep_interval，CPU 低、延迟较高
+    Blocking  // 条件变量纯阻塞 + 边沿触发唤醒，CPU≈0%（默认）
 };
 
 /* 输出类型 */
@@ -138,6 +147,8 @@ struct PrinterConfig {
 struct LoggerConfig {
     size_t buffer_size;
     OverflowPolicy overflow_policy;
+    WaitStrategy wait_strategy{WaitStrategy::Blocking};
+    std::chrono::microseconds sleep_interval{std::chrono::milliseconds(1)}; // 仅 Sleep 策略使用
     std::vector<PrinterConfig> printers;
 
     LoggerConfig() : buffer_size(LOG_COUNT), overflow_policy(OverflowPolicy::Discard) {

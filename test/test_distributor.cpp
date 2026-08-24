@@ -1,5 +1,10 @@
 #include "test_common.hpp"
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <memory>
 #include <mutex>
+#include <thread>
 #include <tiny_logger/distributor.hpp>
 #include <tiny_logger/printer.hpp>
 #include <tiny_logger/queue_registry.hpp>
@@ -68,6 +73,28 @@ private:
     bool should_throw_;
 };
 
+// ==================== 工具 ====================
+
+bool run_for_all_strategies(const std::function<bool(WaitStrategy)>& scenario) {
+    const WaitStrategy strategies[] = {WaitStrategy::BusySpin, WaitStrategy::Yield, WaitStrategy::Sleep,
+                                       WaitStrategy::Blocking};
+    for (auto s : strategies) {
+        if (!scenario(s)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 直接操作 RingBuffer 属底层 API：Blocking 下必须自行 notify（其他策略忽略）
+void notify_low_level(Distributor& distributor, WaitStrategy strategy) {
+    if (strategy == WaitStrategy::Blocking) {
+        distributor.notify_work();
+    }
+}
+
+// ==================== 基础测试 ====================
+
 bool test_distributor_creation() {
     try {
         QueueRegistry registry;
@@ -84,7 +111,7 @@ bool test_distributor_start_stop() {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    Distributor distributor(registry);
+    Distributor distributor(registry, WaitStrategy::Blocking);
 
     distributor.start();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -109,11 +136,30 @@ bool test_distributor_add_printer() {
     return true;
 }
 
-bool test_distributor_single_event() {
+bool test_distributor_double_start_stop() {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    Distributor distributor(registry);
+
+    distributor.start();
+    distributor.start();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    distributor.stop();
+    distributor.stop();
+
+    return true;
+}
+
+// ==================== 事件处理测试（覆盖全部策略） ====================
+
+bool test_single_event(WaitStrategy strategy) {
+    QueueRegistry registry;
+    RingBuffer rb(256, OverflowPolicy::Discard);
+    registry.register_queue(&rb);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -124,6 +170,7 @@ bool test_distributor_single_event() {
 
     LogEvent event = create_test_event(LogLevel::Info, "Test event");
     rb.enqueue(std::move(event));
+    notify_low_level(*distributor, strategy);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     distributor->stop();
@@ -135,11 +182,11 @@ bool test_distributor_single_event() {
     return printer_ptr->get_events()[0].level == LogLevel::Info;
 }
 
-bool test_distributor_multiple_events() {
+bool test_multiple_events(WaitStrategy strategy) {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -155,6 +202,7 @@ bool test_distributor_multiple_events() {
         LogEvent event = create_test_event(LogLevel::Info, msg);
         rb.enqueue(std::move(event));
     }
+    notify_low_level(*distributor, strategy);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     distributor->stop();
@@ -162,11 +210,11 @@ bool test_distributor_multiple_events() {
     return printer_ptr->get_write_count() == static_cast<size_t>(EVENT_COUNT);
 }
 
-bool test_distributor_multiple_printers() {
+bool test_multiple_printers(WaitStrategy strategy) {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer1 = std::make_unique<MockPrinter>();
     printer1->set_min_level(LogLevel::Debug);
@@ -182,6 +230,7 @@ bool test_distributor_multiple_printers() {
 
     LogEvent event = create_test_event(LogLevel::Error, "Multi-printer test");
     rb.enqueue(std::move(event));
+    notify_low_level(*distributor, strategy);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     distributor->stop();
@@ -189,11 +238,11 @@ bool test_distributor_multiple_printers() {
     return printer1_ptr->get_write_count() == 1 && printer2_ptr->get_write_count() == 1;
 }
 
-bool test_distributor_level_filtering() {
+bool test_level_filtering(WaitStrategy strategy) {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Error);
@@ -202,15 +251,11 @@ bool test_distributor_level_filtering() {
 
     distributor->start();
 
-    LogEvent debug_event = create_test_event(LogLevel::Debug, "Debug");
-    LogEvent info_event = create_test_event(LogLevel::Info, "Info");
-    LogEvent error_event = create_test_event(LogLevel::Error, "Error");
-    LogEvent fatal_event = create_test_event(LogLevel::Fatal, "Fatal");
-
-    rb.enqueue(std::move(debug_event));
-    rb.enqueue(std::move(info_event));
-    rb.enqueue(std::move(error_event));
-    rb.enqueue(std::move(fatal_event));
+    rb.enqueue(create_test_event(LogLevel::Debug, "Debug"));
+    rb.enqueue(create_test_event(LogLevel::Info, "Info"));
+    rb.enqueue(create_test_event(LogLevel::Error, "Error"));
+    rb.enqueue(create_test_event(LogLevel::Fatal, "Fatal"));
+    notify_low_level(*distributor, strategy);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     distributor->stop();
@@ -218,11 +263,11 @@ bool test_distributor_level_filtering() {
     return printer_ptr->get_write_count() == 2;
 }
 
-bool test_distributor_drain_on_stop() {
+bool test_drain_on_stop(WaitStrategy strategy) {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -241,11 +286,11 @@ bool test_distributor_drain_on_stop() {
     return printer_ptr->get_write_count() > 0;
 }
 
-bool test_distributor_flush_on_stop() {
+bool test_flush_on_stop(WaitStrategy strategy) {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -256,6 +301,7 @@ bool test_distributor_flush_on_stop() {
 
     LogEvent event = create_test_event(LogLevel::Info, "Flush test");
     rb.enqueue(std::move(event));
+    notify_low_level(*distributor, strategy);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     distributor->stop();
@@ -263,28 +309,11 @@ bool test_distributor_flush_on_stop() {
     return printer_ptr->is_flushed();
 }
 
-bool test_distributor_double_start_stop() {
-    QueueRegistry registry;
-    RingBuffer rb(256, OverflowPolicy::Discard);
-    registry.register_queue(&rb);
-    Distributor distributor(registry);
-
-    distributor.start();
-    distributor.start();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    distributor.stop();
-    distributor.stop();
-
-    return true;
-}
-
-bool test_distributor_batch_processing() {
+bool test_batch_processing(WaitStrategy strategy) {
     QueueRegistry registry;
     RingBuffer rb(1024, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -300,6 +329,7 @@ bool test_distributor_batch_processing() {
         LogEvent event = create_test_event(LogLevel::Info, msg);
         rb.enqueue(std::move(event));
     }
+    notify_low_level(*distributor, strategy);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
     distributor->stop();
@@ -307,11 +337,11 @@ bool test_distributor_batch_processing() {
     return printer_ptr->get_write_count() == static_cast<size_t>(EVENT_COUNT);
 }
 
-bool test_distributor_printer_exception_handling() {
+bool test_printer_exception_handling(WaitStrategy strategy) {
     QueueRegistry registry;
     RingBuffer rb(256, OverflowPolicy::Discard);
     registry.register_queue(&rb);
-    auto distributor = std::make_unique<Distributor>(registry);
+    auto distributor = std::make_unique<Distributor>(registry, strategy);
 
     auto printer = std::make_unique<MockPrinter>();
     printer->set_min_level(LogLevel::Debug);
@@ -325,11 +355,145 @@ bool test_distributor_printer_exception_handling() {
         LogEvent event = create_test_event(LogLevel::Info, "Test");
         rb.enqueue(std::move(event));
     }
+    notify_low_level(*distributor, strategy);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     distributor->stop();
 
     return printer_ptr->error_count() > 0;
+}
+
+// ==================== Blocking 专属行为测试 ====================
+
+bool test_blocking_new_queue_after_start() {
+    QueueRegistry registry;
+    Distributor distributor(registry, WaitStrategy::Blocking);
+
+    auto printer = std::make_unique<MockPrinter>();
+    printer->set_min_level(LogLevel::Debug);
+    MockPrinter* printer_ptr = printer.get();
+    distributor.add_printer(std::move(printer));
+
+    distributor.start();
+
+    // start 之后注册新队列（模拟新线程惰性注册）
+    auto rb = std::make_unique<RingBuffer>(256, OverflowPolicy::Discard);
+    registry.register_queue(rb.get());
+
+    LogEvent event = create_test_event(LogLevel::Info, "late queue");
+    rb->enqueue(std::move(event));
+    distributor.notify_work();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    distributor.stop();
+
+    return printer_ptr->get_write_count() == 1;
+}
+
+// ==================== Idle CPU 回归测试 ====================
+
+bool test_idle_cpu_blocking() {
+    QueueRegistry registry;
+    RingBuffer rb(256, OverflowPolicy::Discard);
+    registry.register_queue(&rb);
+    Distributor distributor(registry, WaitStrategy::Blocking);
+    distributor.add_printer(std::make_unique<MockPrinter>());
+
+    distributor.start();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    distributor.stop();
+
+    // 纯阻塞：无 notify 时几乎不迭代（≈1），防止未来改回忙轮询
+    return distributor.loop_iterations() < 10;
+}
+
+bool test_idle_cpu_yield() {
+    QueueRegistry registry;
+    RingBuffer rb(256, OverflowPolicy::Discard);
+    registry.register_queue(&rb);
+    Distributor distributor(registry, WaitStrategy::Yield);
+    distributor.add_printer(std::make_unique<MockPrinter>());
+
+    distributor.start();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    distributor.stop();
+
+    // Yield 忙轮询：2 秒内应迭代成千上万次
+    return distributor.loop_iterations() > 1000;
+}
+
+bool test_idle_cpu_sleep() {
+    QueueRegistry registry;
+    RingBuffer rb(256, OverflowPolicy::Discard);
+    registry.register_queue(&rb);
+    Distributor distributor(registry, WaitStrategy::Sleep, std::chrono::milliseconds(1));
+    distributor.add_printer(std::make_unique<MockPrinter>());
+
+    distributor.start();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    distributor.stop();
+
+    // Sleep 1ms：约 2000 次迭代；上界防止忙轮询回归
+    const uint64_t n = distributor.loop_iterations();
+    return n > 500 && n < 50000;
+}
+
+// ==================== 压力测试（notify/wait/stop 竞争） ====================
+
+bool test_stress_concurrent_producers(WaitStrategy strategy) {
+    constexpr int THREADS = 4;
+    constexpr int EVENTS = 2000;
+    constexpr size_t QUEUE_CAP = 4096;
+    constexpr int64_t TOTAL = THREADS * EVENTS;
+
+    QueueRegistry registry;
+    Distributor distributor(registry, strategy);
+
+    auto printer = std::make_unique<MockPrinter>();
+    printer->set_min_level(LogLevel::Debug);
+    MockPrinter* printer_ptr = printer.get();
+    distributor.add_printer(std::move(printer));
+
+    // 队列由测试持有，必须比 Distributor 存活更久（模拟 Logger 持有队列）
+    std::vector<std::unique_ptr<RingBuffer>> queues;
+    for (int t = 0; t < THREADS; ++t) {
+        queues.push_back(std::make_unique<RingBuffer>(QUEUE_CAP, OverflowPolicy::Discard));
+    }
+
+    distributor.start();
+
+    // start 之后注册（模拟惰性注册），容量 > 事件数，无溢出
+    for (int t = 0; t < THREADS; ++t) {
+        registry.register_queue(queues[t].get());
+    }
+
+    std::vector<std::thread> threads;
+    for (int t = 0; t < THREADS; ++t) {
+        threads.emplace_back([&, t] {
+            for (int i = 0; i < EVENTS; ++i) {
+                LogEvent event = create_test_event(LogLevel::Info, "stress");
+                if (queues[t]->enqueue(std::move(event)) == EnqueueResult::Success_EmptyToNonEmpty) {
+                    distributor.notify_work();
+                }
+            }
+        });
+    }
+    for (auto& th : threads) {
+        th.join();
+    }
+
+    // 不 stop，等待 notify 驱动的投递完成
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    while (printer_ptr->get_write_count() < static_cast<size_t>(TOTAL)) {
+        if (std::chrono::steady_clock::now() > deadline) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    const bool ok = printer_ptr->get_write_count() == static_cast<size_t>(TOTAL);
+    distributor.stop();
+    return ok;
 }
 
 int main() {
@@ -342,15 +506,26 @@ int main() {
     run_test("Distributor creation", test_distributor_creation, result);
     run_test("Distributor start/stop", test_distributor_start_stop, result);
     run_test("Distributor add printer", test_distributor_add_printer, result);
-    run_test("Distributor single event", test_distributor_single_event, result, 3);
-    run_test("Distributor multiple events", test_distributor_multiple_events, result, 3);
-    run_test("Distributor multiple printers", test_distributor_multiple_printers, result, 3);
-    run_test("Distributor level filtering", test_distributor_level_filtering, result, 3);
-    run_test("Distributor drain on stop", test_distributor_drain_on_stop, result, 3);
-    run_test("Distributor flush on stop", test_distributor_flush_on_stop, result, 3);
     run_test("Distributor double start/stop", test_distributor_double_start_stop, result);
-    run_test("Distributor batch processing", test_distributor_batch_processing, result, 3);
-    run_test("Distributor printer exception handling", test_distributor_printer_exception_handling, result, 3);
+
+    run_test("Single event (all strategies)", [] { return run_for_all_strategies(test_single_event); }, result, 3);
+    run_test("Multiple events (all strategies)", [] { return run_for_all_strategies(test_multiple_events); }, result, 3);
+    run_test("Multiple printers (all strategies)", [] { return run_for_all_strategies(test_multiple_printers); }, result, 3);
+    run_test("Level filtering (all strategies)", [] { return run_for_all_strategies(test_level_filtering); }, result, 3);
+    run_test("Drain on stop (all strategies)", [] { return run_for_all_strategies(test_drain_on_stop); }, result, 3);
+    run_test("Flush on stop (all strategies)", [] { return run_for_all_strategies(test_flush_on_stop); }, result, 3);
+    run_test("Batch processing (all strategies)", [] { return run_for_all_strategies(test_batch_processing); }, result, 3);
+    run_test("Printer exception handling (all strategies)",
+             [] { return run_for_all_strategies(test_printer_exception_handling); }, result, 3);
+
+    run_test("Blocking: new queue after start", test_blocking_new_queue_after_start, result, 3);
+
+    run_test("Idle CPU: Blocking (regression)", test_idle_cpu_blocking, result, 3);
+    run_test("Idle CPU: Yield (regression)", test_idle_cpu_yield, result, 3);
+    run_test("Idle CPU: Sleep (regression)", test_idle_cpu_sleep, result, 3);
+
+    run_test("Stress: concurrent producers (all strategies)",
+             [] { return run_for_all_strategies(test_stress_concurrent_producers); }, result, 3);
 
     print_test_summary("Distributor Test Suite", result);
     return result.failed > 0 ? 1 : 0;

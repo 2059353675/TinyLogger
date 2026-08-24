@@ -112,6 +112,41 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 Level filtering rule: A log is only recorded when its level ≥ the `min_level` configured for the Printer.
 
+### Wait Strategy
+
+The Distributor's idle behavior is configurable via `WaitStrategy`. The four strategies trade off **idle CPU**, **latency**, and **throughput** differently, so the right choice depends on your target hardware:
+
+| Strategy   | Idle CPU | Latency | When to choose                                                                  |
+|------------|----------|---------|---------------------------------------------------------------------------------|
+| `Blocking` | ≈ 0%     | Low     | **Default. General-purpose.** Blocks on a condition variable, woken by producers (edge-triggered). Best for single-core / embedded / battery-powered devices. |
+| `Sleep`    | ≈ 1%     | Medium  | Low power when you want zero syscall wakeups; adds up to `sleep_interval` (default 1ms) of latency. |
+| `Yield`    | High     | Low     | Minimal latency without a blocking syscall. Only on multicore; on single-core it still burns ~90%+ of a core. |
+| `BusySpin` | 100%     | Lowest  | Absolute-minimum latency on a dedicated multicore core. Never on single-core.   |
+
+> **Warning:** `BusySpin` (and to a lesser degree `Yield`) are **NOT** suitable for single-core / embedded CPUs (e.g. Raspberry Pi Zero, i.MX6ULL, Allwinner V3s/T113, STM32MP1). They continuously occupy the CPU and can starve the main thread — measured idle CPU is ~93% on a single core vs **0% for `Blocking`**. **"Lowest latency" ≠ "highest throughput"**: on a single core, a `Blocking` consumer that is woken efficiently actually delivers ~1.6× more events than a busy-yielding one under saturation.
+
+**Recommendation:**
+- **Default `Blocking`** for most use cases (0% idle CPU, no meaningful latency cost under sustained load).
+- **`Sleep`** if you want near-zero CPU *and* no futex wakeup syscall on the producer path (adds ≤ `sleep_interval` latency).
+- **`Yield` / `BusySpin`** only on dedicated multicore systems where the last microseconds of latency matter more than CPU budget.
+
+Configure via `LoggerConfig` or `LoggerBuilder`:
+
+```cpp
+// LoggerBuilder (chained):
+auto logger = tiny_logger::LoggerBuilder()
+    .set_wait_strategy(tiny_logger::WaitStrategy::Blocking)   // default
+    .set_sleep_interval(std::chrono::milliseconds(1))         // only used by Sleep
+    .build();
+
+// Or LoggerConfig directly:
+tiny_logger::LoggerConfig cfg;
+cfg.wait_strategy = tiny_logger::WaitStrategy::Sleep;
+cfg.sleep_interval = std::chrono::microseconds(500);
+```
+
+> **Note:** `RingBuffer` is a low-level API. Enqueuing directly into a registered buffer (bypassing `Logger`) does **not** notify the Distributor; when using `WaitStrategy::Blocking`, you must call `distributor.notify_work()` yourself after an empty→non-empty enqueue, otherwise events can stall in the queue. The high-level `Logger` does this automatically.
+
 ---
 
 ## Performance Benchmark

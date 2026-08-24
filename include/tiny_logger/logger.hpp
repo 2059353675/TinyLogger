@@ -170,9 +170,14 @@ void Logger::log(LogLevel lvl, const char* fmt, Args&&... args) {
     auto e = build_event(lvl, fmt, std::forward<Args>(args)...);
 
     auto* q = get_queue();
-    if (!q->enqueue(std::move(e))) {
+    auto result = q->enqueue(std::move(e));
+    if (result == EnqueueResult::Full) {
         e.destroy();
         handle_overflow();
+    } else if (result == EnqueueResult::Success_EmptyToNonEmpty) {
+        if (distributor_) {
+            distributor_->notify_work();
+        }
     }
 }
 

@@ -116,6 +116,72 @@ flowchart TD
 5. `Printer` formats the log message and writes to target (console/file), e.g.,
     - `[2026-03-21 07:19:25.339158][8343213073192788484][Fatal] Fatal error: system crash, error code: 57005`
 
+### Distributor Wake-Up Protocol
+
+The Distributor's idle wait is dispatched on `WaitStrategy` (`BusySpin` / `Yield` / `Sleep` / `Blocking`, default `Blocking`).
+User-facing selection guidance lives in the README; this section documents the `Blocking` implementation.
+
+**Edge-triggered notification (producer side):**
+- `RingBuffer::enqueue()` returns `EnqueueResult`: `Full` on overflow, `Success_EmptyToNonEmpty` when the queue transitioned empty → non-empty, `Success_NonEmptyToNonEmpty` otherwise.
+- `Logger::log()` calls `Distributor::notify_work()` **only** on `Success_EmptyToNonEmpty` — the common sustained-logging path (queue already non-empty) performs **zero** extra work.
+- `notify_work()` bumps a monotonic `generation_` counter (release) and signals the condition variable.
+
+**Blocking wait (consumer side):**
+- The idle path captures `generation_` (acquire), refreshes the queue snapshot, re-checks for work, then blocks on `wake_cv_.wait(predicate)` where the predicate is `generation_ != local || !running_`.
+- The predicate makes lost/redundant wakeups impossible: any producer bump observed before the wait is caught by the predicate; any bump after capture is caught by the post-capture snapshot refresh + re-check.
+- The snapshot is refreshed **after** capturing the generation (not before): because `register_queue()` happens-before the producer's enqueue, which happens-before the visible bump, a post-capture snapshot is guaranteed to contain the queue of any observed enqueue. This closes the race where a queue registered mid-processing could strand its events.
+- `stop()` sets `running_ = false`, calls `notify_work()`, joins the worker (which then drains), and flushes.
+
+**Low-level contract:** directly enqueuing into a `RingBuffer` (bypassing `Logger`) does **not** notify the Distributor. Under `Blocking`, callers must invoke `Distributor::notify_work()` after an empty→non-empty enqueue, or events can stall. The high-level `Logger` does this automatically.
+
+### Performance Test Results
+
+Measured on an x86_64 host (`-O3 -march=native`, TSC ≈ 1.87 cycles/ns) while developing the `WaitStrategy` feature. Idle CPU was measured by idling a single-core-pinned process for 5 s (`taskset -c 0`); latency/throughput used the `benchmark` example and a dedicated producer-side micro-benchmark.
+
+**Idle CPU (single core, 5 s idle):**
+
+| Strategy   | Idle CPU | run() loop iterations (2 s) |
+|------------|----------|-----------------------------|
+| `Blocking` | 0%       | ≈ 1 (blocks, no notify → no iteration) |
+| `Sleep`    | ≈ 1%     | ~2000 (1 ms interval)       |
+| `Yield`    | ≈ 93%    | > 1000 (busy)               |
+| `BusySpin` | ≈ 93%    | busy                        |
+
+**Producer-side `logger.info()` latency (cycles; p50 identical across strategies):**
+
+| Strategy   | p50 | p99 (single core) | p99 (multicore) |
+|------------|-----|-------------------|-----------------|
+| `Blocking` | ~67 | ~6900 (≈ 3.7 µs futex wake on idle→active, once per burst) | ~83 |
+| `Yield`    | ~68 | ~78               | ~136            |
+| `Sleep`    | ~68 | ~84               | ~110            |
+| `BusySpin` | ~68 | ~76               | ~377            |
+
+The fast path (p50 ≈ 67 cycles ≈ 36 ns) is unchanged across all strategies. `Blocking`'s p99 spike is a single futex wake syscall paid by the first enqueue of each idle→active burst; it disappears under sustained load / multicore.
+
+**Throughput (producer-side enqueue attempts, ops/s):**
+
+| Strategy   | 1 thread (single core) | 8 threads (single core) | 1 thread (multicore) | 8 threads (multicore) |
+|------------|------------------------|-------------------------|----------------------|-----------------------|
+| `Blocking` | 11.4M                  | 22.2M                   | 22.7M                | 37.3M                 |
+| `Yield`    | 16.2M                  | 22.8M                   | 12.7M                | 37.2M                 |
+| `Sleep`    | 26.4M                  | 25.5M                   | 25.4M                | 42.5M                 |
+| `BusySpin` | 10.8M                  | 21.6M                   | 8.2M                 | 38.0M                 |
+
+**Delivered (non-dropped) rate under saturation (single core, 1 producer, 200 K events, `Discard`):**
+`Blocking` delivers ~2% (~1.6–2× more than `Yield`'s ~1%): a woken consumer is more efficient than a busy-yielding one that steals CPU. High drop rates under saturation are inherent to `Discard` (a formatting consumer is ~20× slower per event than a trivial-string producer on one core) and are not a regression.
+
+**Before/after (single core, old busy-poll `Yield` vs new default `Blocking`):**
+
+| Metric                    | Old (busy-poll Yield) | New (Blocking) |
+|---------------------------|-----------------------|----------------|
+| `logger.info()` avg       | 123 cycles            | 67 cycles      |
+| `logger.info()` p50       | ~66 cycles            | ~67 cycles     |
+| `logger.info()` p99       | ~74 cycles            | ~6900 (idle→active wakeup only) |
+| Idle CPU                  | ~93%                  | 0%             |
+| `RingBuffer::enqueue`     | ~4.4 cycles           | ~3.8 cycles    |
+
+Conclusion: the `Blocking` default reduces single-core idle CPU from ~93% to 0% while *improving* average latency; the only cost is a ~3.7 µs futex wakeup on the first enqueue of each idle→active burst (absent on multicore / sustained load). If that spike is unacceptable, use `Sleep` (≈1% idle CPU, no wakeup syscall, adds ≤ `sleep_interval` latency).
+
 Sequence diagram:
 
 ```mermaid

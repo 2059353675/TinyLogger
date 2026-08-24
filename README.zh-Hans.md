@@ -112,6 +112,41 @@ g++ -std=c++17 -I/path/to/TinyLogger/include -o myapp myapp.cpp \
 
 级别过滤规则：只有当日志级别 ≥ Printer 配置的 `min_level` 时才会被记录。
 
+### 等待策略 (Wait Strategy)
+
+Distributor 空闲时的行为可通过 `WaitStrategy` 配置。四种策略在**空闲 CPU**、**延迟**、**吞吐**之间各有取舍，应根据目标硬件选择：
+
+| 策略       | 空闲 CPU | 延迟   | 适用场景                                                                  |
+|------------|----------|--------|---------------------------------------------------------------------------|
+| `Blocking` | ≈ 0%     | 低     | **默认。通用推荐。** 阻塞在条件变量上，由生产者边沿触发唤醒。最适合单核/嵌入式/低功耗设备。 |
+| `Sleep`    | ≈ 1%     | 中     | 想要零唤醒系统调用时选择；代价是增加至多 `sleep_interval`（默认 1ms）的延迟。 |
+| `Yield`    | 高       | 低     | 无阻塞系统调用的低延迟。仅适合多核；单核下仍会烧掉 ~90%+ 一个核。 |
+| `BusySpin` | 100%     | 最低   | 专用多核核心上的绝对最低延迟。单核禁用。                                  |
+
+> **警告：** `BusySpin`（以及较轻程度的 `Yield`）**不适用于**单核/嵌入式 CPU（如树莓派 Zero、i.MX6ULL、全志 V3s/T113、STM32MP1）。它们会持续占满 CPU，导致主线程被饿死——实测单核空闲 CPU 约 **93%，而 `Blocking` 为 0%**。**"最低延迟" ≠ "最高吞吐"**：单核下被高效唤醒的 `Blocking` 消费者在饱和时实际交付的事件数是忙轮询 `Yield` 的约 1.6 倍。
+
+**选择建议：**
+- 大多数场景直接用**默认 `Blocking`**（空闲 CPU 0%，持续负载下延迟无实质差异）。
+- 想要近零 CPU 且**不希望在生产者路径上产生 futex 唤醒系统调用**时选 **`Sleep`**（代价是 ≤ `sleep_interval` 的延迟）。
+- **`Yield` / `BusySpin`** 仅在专用多核系统上、当最后几微秒延迟比 CPU 预算更重要时使用。
+
+通过 `LoggerConfig` 或 `LoggerBuilder` 配置：
+
+```cpp
+// LoggerBuilder（链式）：
+auto logger = tiny_logger::LoggerBuilder()
+    .set_wait_strategy(tiny_logger::WaitStrategy::Blocking)   // 默认
+    .set_sleep_interval(std::chrono::milliseconds(1))         // 仅 Sleep 使用
+    .build();
+
+// 或直接使用 LoggerConfig：
+tiny_logger::LoggerConfig cfg;
+cfg.wait_strategy = tiny_logger::WaitStrategy::Sleep;
+cfg.sleep_interval = std::chrono::microseconds(500);
+```
+
+> **注意：** `RingBuffer` 属底层 API。绕过 `Logger` 直接向已注册缓冲区 `enqueue` 不会通知 Distributor；使用 `WaitStrategy::Blocking` 时，必须在"空→非空"入队后自行调用 `distributor.notify_work()`，否则事件会滞留在队列中。高层 `Logger` 会自动完成此操作。
+
 ---
 
 ## 性能基准 (Performance Benchmark)

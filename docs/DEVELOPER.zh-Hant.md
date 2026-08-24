@@ -169,6 +169,72 @@ sequenceDiagram
     end
 ```
 
+### Distributor 喚醒協定
+
+Distributor 閒置等待依 `WaitStrategy`（`BusySpin` / `Yield` / `Sleep` / `Blocking`，預設 `Blocking`）分派。
+面向使用者的策略選擇指南在 README 中；本節記錄 `Blocking` 的實作細節。
+
+**邊緣觸發通知（生產者側）：**
+- `RingBuffer::enqueue()` 回傳 `EnqueueResult`：溢位時 `Full`；佇列由空轉為非空時 `Success_EmptyToNonEmpty`；其餘為 `Success_NonEmptyToNonEmpty`。
+- `Logger::log()` **僅在** `Success_EmptyToNonEmpty` 時呼叫 `Distributor::notify_work()`——持續日誌的常見路徑（佇列本就不為空）**零額外開銷**。
+- `notify_work()` 使單調遞增的 `generation_` 計數器自增（release）並喚醒條件變數。
+
+**阻塞等待（消費者側）：**
+- 閒置路徑先擷取 `generation_`（acquire），重新整理佇列快照，複查是否有工作，然後阻塞於 `wake_cv_.wait(predicate)`，謂詞為 `generation_ != local || !running_`。
+- 該謂詞使遺失/重複喚醒不可能發生：等待前被觀察到的任何生產者 bump 都會被謂詞捕獲；擷取後的 bump 則由「擷取後重新整理快照 + 複查」兜住。
+- 快照在**擷取代數之後**（而非之前）重新整理：因為 `register_queue()` 先於生產者的 `enqueue`，而 `enqueue` 又先於可見的 bump，所以擷取後的快照必然包含任何被觀察入隊所屬的佇列。這閉合了「處理中途註冊新佇列導致事件滯留」的競態。
+- `stop()` 將 `running_` 設為 `false`，呼叫 `notify_work()`，join 工作執行緒（隨後 drain），最後 flush。
+
+**底層契約：** 繞過 `Logger` 直接對 `RingBuffer` `enqueue` 不會通知 Distributor。在 `Blocking` 下，呼叫者必須在「空→非空」入隊後自行呼叫 `Distributor::notify_work()`，否則事件會滯留。高層 `Logger` 會自動完成此操作。
+
+### 效能測試結果
+
+在 x86_64 主機上量測（`-O3 -march=native`，TSC ≈ 1.87 cycles/ns），開發 `WaitStrategy` 功能時記錄。閒置 CPU 透過單核固定（`taskset -c 0`）閒置 5 秒量測；延遲/吞吐使用 `benchmark` 範例與專用的生產者側微基準。
+
+**閒置 CPU（單核，閒置 5 秒）：**
+
+| 策略       | 閒置 CPU | run() 迴圈次數（2 秒） |
+|------------|----------|------------------------|
+| `Blocking` | 0%       | ≈ 1（阻塞，無 notify 即不迭代） |
+| `Sleep`    | ≈ 1%     | ~2000（1ms 間隔）      |
+| `Yield`    | ≈ 93%    | > 1000（忙輪詢）       |
+| `BusySpin` | ≈ 93%    | 忙轉                   |
+
+**生產者側 `logger.info()` 延遲（cycles；p50 各策略一致）：**
+
+| 策略       | p50 | p99（單核） | p99（多核） |
+|------------|-----|------------|------------|
+| `Blocking` | ~67 | ~6900（≈3.7µs futex 喚醒，僅閒置→活躍時每次突發一次） | ~83 |
+| `Yield`    | ~68 | ~78        | ~136       |
+| `Sleep`    | ~68 | ~84        | ~110       |
+| `BusySpin` | ~68 | ~76        | ~377       |
+
+快速路徑（p50 ≈ 67 cycles ≈ 36ns）在四種策略下完全一致。`Blocking` 的 p99 尖峰是閒置→活躍時每次突發第一次入隊付出的一次 futex 喚醒系統呼叫；在持續負載/多核下不出現。
+
+**吞吐（生產者側入隊嘗試，ops/s）：**
+
+| 策略       | 1執行緒(單核) | 8執行緒(單核) | 1執行緒(多核) | 8執行緒(多核) |
+|------------|-------------|-------------|-------------|-------------|
+| `Blocking` | 11.4M       | 22.2M       | 22.7M       | 37.3M       |
+| `Yield`    | 16.2M       | 22.8M       | 12.7M       | 37.2M       |
+| `Sleep`    | 26.4M       | 25.5M       | 25.4M       | 42.5M       |
+| `BusySpin` | 10.8M       | 21.6M       | 8.2M        | 38.0M       |
+
+**飽和交付率（單核，1 生產者，20 萬條，`Discard`）：**
+`Blocking` 實際送達約 2%（約為 `Yield` 的 ~1% 的 1.6–2 倍）：被高效喚醒的消費者比忙輪詢搶 CPU 的消費者更高效。飽和下的高丟棄率是 `Discard` 的固有現象（單核上格式化消費者單條處理比簡單字串生產者慢約 20 倍），並非本次改動引入。
+
+**改動前後對比（單核，舊忙輪詢 `Yield` vs 新預設 `Blocking`）：**
+
+| 指標                 | 舊（busy-poll Yield） | 新（Blocking） |
+|----------------------|----------------------|----------------|
+| `logger.info()` avg  | 123 cycles           | 67 cycles      |
+| `logger.info()` p50  | ~66 cycles           | ~67 cycles     |
+| `logger.info()` p99  | ~74 cycles           | ~6900（僅閒置→活躍喚醒） |
+| 閒置 CPU             | ~93%                 | 0%             |
+| `RingBuffer::enqueue` | ~4.4 cycles          | ~3.8 cycles    |
+
+結論：`Blocking` 預設值將單核閒置 CPU 從 ~93% 降到 0%，且平均延遲反而改善；唯一代價是每次閒置→活躍突發的首次入隊多一次 ~3.7µs 的 futex 喚醒（多核/持續負載下不存在）。若該尖峰不可接受，可改用 `Sleep`（≈1% 閒置 CPU、無喚醒系統呼叫，代價是 ≤ `sleep_interval` 的延遲）。
+
 ### 關鍵特性
 
 - **非同步日誌：** 應用執行緒不阻塞（提交日誌僅需約 30 奈秒），日誌輸出由 Distributor 執行緒分發給 Printers 處理

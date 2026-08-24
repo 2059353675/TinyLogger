@@ -3,6 +3,7 @@
 #include "logger.hpp"
 #include "printer.hpp"
 #include "types.hpp"
+#include <chrono>
 #include <memory>
 #include <string>
 #include <utility>
@@ -111,6 +112,20 @@ namespace tiny_logger
      * @return 引用自身，支持链式调用
      */
         LoggerBuilder& set_overflow_policy(OverflowPolicy policy);
+
+        /**
+     * @brief 设置 Distributor 空闲等待策略
+     * @param strategy 等待策略（默认 Blocking）
+     * @return 引用自身，支持链式调用
+     */
+        LoggerBuilder& set_wait_strategy(WaitStrategy strategy);
+
+        /**
+     * @brief 设置 Sleep 等待策略的睡眠间隔
+     * @param interval 睡眠间隔（默认 1ms）
+     * @return 引用自身，支持链式调用
+     */
+        LoggerBuilder& set_sleep_interval(std::chrono::microseconds interval);
 
         /**
      * @brief 添加控制台打印器

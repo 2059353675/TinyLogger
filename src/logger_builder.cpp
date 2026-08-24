@@ -12,6 +12,16 @@ LoggerBuilder& LoggerBuilder::set_overflow_policy(OverflowPolicy policy) {
     return *this;
 }
 
+LoggerBuilder& LoggerBuilder::set_wait_strategy(WaitStrategy strategy) {
+    config_.wait_strategy = strategy;
+    return *this;
+}
+
+LoggerBuilder& LoggerBuilder::set_sleep_interval(std::chrono::microseconds interval) {
+    config_.sleep_interval = interval;
+    return *this;
+}
+
 LoggerBuilder& LoggerBuilder::add_console_printer(LogLevel min_level) {
     PrinterConfig pc;
     pc.type = PrinterType::Console;

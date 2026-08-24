@@ -39,7 +39,7 @@ void Logger::init(const LoggerConfig& config) {
     buffer_size_ = config.buffer_size;
     overflow_policy_ = config.overflow_policy;
 
-    distributor_ = std::make_unique<Distributor>(registry_);
+    distributor_ = std::make_unique<Distributor>(registry_, config.wait_strategy, config.sleep_interval);
 
     for (const auto& pc : config.printers) {
         auto printer = PrinterRegistry::instance().create(pc);

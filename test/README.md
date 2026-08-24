@@ -15,7 +15,7 @@ test/
 
 ## 测试覆盖范围
 
-### 1. RingBuffer 测试 (test_ring_buffer.cpp) - 11 个测试
+### 1. RingBuffer 测试 (test_ring_buffer.cpp) - 12 个测试
 
 **基础测试：**
 - 缓冲区创建
@@ -35,6 +35,9 @@ test/
 **边界测试：**
 - 2 的幂次容量验证
 - 缓冲区循环覆盖（wraparound）
+
+**边沿触发语义：**
+- 入队空→非空 / 非空→非空 / 满 的 `EnqueueResult` 返回值
 
 ### 2. Printer 测试 (test_printer.cpp) - 13 个测试
 
@@ -59,28 +62,34 @@ test/
 - 无效路径
 - 空消息
 
-### 3. Distributor 测试 (test_distributor.cpp) - 12 个测试
+### 3. Distributor 测试 (test_distributor.cpp) - 17 个测试
 
 **基础测试：**
 - 创建 Distributor
 - 启动/停止
 - 添加 Printer
+- 双重启动/停止
 
-**分发测试：**
+**分发测试（覆盖全部 4 种 WaitStrategy）：**
 - 单个事件分发
 - 多个事件分发
 - 多 Printer 分发
-
-**级别过滤测试：**
 - 基于级别的过滤
-
-**生命周期测试：**
-- 停止时清空缓冲区
-- 停止时 flush
-- 双重启动/停止
-
-**批量处理测试：**
 - 批量事件处理
+- Printer 异常处理
+- 停止时清空缓冲区（drain）
+- 停止时 flush
+
+**Blocking 专属：**
+- start 之后注册新队列仍能被处理（快照刷新）
+
+**Idle CPU 回归测试（防止改回忙轮询）：**
+- Blocking 空闲 2s 循环次数 ≈ 0
+- Yield 空闲 2s 循环次数 > 1000
+- Sleep 空闲 2s 循环次数有界
+
+**压力测试：**
+- 多生产者并发 + notify/wait/stop 竞争，验证无事件丢失
 
 ### 4. Logger 集成测试 (test_logger.cpp) - 11 个测试
 

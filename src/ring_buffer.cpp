@@ -24,23 +24,27 @@ RingBuffer::~RingBuffer() {
     operator delete[](buffer_);
 }
 
-bool RingBuffer::enqueue(LogEvent&& e) {
+EnqueueResult RingBuffer::enqueue(LogEvent&& e) {
     size_t pos = write_pos_;
     Slot& slot = buffer_[pos & mask_];
     size_t seq = slot.sequence.load(std::memory_order_acquire);
 
     if (seq != pos) {
-        return false;
+        return EnqueueResult::Full;
     }
+
+    bool was_empty = (read_pos_.load(std::memory_order_relaxed) == pos);
 
     slot.event = std::move(e);
     slot.sequence.store(pos + 1, std::memory_order_release);
     ++write_pos_;
-    return true;
+
+    return was_empty ? EnqueueResult::Success_EmptyToNonEmpty
+                     : EnqueueResult::Success_NonEmptyToNonEmpty;
 }
 
 bool RingBuffer::dequeue(LogEvent& e) {
-    size_t pos = read_pos_;
+    size_t pos = read_pos_.load(std::memory_order_relaxed);
     Slot& slot = buffer_[pos & mask_];
     size_t seq = slot.sequence.load(std::memory_order_acquire);
 
@@ -51,7 +55,7 @@ bool RingBuffer::dequeue(LogEvent& e) {
     e = std::move(slot.event);
     slot.sequence.store(pos + capacity_, std::memory_order_release);
 
-    ++read_pos_;
+    read_pos_.store(pos + 1, std::memory_order_release);
     return true;
 }
 } // namespace tiny_logger

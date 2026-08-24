@@ -22,7 +22,7 @@ bool test_single_enqueue_dequeue() {
     LogEvent event;
     create_test_event(event, LogLevel::Info, "Hello, World!");
 
-    if (!rb.enqueue(std::move(event))) {
+    if (rb.enqueue(std::move(event)) == EnqueueResult::Full) {
         return false;
     }
 
@@ -51,7 +51,7 @@ bool test_buffer_capacity() {
         std::snprintf(msg, sizeof(msg), "Message %zu", i);
         create_test_event(event, LogLevel::Debug, msg);
 
-        if (!rb.enqueue(std::move(event))) {
+        if (rb.enqueue(std::move(event)) == EnqueueResult::Full) {
             return false;
         }
     }
@@ -59,7 +59,7 @@ bool test_buffer_capacity() {
     // 第5个应该失败
     LogEvent overflow_event;
     create_test_event(overflow_event, LogLevel::Error, "Overflow");
-    return !rb.enqueue(std::move(overflow_event));
+    return rb.enqueue(std::move(overflow_event)) == EnqueueResult::Full;
 }
 
 bool test_fifo_ordering() {
@@ -125,7 +125,7 @@ bool test_large_message() {
     LogEvent event;
     create_test_event(event, LogLevel::Info, large_msg);
 
-    if (!rb.enqueue(std::move(event))) {
+    if (rb.enqueue(std::move(event)) == EnqueueResult::Full) {
         return false;
     }
 
@@ -135,6 +135,37 @@ bool test_large_message() {
     }
 
     return std::strlen(dequeued.fmt) == LOG_MSG_SIZE - 2;
+}
+
+// ==================== 边沿触发语义 ====================
+
+bool test_enqueue_edge_trigger_semantics() {
+    RingBuffer rb(8, OverflowPolicy::Discard);
+
+    LogEvent e1;
+    create_test_event(e1, LogLevel::Info, "first");
+    if (rb.enqueue(std::move(e1)) != EnqueueResult::Success_EmptyToNonEmpty) {
+        return false; // 空→非空应返回 EmptyToNonEmpty
+    }
+
+    LogEvent e2;
+    create_test_event(e2, LogLevel::Info, "second");
+    if (rb.enqueue(std::move(e2)) != EnqueueResult::Success_NonEmptyToNonEmpty) {
+        return false; // 非空→非空应返回 NonEmptyToNonEmpty
+    }
+
+    LogEvent dequeued;
+    if (!rb.dequeue(dequeued) || !rb.dequeue(dequeued)) {
+        return false;
+    }
+
+    LogEvent e3;
+    create_test_event(e3, LogLevel::Info, "third");
+    if (rb.enqueue(std::move(e3)) != EnqueueResult::Success_EmptyToNonEmpty) {
+        return false; // 清空后再次入队应再次返回 EmptyToNonEmpty
+    }
+
+    return true;
 }
 
 // ==================== 并发测试 ====================
@@ -156,7 +187,7 @@ bool test_concurrent_single_producer_consumer() {
             std::snprintf(msg, sizeof(msg), "Message %zu", i);
             create_test_event(event, LogLevel::Info, msg);
 
-            while (!rb.enqueue(std::move(event))) {
+            while (rb.enqueue(std::move(event)) == EnqueueResult::Full) {
                 std::this_thread::yield();
             }
             produced.fetch_add(1);
@@ -201,7 +232,7 @@ bool test_concurrent_multi_producer_single_consumer() {
             std::snprintf(msg, sizeof(msg), "I%zu", i);
             create_test_event(event, LogLevel::Info, msg);
 
-            while (!rb.enqueue(std::move(event))) {
+            while (rb.enqueue(std::move(event)) == EnqueueResult::Full) {
                 std::this_thread::yield();
             }
             produced.fetch_add(1);
@@ -238,7 +269,7 @@ bool test_power_of_two_capacities() {
             for (size_t i = 0; i < cap; ++i) {
                 LogEvent event;
                 create_test_event(event, LogLevel::Debug, "test");
-                if (!rb.enqueue(std::move(event))) {
+                if (rb.enqueue(std::move(event)) == EnqueueResult::Full) {
                     return false;
                 }
             }
@@ -301,6 +332,9 @@ int main() {
     // 边界测试
     run_test("Power-of-2 capacities", test_power_of_two_capacities, result);
     run_test("Buffer wraparound", test_wraparound, result);
+
+    // 边沿触发语义
+    run_test("Enqueue edge-trigger semantics", test_enqueue_edge_trigger_semantics, result);
 
     print_test_summary("RingBuffer Test Suite", result);
 
